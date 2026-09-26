@@ -1,9 +1,10 @@
 {
-  "name": "DeepSeek Harness",
-  "short_name": "DSH",
-  "start_url": "./",
-  "scope": "./",
-  "display": "standalone",
+  "id": "/",
+  "name": "DevBIM",
+  "short_name": "DevBIM",
+  "start_url": "/",
+  "scope": "/",
+  "display": "fullscreen",
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
   "icons": [
