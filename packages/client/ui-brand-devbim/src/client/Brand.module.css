@@ -1,0 +1,34 @@
+/* devBIM brand presentation. The monogram ships one variant per theme; the
+ * shell toggles body[data-ds-dark-theme] (ui-theme boot row), so CSS decides
+ * which image is visible and React stays theme-free. The outer span's
+ * position:relative comes from the layout: it sizes the mark box. */
+
+.light,
+.dark {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  visibility: hidden;
+}
+
+.mark {
+  position: relative;
+  display: inline-flex;
+}
+
+:global(body:not([data-ds-dark-theme])) .light,
+:global(body[data-ds-dark-theme]) .dark {
+  visibility: visible;
+}
+
+.name {
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 24px;
+  letter-spacing: 0.2px;
+}
+
+.accent {
+  color: #1e88e5;
+}

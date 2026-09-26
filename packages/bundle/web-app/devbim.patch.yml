@@ -1,0 +1,13 @@
+# devBIM deployment overlay for the web profile: replace the official
+# DeepSeek Harness brand occupants with the devBIM identity (sidebar
+# mark/name + conversation hero mark). Kept beside the dsh-web-app bundle so
+# the row's package resolves from this layer's own dependencies.
+# Launch: dsh web --patch packages/bundle/web-app/devbim.patch.yml
+
+- id: ui-brand-official
+  disabled: true
+
+- insert:
+    # devBIM occupants for the sidebar brand row and the blank-session hero.
+    - id: ui-brand-devbim
+      name: '@deepseek-ai/dsh-client-ui-brand-devbim'

@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "DeepSeek Harness",
-  "short_name": "DSH",
+  "name": "DevBIM",
+  "short_name": "DevBIM",
   "start_url": "/",
   "scope": "/",
   "display": "fullscreen",
