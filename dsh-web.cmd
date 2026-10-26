@@ -97,13 +97,19 @@ if not exist "%NODEDIR%\node.exe" (
     echo ОШИБКА: не найден портативный Node: "%NODEDIR%\node.exe"
     goto :eof
 )
-where pnpm >nul 2>&1
-if errorlevel 1 (
-    echo ОШИБКА: pnpm не найден в PATH.
-    goto :eof
-)
 cd /d "%ROOT%"
 set "PATH=%NODEDIR%;%PATH%"
+rem pnpm from AppData\Roaming\npm is not on the double-clicked console PATH
+rem (the persistent user PATH lacks that folder), so fall back to the corepack
+rem shim shipped with the portable Node; it honours packageManager pnpm@11.7.0.
+set "PNPM="
+where pnpm >nul 2>&1
+if not errorlevel 1 set "PNPM=pnpm"
+if not defined PNPM if exist "%NODEDIR%\corepack.cmd" set PNPM="%NODEDIR%\corepack.cmd" pnpm
+if not defined PNPM (
+    echo ОШИБКА: pnpm не найден в PATH, и нет "%NODEDIR%\corepack.cmd".
+    goto :eof
+)
 echo Использую Node:
 node --version
 echo.
@@ -111,7 +117,7 @@ echo Запускаю dsh web - бренд devBIM.
 echo Браузер откроется сам; адрес с токеном появится ниже.
 echo Остановить сервер: Ctrl+C в этом окне, или dsh-web.cmd stop
 echo.
-call pnpm dsh web --patch "%ROOT%packages\bundle\web-app\devbim.patch.yml"
+call %PNPM% dsh web --patch "%ROOT%packages\bundle\web-app\devbim.patch.yml"
 set "EXITCODE=%errorlevel%"
 echo.
 if "%EXITCODE%"=="4294967295" (

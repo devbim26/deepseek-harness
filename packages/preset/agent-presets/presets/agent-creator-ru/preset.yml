@@ -1,0 +1,3 @@
+name: Agent Creator RU
+description: Русский режим для создания агентов DeepSeek Harness: проектирует tools/plugins, skills и собирает их в готовые presets.
+order: 98
