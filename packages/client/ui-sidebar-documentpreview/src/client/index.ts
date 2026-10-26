@@ -36,6 +36,7 @@ import { apply as registerMarkdown } from './markdown/index.ts'
 import { apply as registerHtml } from './html/index.ts'
 import { apply as registerImage } from './image/index.ts'
 import { apply as registerPdf } from './pdf/index.ts'
+import { apply as registerXlsx } from './xlsx/index.ts'
 import { apply as registerCode } from './code/index.ts'
 import { apply as registerOffice } from './office/index.ts'
 import { apply as registerExcel } from './excel/index.ts'
@@ -128,5 +129,6 @@ export function apply(ctx: ClientContext): void {
   registerPdf(ctx)
   registerOffice(ctx, config.office)
   registerExcel(ctx, config.excel)
+  registerXlsx(ctx)
   registerCode(ctx)
 }

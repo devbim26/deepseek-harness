@@ -27,9 +27,21 @@ if %errorlevel%==0 (
     echo   WARNING: port 3080 is still busy, starting anyway.
 )
 
+rem pnpm may be absent from a double-clicked console PATH (AppData\Roaming\npm
+rem is not on the persistent user PATH), so fall back to portable-Node corepack.
+set "PNPM="
+where pnpm >nul 2>&1
+if not errorlevel 1 set "PNPM=pnpm"
+if not defined PNPM if exist "%ROOT%.tools\node\corepack.cmd" set PNPM="%ROOT%.tools\node\corepack.cmd" pnpm
+if not defined PNPM (
+    echo ERROR: pnpm not found in PATH and no corepack in "%ROOT%.tools\node".
+    pause
+    exit /b 1
+)
+
 echo [2/2] Starting dsh web (devBIM branding)... The browser will open with the auth-token URL.
 node --version
-call pnpm dsh web --patch "%ROOT%packages\bundle\web-app\devbim.patch.yml"
+call %PNPM% dsh web --patch "%ROOT%packages\bundle\web-app\devbim.patch.yml"
 set "EXITCODE=%errorlevel%"
 
 echo.
