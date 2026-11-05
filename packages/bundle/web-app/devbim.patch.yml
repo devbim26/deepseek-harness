@@ -11,3 +11,17 @@
     # devBIM occupants for the sidebar brand row and the blank-session hero.
     - id: ui-brand-devbim
       name: '@deepseek-ai/dsh-client-ui-brand-devbim'
+
+    # Password gate for the public devbim.dev-bim.com deployment: an empty
+    # DEVBIM_WEB_PASSWORD (Harness/.env) registers no routes, leaving the
+    # process-token flow the only entry.
+    - id: devbim-auth
+      name: '@deepseek-ai/dsh-host-devbim-auth'
+      config:
+        password: !!js process.env.DEVBIM_WEB_PASSWORD ?? ''
+
+# The public tunnel authority joins the /api Host/Origin trust fence (the
+# documented deployment extension of the connection row's expression).
+- id: connection
+  config:
+    trustedHosts: !!js "['devbim.dev-bim.com', ...ctx.webRuntime.trustedHosts]"
