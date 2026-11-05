@@ -63,6 +63,8 @@ goto :eof
 
 :do_stop
 call :find_server
+rem Stop the public devbim tunnel connector alongside the server.
+powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='cloudflared.exe'\" | Where-Object { $_.CommandLine -match 'config-devbim' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }" >nul 2>&1
 if "%SERVER_PID%"=="" (
     echo Останавливать нечего: сервер не запущен.
     goto :eof
@@ -98,6 +100,11 @@ if not exist "%NODEDIR%\node.exe" (
     goto :eof
 )
 cd /d "%ROOT%"
+rem DEVBIM_WEB_PASSWORD (public login page) lives in .env, never here.
+set "ENV_FILE=%ROOT%.env"
+if exist "%ENV_FILE%" (
+    for /f "usebackq eol=# tokens=1,* delims==" %%A in ("%ENV_FILE%") do set "%%A=%%B"
+)
 set "PATH=%NODEDIR%;%PATH%"
 rem pnpm from AppData\Roaming\npm is not on the double-clicked console PATH
 rem (the persistent user PATH lacks that folder), so fall back to the corepack
@@ -117,6 +124,19 @@ echo Запускаю dsh web - бренд devBIM.
 echo Браузер откроется сам; адрес с токеном появится ниже.
 echo Остановить сервер: Ctrl+C в этом окне, или dsh-web.cmd stop
 echo.
+rem Public tunnel window: skip when a devbim tunnel connector already runs.
+powershell -NoProfile -Command "if (Get-CimInstance Win32_Process -Filter \"Name='cloudflared.exe'\" | Where-Object { $_.CommandLine -match 'config-devbim' }) { exit 1 } else { exit 0 }" >nul 2>&1
+if errorlevel 1 (
+    echo Туннель devbim.dev-bim.com уже запущен - окно не дублирую.
+    goto :tunnel_up
+)
+if exist "%USERPROFILE%\.cloudflared\config-devbim.yml" (
+    start "Tunnel devbim" cmd /k "cd /d "%USERPROFILE%\.cloudflared" && cloudflared.exe tunnel --config config-devbim.yml run devbim"
+    echo Публичный адрес: https://devbim.dev-bim.com/ - вход по паролю из .env
+) else (
+    echo Пропускаю туннель: нет %USERPROFILE%\.cloudflared\config-devbim.yml
+)
+:tunnel_up
 call %PNPM% dsh web --patch "%ROOT%packages\bundle\web-app\devbim.patch.yml"
 set "EXITCODE=%errorlevel%"
 echo.

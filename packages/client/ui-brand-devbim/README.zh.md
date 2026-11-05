@@ -7,7 +7,7 @@ kind: "package-reference"
 
 [English](README.md) | 中文
 
-## 摘要
+## 概述
 
 本包为浏览器构建提供侧栏与空白会话首屏中的 devBIM 标识与名称。它替代 `dsh-client-ui-brand-official`：通过 patch overlay 挂载到浏览器 roster，并禁用官方品牌行。dB 字标以两个 PNG 变体交付（浅色面用蓝 `#1E88E5`，深色面用白），由 CSS 依据外壳切换的主题属性择一显示。它没有运行时状态，也不影响模型请求。
 
@@ -18,7 +18,7 @@ kind: "package-reference"
 - [延伸阅读](#further-exploration)
 - [Model Experience](#model-experience)
 - [已知限制与后续工作](#known-limitations-and-deferred-work)
-- [开发注记](#dev-note)
+- [开发备注](#dev-note)
 
 -----
 
@@ -75,7 +75,7 @@ kind: "package-reference"
 - **浏览器标题独立** — `DSH_CLIENT_TITLE` 在构建时选定标题文本，而非通过 UI slot。
 
 <a id="dev-note"></a>
-### 开发注记
+### 开发备注
 
 <details>
 <summary>维护者的工作背景 — 点击展开</summary>

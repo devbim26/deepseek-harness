@@ -4,6 +4,16 @@
 $root = $PSScriptRoot
 $out = Join-Path $env:TEMP 'dsh-web.out.log'
 $err = Join-Path $env:TEMP 'dsh-web.err.log'
+# Load KEY=VALUE lines from the repo .env (skips # comments); the public
+# login gate reads DEVBIM_WEB_PASSWORD from the process environment.
+$envFile = Join-Path $root '.env'
+if (Test-Path $envFile) {
+  Get-Content $envFile | ForEach-Object {
+    if ($_ -notmatch '^\s*#' -and $_ -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$') {
+      Set-Item -Path ('Env:' + $Matches[1]) -Value $Matches[2].Trim()
+    }
+  }
+}
 # Start-Process joins ArgumentList with spaces and never quotes, so any element
 # containing a space (this checkout's path does) must carry its own quotes.
 $overlay = '"' + (Join-Path $root 'packages\bundle\web-app\devbim.patch.yml') + '"'
