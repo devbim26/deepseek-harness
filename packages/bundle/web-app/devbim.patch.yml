@@ -20,6 +20,19 @@
       config:
         password: !!js process.env.DEVBIM_WEB_PASSWORD ?? ''
 
+    # The drawing5 MCP server (Streamable HTTP on 127.0.0.1:8808) publishes the
+    # АР drawing set as agent tools: list_sheets, search, get_sheet,
+    # get_health, extract_stamps. The bearer key comes from the launcher
+    # environment (Harness/.env), so no credential is committed here.
+    - id: mcp-drawing5
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: drawing5
+        transport: streamable-http
+        url: http://127.0.0.1:8808/mcp
+        headers:
+          Authorization: !!js '`Bearer ${process.env.DRAWING5_KEY}`'
+
 # The public tunnel authority joins the /api Host/Origin trust fence (the
 # documented deployment extension of the connection row's expression).
 - id: connection
