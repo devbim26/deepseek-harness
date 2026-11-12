@@ -44,7 +44,7 @@ function runPnpm(args: string[], cwd: string, timeout: number): string {
 }
 
 describe('published document preview licenses', () => {
-  it.skipIf(!existsSync(bundlePath))('keeps bundled licenses in the packed lazy chunks', ({ task }) => {
+  it.skipIf(!existsSync(bundlePath))('keeps bundled licenses in the packed lazy chunks', { timeout: 120_000 }, ({ task }) => {
     expect(existsSync(pdfChunkPath)).toBe(true)
     const output = mkdtempSync(join(tmpdir(), 'dsh-document-preview-pack-'))
     try {

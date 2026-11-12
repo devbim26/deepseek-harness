@@ -106,6 +106,12 @@ async function request(port: number, path: string, init?: RequestInit): Promise<
   }
 }
 
+/** The bound ephemeral port; these tests only observe a listening server. */
+function boundPort(server: { port: number | undefined }): number {
+  if (server.port === undefined) throw new Error('webserver port was not bound')
+  return server.port
+}
+
 /** POST with a fully controlled header set, bypassing fetch's Host handling. */
 function rawPost(port: number, path: string, headers: Record<string, string>, body: string): Promise<number> {
   return new Promise((resolve, reject) => {
@@ -122,7 +128,7 @@ describe('real Loader composition', () => {
   it('redirects unauthenticated visits to the login page and exchanges the password for a session', { timeout: 60_000 }, async () => {
     const loaded = await loadComposition(() => activeGate('sekret'))
     expect([...loaded.loader.entries()].filter(entry => entry.fiber === undefined && !entry.disabled)).toEqual([])
-    const port = loaded.webServer.port
+    const port = boundPort(loaded.webServer)
 
     // Unauthenticated index visit → the login page; the page is self-contained.
     expect(await request(port, '/')).toMatchObject({ status: 303, location: '/devbim/login' })
@@ -167,7 +173,7 @@ describe('real Loader composition', () => {
     expect(login.location).toMatch(/^\/\?token=/)
     if (login.location === null) throw new Error('login did not redirect to the token exchange')
     const exchange = await request(port, login.location)
-    expect(exchange).toMatchObject({ status: 303, location: '/' })
+    expect(exchange).toMatchObject({ status: 303, location: './' })
     const setCookie = exchange.setCookie
     if (setCookie === null) throw new Error('token exchange did not set a cookie')
     const cookie = setCookie.split(';', 1)[0]!
@@ -195,7 +201,7 @@ describe('real Loader composition', () => {
     const loaded = await loadComposition(() => ['  config:', "    password: 'sekret'"])
     expect([...loaded.loader.entries()].filter(entry => entry.fiber === undefined && !entry.disabled)).toEqual([])
     // The gate registers and redirects before any dist byte is read.
-    expect(await request(loaded.webServer.port, '/')).toMatchObject({ status: 303, location: '/devbim/login' })
+    expect(await request(boundPort(loaded.webServer), '/')).toMatchObject({ status: 303, location: '/devbim/login' })
   })
 
   it('registers nothing when the password is empty', { timeout: 60_000 }, async () => {
@@ -203,7 +209,7 @@ describe('real Loader composition', () => {
     expect([...loaded.loader.entries()].filter(entry => entry.fiber === undefined && !entry.disabled)).toEqual([])
     // No gate route and no fallback owner in this composition: plain 404, the
     // pre-gate surface (the fallback keeps the index when it is mounted).
-    expect(await request(loaded.webServer.port, '/')).toMatchObject({ status: 404 })
-    expect(await request(loaded.webServer.port, '/devbim/login')).toMatchObject({ status: 404 })
+    expect(await request(boundPort(loaded.webServer), '/')).toMatchObject({ status: 404 })
+    expect(await request(boundPort(loaded.webServer), '/devbim/login')).toMatchObject({ status: 404 })
   })
 })

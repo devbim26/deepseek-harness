@@ -171,7 +171,7 @@ export function apply(ctx: Context, config: Config): void {
   if (config.password === '') return
   const distIndex = config.distIndex !== '' ? config.distIndex : defaultDistIndex()
   const renderIndex = async (): Promise<string> =>
-    ctx.webServer.renderIndex(await readFile(distIndex, 'utf8'))
+    ctx.webServer.renderIndex(await readFile(distIndex, 'utf8'), ctx.connection.browserPeer)
       .replace(/<head(?:\s[^>]*)?>/i, open => `${open}<base href="/">`)
 
   // A dist read failure propagates to the webserver's per-request guard
@@ -195,7 +195,7 @@ export function apply(ctx: Context, config: Config): void {
       /* v8 ignore next -- node:http always sets url on server requests */
       const url = new URL(req.url ?? '/', 'http://dsh.invalid')
       // A token-bearing request is wholly Connection's: the exchange mints
-      // the cookie and redirects to /, every other case keeps its 401.
+      // the cookie and redirects to ./, every other case keeps its 401.
       if (url.searchParams.has('token')) {
         ctx.connection.authorizeIndex(req, res)
         return

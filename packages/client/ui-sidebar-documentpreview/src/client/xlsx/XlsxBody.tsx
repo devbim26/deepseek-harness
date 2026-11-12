@@ -228,7 +228,7 @@ export function XlsxBody({ content, t }: XlsxBodyProps): ReactNode {
 
   const sheet = useMemo(() => state?.workbook?.sheets[active], [state?.workbook, active])
   if (data === undefined) return <p className={css.status} role="alert">{t('unsupported')}</p>
-  if (state?.data !== data) return <LoadingIndicator className={css.status} label={t('loading')} />
+  if (state?.data !== data) return <p className={css.status}><LoadingIndicator label={t('loading')} /></p>
   if (state.failed === true) return <p className={css.status} role="alert">{t('failed')}</p>
   if (state.workbook === undefined || state.workbook.sheets.length === 0 || sheet === undefined) {
     return <p className={css.status}>{t('empty')}</p>

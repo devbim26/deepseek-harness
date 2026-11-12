@@ -8,8 +8,8 @@ import { en, zh } from './locales.ts'
 /** XLSX implementation identity, shared by metadata and the keyed slot. */
 export const XLSX_BODY_ID = '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/xlsx'
 
-/** File suffixes rendered by the builtin XLSX body. */
-export const XLSX_EXTENSIONS = ['xlsx', 'xlsm'] as const
+/** File suffixes rendered by the builtin XLSX body; `.xlsx` stays with the excel body. */
+export const XLSX_EXTENSIONS = ['xlsm'] as const
 
 /**
  * Describe the builtin XLSX renderer independently from its keyed body slot.
