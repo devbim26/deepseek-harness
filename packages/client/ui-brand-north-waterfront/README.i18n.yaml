@@ -1,0 +1,37 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/client/ui-brand-north-waterfront/README.md
+/:
+  en: 2669a158e463848c
+  zh: 94abcf4903d261fc
+/deepseek-ai-dsh-client-ui-brand-north-waterfront:
+  en: 8ceb4f1f01200f67
+  zh: f4912ab84ceaa1a4
+/deepseek-ai-dsh-client-ui-brand-north-waterfront/summary:
+  en: ddac28dc714289dc
+  zh: 9bc966397d701880
+/deepseek-ai-dsh-client-ui-brand-north-waterfront/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: fba51714eb33b2ca
+/deepseek-ai-dsh-client-ui-brand-north-waterfront/use-this-package:
+  en: c9bca2afa5cdc95d
+  zh: f1ae6a2c98138d72
+/deepseek-ai-dsh-client-ui-brand-north-waterfront/understand-the-implementation:
+  en: 22b863f417ab5fba
+  zh: 752bda9d2473b560
+/deepseek-ai-dsh-client-ui-brand-north-waterfront/further-exploration:
+  en: 5698036d369aee48
+  zh: 444830c75e4f70b5
+/deepseek-ai-dsh-client-ui-brand-north-waterfront/model-experience:
+  en: 618008c7641070e7
+  zh: efbc68402fc98499
+/deepseek-ai-dsh-client-ui-brand-north-waterfront/model-experience/kv-cache-effect:
+  en: ca75c51c89c2c9b0
+  zh: bacec35330ccc487
+/deepseek-ai-dsh-client-ui-brand-north-waterfront/known-limitations-and-deferred-work:
+  en: a67f9f3744468e1e
+  zh: 126892b4f26ec4ca
+/deepseek-ai-dsh-client-ui-brand-north-waterfront/known-limitations-and-deferred-work/dev-note:
+  en: 836461217bbb4da3
+  zh: ef26881ce848e538

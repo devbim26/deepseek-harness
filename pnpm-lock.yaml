@@ -3001,6 +3001,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-brand-devbim':
         specifier: workspace:*
         version: link:../../client/ui-brand-devbim
+      '@deepseek-ai/dsh-client-ui-brand-north-waterfront':
+        specifier: workspace:*
+        version: link:../../client/ui-brand-north-waterfront
       '@deepseek-ai/dsh-client-ui-brand-official':
         specifier: workspace:*
         version: link:../../client/ui-brand-official
@@ -4015,7 +4018,7 @@ importers:
   packages/client/ui-brand-north-waterfront:
     devDependencies:
       '@deepseek-ai/cordis':
-        specifier: workspace:^
+        specifier: workspace:~
         version: link:../../../vendor/cordis
       '@deepseek-ai/dsh-client-ui-conversation':
         specifier: workspace:^
