@@ -1817,6 +1817,29 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-hooks-codex -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-host-devbim-auth -->
+<a id="deepseek-aidsh-host-devbim-auth"></a>
+
+## `@deepseek-ai/dsh-host-devbim-auth`
+
+- `inject`: `webServer` · `connection`
+- `source`: [`packages/host/devbim-auth/src/index.ts:30`](../packages/host/devbim-auth/src/index.ts)
+
+```ts config-catalog
+/** Plugin config: the shared entry secret plus the dist anchor override. */
+export interface Config {
+  /** Shared entry password; empty disables the gate entirely. */
+  password: string
+  /**
+   * Absolute index.html path the gate serves for authenticated visits.
+   * Empty resolves the built Web frontend dist, the same manifest anchor
+   * the Web bundle glue uses.
+   */
+  distIndex: string
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-host-devbim-auth -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-host-directory-picker-browse -->
 <a id="deepseek-aidsh-host-directory-picker-browse"></a>
 
@@ -5094,6 +5117,7 @@ export interface Config {
 | `@deepseek-ai/dsh-client-ui-agent-team` | — | [`packages/client/ui-agent-team/src/index.ts`](../packages/client/ui-agent-team/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-approval` | — | [`packages/client/ui-approval/src/index.ts`](../packages/client/ui-approval/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-attachment` | — | [`packages/client/ui-attachment/src/index.ts`](../packages/client/ui-attachment/src/index.ts) |
+| `@deepseek-ai/dsh-client-ui-brand-devbim` | — | [`packages/client/ui-brand-devbim/src/index.ts`](../packages/client/ui-brand-devbim/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-brand-official` | — | [`packages/client/ui-brand-official/src/index.ts`](../packages/client/ui-brand-official/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-chat` | — | [`packages/client/ui-chat/src/index.ts`](../packages/client/ui-chat/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-commands` | — | [`packages/client/ui-commands/src/index.ts`](../packages/client/ui-commands/src/index.ts) |

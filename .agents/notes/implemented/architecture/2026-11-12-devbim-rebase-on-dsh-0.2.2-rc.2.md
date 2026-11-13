@@ -4,11 +4,11 @@ Status: implemented
 
 ## Problem
 
-The devBIM history was a commit layer over the snapshot `4cfefd43` (content of fork master `aa8262e`), 10 394 commits behind upstream `deepseek-ai/deepseek-harness` master. Upstream 0.2.2-rc.2 ships a native Excel document preview, solution-only client-face TypeScript projects, the directory-relative token-exchange redirect in `Connection.authorizeIndex`, and requires `node >=24.9.0`. Staying on the snapshot would fork the base permanently and strand every future upstream fix.
+The devBIM history was a commit layer over the fork-master snapshot, 10 394 commits behind upstream `deepseek-ai/deepseek-harness` master. Upstream 0.2.2-rc.2 ships a native Excel document preview, solution-only client-face TypeScript projects, the directory-relative token-exchange redirect in `Connection.authorizeIndex`, and requires `node >=24.9.0`. Staying on the snapshot would fork the base permanently and strand every future upstream fix.
 
 ## Decision
 
-Branch `internet-rebase-0.2.2` replays the seven devBIM commits onto upstream master `e8f7b93a` (release 0.2.2-rc.2); the snapshot commit is dropped. Local `master` and `internet` keep the pre-rebase history until this branch is validated, and the fork on GitHub is left untouched.
+Branch `internet-rebase-0.2.2` replays the seven devBIM commits onto the upstream release `0.2.2-rc.2` master; the snapshot commit is dropped. Local `master` and `internet` keep the pre-rebase history until this branch is validated, and the fork on GitHub is left untouched.
 
 Conflict resolutions: the devBIM favicon and manifest identity win the brand seats, with the upstream-added `background_color` and `theme_color` kept; `packages/bundle/web-app/package.json` takes the upstream dependency list plus `dsh-client-ui-brand-devbim`, `dsh-host-devbim-auth`, and `dsh-mcp-client` (the upstream package now lives at `packages/mcp/mcp-client`); `pnpm-lock.yaml` follows the upstream file with regenerated workspace importers; the slot catalog keeps the upstream `declaredBy` wording with the devBIM `DevBimHeroMark` occupant; `.gitignore` unions the upstream CUA record entry with `.mimosa/`.
 
@@ -26,7 +26,7 @@ API alignment: the token-exchange test expectation and the devbim-auth source co
 
 ## Consequences
 
-The devBIM commits sit on upstream master `e8f7b93a` (0.2.2-rc.2); the dropped snapshot commit removes fork master `aa8262e` from the ancestry, so the local `master` and `internet` branches diverge from this line until it is validated and they are re-pointed. Excel documents with an `.xlsx` extension now serve the upstream native preview; only `.xlsm` reaches the devBIM body.
+The devBIM commits sit on the upstream release `0.2.2-rc.2` master; the dropped snapshot commit removes the fork master before the rebase from the ancestry, so the local `master` and `internet` branches diverge from this line until it is validated and they are re-pointed. Excel documents with an `.xlsx` extension now serve the upstream native preview; only `.xlsm` reaches the devBIM body.
 
 The toolchain requires `node >=24.9.0`: builds and tests run through the portable Node 24 at `C:\Users\Lenovo\node24-portable\` until a permanent local Node 24 install lands. Upstream contracts — the directory-relative token-exchange redirect and solution-only client-face configs — are now the local ones, and the devbim-auth source comment and the `ui-brand-devbim` tsconfig references follow them.
 

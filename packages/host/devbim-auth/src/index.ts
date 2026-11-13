@@ -95,7 +95,12 @@ function wrongPasswordNote(wrongPassword: boolean): string {
     : ''
 }
 
-/** The self-contained devBIM password page; no asset requests precede the session. */
+/**
+ * The self-contained devBIM password page; no asset requests precede the session.
+ *
+ * @param wrongPassword - render the wrong-password error block after a failed attempt.
+ * @returns the complete login page as an HTML string.
+ */
 export function loginPage(wrongPassword: boolean): string {
   return `<!doctype html>
 <html lang="ru">

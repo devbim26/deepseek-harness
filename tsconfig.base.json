@@ -421,6 +421,10 @@
       "@deepseek-ai/dsh-native-command/types": ["./packages/util/native-command/src/types.ts"],
       "@deepseek-ai/dsh-message-quotes/client": ["./packages/session/message-quotes/src/client/index.ts"],
       "@deepseek-ai/dsh-ptc-runtime-node/configuration": ["./packages/ptc-runtime/ptc-runtime-node/src/configuration.ts"],
+      // devBIM overlay packages are devbim-named without their group prefixes,
+      // so the generated aliases cannot map them; these two stay hand-written.
+      "@deepseek-ai/dsh-client-ui-brand-devbim": ["./packages/client/ui-brand-devbim/src"],
+      "@deepseek-ai/dsh-host-devbim-auth": ["./packages/host/devbim-auth/src"],
       // BEGIN generated package aliases — pnpm run gen-tsconfig-paths
       "@deepseek-ai/dsh-acp": ["./packages/acp/acp/src"],
       "@deepseek-ai/dsh-acp-app": ["./packages/bundle/acp-app/src"],

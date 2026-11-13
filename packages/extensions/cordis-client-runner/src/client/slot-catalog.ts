@@ -4599,6 +4599,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'client-ui-sidebar-documentpreview OfficeBody',
       'client-ui-sidebar-documentpreview LazyPdfBody',
       'client-ui-sidebar-documentpreview TextBody',
+      'client-ui-sidebar-documentpreview XlsxBody',
     ],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'sidebar.right.tab.document\', () => ctx.slots.register(\n      { name: \'sidebar.right.tab.document\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
