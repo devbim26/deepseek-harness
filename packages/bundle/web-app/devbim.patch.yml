@@ -20,21 +20,39 @@
       config:
         password: !!js process.env.DEVBIM_WEB_PASSWORD ?? ''
 
-    # The drawing5 MCP server (Streamable HTTP on 127.0.0.1:8808) publishes the
-    # АР drawing set as agent tools: list_sheets, search, get_sheet,
-    # get_health, extract_stamps. The bearer key comes from the launcher
-    # environment (Harness/.env), so no credential is committed here.
-    - id: mcp-drawing5
-      name: '@deepseek-ai/dsh-mcp-client'
-      config:
-        serverName: drawing5
-        transport: streamable-http
-        url: http://127.0.0.1:8808/mcp
-        headers:
-          Authorization: !!js '`Bearer ${process.env.DRAWING5_KEY}`'
-
-# The public tunnel authority joins the /api Host/Origin trust fence (the
-# documented deployment extension of the connection row's expression).
-- id: connection
+# drawing5 подключает плагин dsh-plugin-drawing5 (он же регистрирует
+# скилл drawing5-mcp и окно «Чертежи»). Строка ниже — переопределение
+# строки плагина: верхнеуровневая, без insert:, тот же id: drawing5-mcp —
+# задаёт деплой-адрес и токен. Вставка с тем же serverName вместо этого
+# добавила бы вторую строку и откатила весь набор инструментов агента.
+# Инструменты mcp__drawing5__*: list_developments, list_houses,
+# list_documents, upload_pdf, get_document, list_sheets, search, get_sheet,
+# get_sheet_images, extract_stamps, get_health.
+# Токен — из launcher-окружения (Harness/.env), в конфиг не коммится.
+- id: drawing5-mcp
+  name: '@deepseek-ai/dsh-mcp-client'
   config:
-    trustedHosts: !!js "['devbim.dev-bim.com', ...ctx.webRuntime.trustedHosts]"
+    serverName: drawing5
+    transport: streamable-http
+    url: http://127.0.0.1:8808/mcp
+    headers:
+      Authorization: !!js '`Bearer ${process.env.DRAWING5_KEY}`'
+    toolCallTimeoutMs: 120000
+
+# Окно «Чертежи» (модуль плагина) по умолчанию смотрит на облако и читает
+# DRAWING5_API_KEY; на деплой-машине сервер и токен те же, что у
+# MCP-строки выше, поэтому строка модуля переопределяется тоже.
+- id: drawing5-skill
+  name: dsh-plugin-drawing5
+  config:
+    serverUrl: http://127.0.0.1:8808
+    token: !!js process.env.DRAWING5_KEY ?? ''
+
+# The public tunnel authority joins the /api Host/Origin trust fence. The
+# bundle's connection row injects `webStartup`; this overlay restates the
+# injection so the expression may read the invocation's `--trusted-host`
+# values alongside the tunnel authority.
+- id: connection
+  inject: [webStartup]
+  config:
+    trustedHosts: !!js "['devbim.dev-bim.com', ...ctx.webStartup.trustedHosts]"
