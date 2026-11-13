@@ -18,6 +18,18 @@ API alignment: the token-exchange test expectation and the devbim-auth source co
 
 `document-preview-license-bundle.client.spec.ts` sets an explicit 120 s test timeout. The test propagates `task.timeout` into the `spawnSync` call for `pnpm pack`; packing 374 files takes about 30 s on the devBIM Windows machine, and the previous default 5 s aborted the child before any assertion ran.
 
+## Alternatives considered
+
+**Stay on the snapshot layer.** Keeps zero migration risk and leaves every devBIM commit untouched, but the base forks permanently: 10 394 upstream commits behind, every future upstream fix stranded, and the next unavoidable sync harder. Lost to the rebase because the fork cost compounds while the snapshot buys nothing the rebase does not.
+
+**Delete the devBIM xlsx module instead of narrowing its claims.** Upstream's native Excel preview would serve `.xlsx`, and the devBIM body would only keep `.xlsm`. Rejected for now: the devBIM xlsx body is the surface the devBIM clients already see, and narrowing `XLSX_EXTENSIONS` to `['xlsm']` keeps both previews working; the deletion stays available if `.xlsm` support turns out to be unneeded.
+
+## Consequences
+
+The devBIM commits sit on upstream master `e8f7b93a` (0.2.2-rc.2); the dropped snapshot commit removes fork master `aa8262e` from the ancestry, so the local `master` and `internet` branches diverge from this line until it is validated and they are re-pointed. Excel documents with an `.xlsx` extension now serve the upstream native preview; only `.xlsm` reaches the devBIM body.
+
+The toolchain requires `node >=24.9.0`: builds and tests run through the portable Node 24 at `C:\Users\Lenovo\node24-portable\` until a permanent local Node 24 install lands. Upstream contracts — the directory-relative token-exchange redirect and solution-only client-face configs — are now the local ones, and the devbim-auth source comment and the `ui-brand-devbim` tsconfig references follow them.
+
 ## Toolchain
 
 Upstream `engines` requires `node >=24.9.0`: the tsdown client bundle pass loads `tsdown.config.ts` through Node type stripping (`--config-loader native`), which Node 22.17 cannot do, so `pnpm run build` cannot complete on the previous local Node. A portable Node 24.22.3 at `C:\Users\Lenovo\node24-portable\` runs builds and tests through a `PATH` override; installing Node 24 as the permanent local Node is the follow-up.
