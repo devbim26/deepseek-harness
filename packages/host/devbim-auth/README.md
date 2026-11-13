@@ -36,7 +36,7 @@ Compose this plugin in the devBIM Web deployment layer (the `devbim.patch.yml` o
     password: !!js process.env.DEVBIM_WEB_PASSWORD ?? ''
 ```
 
-`password` is the deployment-varying secret; empty disables the gate (no routes register, and the fallback keeps serving the index through the token flow). `distIndex` overrides the built frontend index location, which otherwise resolves from the `@deepseek-ai/dsh-web-frontend` manifest — the same anchor the Web bundle glue uses — so a normal deployment never sets it.
+`password` is the deployment-varying secret; empty disables the gate (no routes register, and the fallback keeps serving the index through the token flow). `distIndex` overrides the built frontend index location, which otherwise resolves from the `@deepseek-ai/dsh-web-frontend` manifest — the same anchor the Web bundle glue uses — so a normal deployment never sets it. `entryTitle` is the login-page tab title; `wordmarkLead` and `wordmarkAccent` are the plain and accented halves of the login wordmark; all three default to the devBIM copy, so existing deployments render identically, and each value is HTML-escaped before interpolation.
 
 ### What the gate enforces
 
@@ -60,7 +60,7 @@ The package is one function plugin with two exact webserver routes registered un
 
 ### Extension points
 
-None. The page text and paths are fixed deployment facts; a different brand or an identity provider is a different plugin.
+None. The paths are fixed deployment facts; the entry title and wordmark are config fields; an identity provider is a different plugin.
 
 </details>
 

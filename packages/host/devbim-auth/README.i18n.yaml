@@ -1,6 +1,52 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/host/devbim-auth/README.md
-README.md: 4f1d2649af520ac70e3edc00ceb3138ce9775d71
-README.zh.md: 91f25df3b9ef9f86a333708d401e9971fd848e76
+/:
+  en: 6ce3a135e9e86adb
+  zh: fcb1995b4a808ca5
+/deepseek-ai-dsh-host-devbim-auth:
+  en: 8ef709e84c3fff9e
+  zh: 1128db1c0d000783
+/deepseek-ai-dsh-host-devbim-auth/summary:
+  en: 6daeccbbb58a2ab9
+  zh: b2eeec15a8cbc921
+/deepseek-ai-dsh-host-devbim-auth/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 92c2ba4044641e5d
+/deepseek-ai-dsh-host-devbim-auth/use-this-package:
+  en: b4b472021d6ffd15
+  zh: ff712256b118435a
+/deepseek-ai-dsh-host-devbim-auth/use-this-package/minimal-configuration:
+  en: fc03b6efa119bd05
+  zh: 5d55cb4545a0de98
+/deepseek-ai-dsh-host-devbim-auth/use-this-package/what-the-gate-enforces:
+  en: aa53e58c425a150b
+  zh: 52e86e41ed2d925d
+/deepseek-ai-dsh-host-devbim-auth/use-this-package/observable-failures:
+  en: 6b0b1a2c7ff9cab1
+  zh: affd547061c5b573
+/deepseek-ai-dsh-host-devbim-auth/understand-the-implementation:
+  en: 42b15ac6321706aa
+  zh: c5500056b41ce570
+/deepseek-ai-dsh-host-devbim-auth/understand-the-implementation/design-concept:
+  en: 83a02c4fcf60f410
+  zh: bafac05db47560ed
+/deepseek-ai-dsh-host-devbim-auth/understand-the-implementation/extension-points:
+  en: 908553b49648d8af
+  zh: c05536b465c65e07
+/deepseek-ai-dsh-host-devbim-auth/further-exploration:
+  en: aed5692be9c7f35f
+  zh: 56e30c4d3d4986aa
+/deepseek-ai-dsh-host-devbim-auth/model-experience:
+  en: 54a58d8889f630a8
+  zh: 5d3cb186b3c0275b
+/deepseek-ai-dsh-host-devbim-auth/model-experience/kv-cache-effect:
+  en: ca75c51c89c2c9b0
+  zh: 52a4f7c67ab50986
+/deepseek-ai-dsh-host-devbim-auth/known-limitations-and-deferred-work:
+  en: 58981189fc98022e
+  zh: b424c188ea48b15a
+/deepseek-ai-dsh-host-devbim-auth/known-limitations-and-deferred-work/dev-note:
+  en: a768bc173384ff6d
+  zh: 8dc14c58c173be26

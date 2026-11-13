@@ -135,6 +135,7 @@ describe('real Loader composition', () => {
     const page = await request(port, '/devbim/login')
     expect(page).toMatchObject({ status: 200, type: 'text/html; charset=utf-8' })
     expect(page.body).toContain('dev<span>BIM</span>')
+    expect(page.body).toContain('<title>devBIM — вход</title>')
     expect(page.body).toContain('name="password"')
     expect(page.body).not.toContain('Неверный пароль')
     expect(await request(port, '/devbim/login', { method: 'HEAD' })).toMatchObject({ status: 200, body: '' })
@@ -195,6 +196,33 @@ describe('real Loader composition', () => {
       host: 'evil.example',
       'content-type': 'application/x-www-form-urlencoded',
     }, 'password=sekret')).toBe(403)
+  })
+
+  it('renders the entry title and wordmark from config overrides', { timeout: 60_000 }, async () => {
+    const loaded = await loadComposition(() => [
+      ...activeGate('sekret'),
+      "    entryTitle: 'NW — вход'",
+      "    wordmarkLead: 'NW'",
+      "    wordmarkAccent: ''",
+    ])
+    const port = boundPort(loaded.webServer)
+    const page = await request(port, '/devbim/login')
+    expect(page).toMatchObject({ status: 200, type: 'text/html; charset=utf-8' })
+    expect(page.body).toContain('<title>NW — вход</title>')
+    expect(page.body).toContain('>NW<span></span>')
+    expect(page.body).not.toContain('devBIM')
+  })
+
+  it('escapes HTML-significant characters in the configured entry copy', { timeout: 60_000 }, async () => {
+    const loaded = await loadComposition(() => [
+      ...activeGate('sekret'),
+      "    entryTitle: '<script>alert(1)</script>'",
+      "    wordmarkLead: 'a&b'",
+    ])
+    const page = await request(boundPort(loaded.webServer), '/devbim/login')
+    expect(page.body).toContain('<title>&lt;script&gt;alert(1)&lt;/script&gt;</title>')
+    expect(page.body).toContain('>a&amp;b<span>')
+    expect(page.body).not.toContain('<script>')
   })
 
   it('resolves the built frontend dist when distIndex is absent', { timeout: 60_000 }, async () => {

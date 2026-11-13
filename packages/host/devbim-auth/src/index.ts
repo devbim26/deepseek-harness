@@ -26,7 +26,7 @@ export const name = 'devbim-auth'
 /** Services required before the gate can register its routes. */
 export const inject = ['webServer', 'connection']
 
-/** Plugin config: the shared entry secret plus the dist anchor override. */
+/** Plugin config: the shared entry secret, the dist anchor override, and the branded entry copy. */
 export interface Config {
   /** Shared entry password; empty disables the gate entirely. */
   password: string
@@ -36,11 +36,20 @@ export interface Config {
    * the Web bundle glue uses.
    */
   distIndex: string
+  /** Login-page `<title>` text. */
+  entryTitle: string
+  /** Plain-coloured lead of the login wordmark. */
+  wordmarkLead: string
+  /** Accented tail of the login wordmark. */
+  wordmarkAccent: string
 }
 
 export const Config: z<Config> = z.object({
   password: z.string().default(''),
   distIndex: z.string().default(''),
+  entryTitle: z.string().default('devBIM — вход'),
+  wordmarkLead: z.string().default('dev'),
+  wordmarkAccent: z.string().default('BIM'),
 })
 
 const LOGIN_PATH = '/devbim/login'
@@ -95,20 +104,31 @@ function wrongPasswordNote(wrongPassword: boolean): string {
     : ''
 }
 
+/** Escape config-supplied entry copy for inline HTML interpolation. */
+function escapeHtml(text: string): string {
+  return text
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+}
+
 /**
- * The self-contained devBIM password page; no asset requests precede the session.
+ * The self-contained password page; no asset requests precede the session.
  *
  * @param wrongPassword - render the wrong-password error block after a failed attempt.
+ * @param config - validated {@link Config} carrying the entry title and wordmark halves.
  * @returns the complete login page as an HTML string.
  */
-export function loginPage(wrongPassword: boolean): string {
+export function loginPage(wrongPassword: boolean, config: Config): string {
   return `<!doctype html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>devBIM — вход</title>
+<title>${escapeHtml(config.entryTitle)}</title>
 <style>
 :root { color-scheme: light dark; }
 * { box-sizing: border-box; }
@@ -148,7 +168,7 @@ button:hover { background: #1976d2; }
 </head>
 <body>
 <main class="card">
-  <div class="wordmark">dev<span>BIM</span></div>
+  <div class="wordmark">${escapeHtml(config.wordmarkLead)}<span>${escapeHtml(config.wordmarkAccent)}</span></div>
   <p class="hint">Закрытый доступ — введите пароль</p>
   ${wrongPasswordNote(wrongPassword)}
   <form method="post" action="${LOGIN_PATH}">
@@ -220,7 +240,7 @@ export function apply(ctx: Context, config: Config): void {
     handler: async (req, res) => {
       if (req.method === 'GET' || req.method === 'HEAD') {
         res.writeHead(200, { 'content-type': HTML_MIME, 'cache-control': 'no-store' })
-        res.end(loginPage(false))
+        res.end(loginPage(false, config))
         return
       }
       if (req.method !== 'POST') {
@@ -257,7 +277,7 @@ export function apply(ctx: Context, config: Config): void {
       }
       await new Promise((resolve) => { setTimeout(resolve, WRONG_PASSWORD_DELAY_MS) })
       res.writeHead(401, { 'content-type': HTML_MIME, 'cache-control': 'no-store' })
-      res.end(loginPage(true))
+      res.end(loginPage(true, config))
     },
   }
 

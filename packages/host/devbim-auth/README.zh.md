@@ -36,7 +36,7 @@ kind: "package-reference"
     password: !!js process.env.DEVBIM_WEB_PASSWORD ?? ''
 ```
 
-`password` 是随部署变化的秘密；为空即关闭门禁（不注册路由，fallback 继续通过令牌流程服务首页）。`distIndex` 覆盖构建前端的 index 位置，默认从 `@deepseek-ai/dsh-web-frontend` 清单解析——与 Web bundle 胶水使用的锚点相同——正常部署无需设置。
+`password` 是随部署变化的秘密；为空即关闭门禁（不注册路由，fallback 继续通过令牌流程服务首页）。`distIndex` 覆盖构建前端的 index 位置，默认从 `@deepseek-ai/dsh-web-frontend` 清单解析——与 Web bundle 胶水使用的锚点相同——正常部署无需设置。`entryTitle` 是登录页的标签页标题；`wordmarkLead` 与 `wordmarkAccent` 是登录页字标的素色与强调两段；三者均默认为 devBIM 文案，现有部署渲染不变，且每个值在插值前都会做 HTML 转义。
 
 ### 门禁约束
 
@@ -60,7 +60,7 @@ kind: "package-reference"
 
 ### 扩展点
 
-无。页面文案与路径是固定的部署事实；其他品牌或身份提供者是另一个插件。
+无。路径是固定的部署事实；入口标题与字标是配置字段；身份提供者是另一个插件。
 
 </details>
 
