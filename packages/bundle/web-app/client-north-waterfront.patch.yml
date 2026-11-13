@@ -1,0 +1,168 @@
+# Client-facing deployment overlay for north-waterfront.dev-bim.com: the
+# customer site for the "Северный берег" drawings delivery. Keeps the devBIM
+# brand and password gate, hides every team-facing surface (settings, plugin
+# manager, model picker, terminal/files panels, agent-orchestration UI), and
+# narrows the agent's tool set to the drawing5 tools. Session state, stored
+# credentials, and settings live in the launcher's separate DSH_HOME, not in
+# anything this layer touches.
+# Launch: dsh-web-north-waterfront.cmd
+#   (dsh web --port 3081 --patch packages/bundle/web-app/client-north-waterfront.patch.yml)
+
+- id: ui-brand-official
+  disabled: true
+
+- insert:
+    # devBIM occupants for the sidebar brand row and the blank-session hero.
+    - id: ui-brand-devbim
+      name: '@deepseek-ai/dsh-client-ui-brand-devbim'
+
+    # Password gate: DEVBIM_WEB_PASSWORD comes from .env.north-waterfront
+    # loaded by the client launcher, so the internal and client sites keep
+    # different passwords. An empty value registers no routes, leaving the
+    # process-token flow the only entry.
+    - id: devbim-auth
+      name: '@deepseek-ai/dsh-host-devbim-auth'
+      config:
+        password: !!js process.env.DEVBIM_WEB_PASSWORD ?? ''
+
+# The client DSH_HOME stages fresh with no stored credentials: the model
+# provider key comes from the launcher env (.env.north-waterfront) and the
+# default model is pinned here, so no sign-in onboarding ever appears.
+- id: llm-pi-ai
+  name: '@deepseek-ai/dsh-llm-pi-ai'
+  config:
+    providers:
+      openrouter:
+        apiKeyEnv: OPENROUTER_API_KEY
+- id: agent-default-model
+  name: '@deepseek-ai/dsh-agent-default-model'
+  config:
+    provider: openrouter
+    model: deepseek/deepseek-v4.1-flash
+
+# The client tunnel authority joins the /api Host/Origin trust fence (the
+# documented deployment extension of the connection row's expression).
+- id: connection
+  inject: [webStartup]
+  config:
+    trustedHosts: !!js "['north-waterfront.dev-bim.com', ...ctx.webStartup.trustedHosts]"
+
+# -- Client UI surface: chat and the Чертежи window only. --------------------
+# The settings SHELL (`ui-settings`) stays enabled: it provides the
+# configForms and settingsSchema services that locale and the whole client
+# tree depend on (disabling it collapsed the web boot). It renders nothing
+# on its own — every settings section row below is disabled, and the gear
+# launcher and Ctrl+, trigger belong to ui-settings-account/general, so no
+# settings surface is reachable.
+- id: ui-settings-general
+  disabled: true
+- id: ui-settings-account
+  disabled: true
+- id: ui-settings-models
+  disabled: true
+- id: ui-settings-plugins
+  disabled: true
+- id: ui-settings-plugin-inventory
+  disabled: true
+- id: ui-settings-session-log
+  disabled: true
+- id: ui-agent-preset
+  disabled: true
+- id: subagent-model-selection-settings
+  disabled: true
+# The quota/account notice needs the accountUi service from the disabled
+# ui-settings-account row.
+- id: ui-account-notifications
+  disabled: true
+- id: ui-plugin-manager
+  disabled: true
+- id: ui-model-selection
+  disabled: true
+- id: ui-schedule
+  disabled: true
+- id: ui-jobs
+  disabled: true
+- id: ui-goal
+  disabled: true
+- id: ui-plan
+  disabled: true
+- id: ui-agent-team
+  disabled: true
+- id: ui-subagent
+  disabled: true
+- id: entry-customization
+  disabled: true
+- id: ui-sidebar-terminal
+  disabled: true
+- id: ui-sidebar-files
+  disabled: true
+- id: open-in-app
+  disabled: true
+- id: ui-open-in-app
+  disabled: true
+- id: ui-trajectory
+  disabled: true
+- id: ui-cordis
+  disabled: true
+- id: harness-dev-context
+  disabled: true
+# Client-side workspace file surfaces: the preset below drops the agent's fs
+# tools, so the panels and pickers would be dead doors into the serving
+# machine's workspace. The `workspace-files` and `file-upload` HOST services
+# stay enabled: session-controller waits on them, and disabling either left
+# the whole chat inactive.
+- id: directory-picker
+  disabled: true
+- id: ui-file-actions
+  disabled: true
+# Chat attachments are dead weight without fs tools, and drawing uploads go
+# through the Чертежи window; `ui-file-drag` stays enabled because the
+# document-preview panel waits on its service.
+- id: ui-attachment
+  disabled: true
+
+# -- Agent tool surface: drawings only. ---------------------------------------
+# Same-id override of the standard preset's whole config (a patch replaces
+# the targeted row's config, so every key is restated). Kept: persona,
+# instructions context, time context, the compaction group, ask-user, todo.
+# The drawing5 MCP rows are host-plane and stay available without a preset.
+# Dropped: shell, filesystem, search, jobs, schedule, skills, goal, plan,
+# delegation/subagents, web, present, office, plugin tools.
+- id: preset-standard
+  config:
+    id: standard
+    order: 1
+    plugins:
+      - id: persona
+        name: '@deepseek-ai/dsh-persona'
+        config:
+          prefix: You are the drawings assistant of the devBIM client site, powered by the {{model}} model. Work from the drawing5 tools and say plainly when the loaded set has no answer.
+      - id: agent-instructions
+        name: '@deepseek-ai/dsh-agent-instructions'
+        config:
+          maxBytes: 65536
+      - id: time-context
+        name: '@deepseek-ai/dsh-time-context'
+      - id: compaction
+        name: cordis:group
+        group: true
+        isolate:
+          compaction: true
+          toolResultPruner: true
+        config:
+          - id: compaction-basic
+            name: '@deepseek-ai/dsh-compaction-basic'
+          - id: command-compact
+            name: '@deepseek-ai/dsh-command-compact'
+          - id: tool-result-pruner
+            name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+            config:
+              thresholdChars: 8192
+              headChars: 4096
+              tailChars: 1024
+      - id: tool-ask-user
+        name: '@deepseek-ai/dsh-tool-ask-user'
+      - id: tool-todo
+        name: '@deepseek-ai/dsh-tool-todo'
+        config:
+          allowParallelInProgress: true
