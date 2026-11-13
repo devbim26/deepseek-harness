@@ -1,0 +1,27 @@
+/* north-waterfront brand presentation: one accent tile serves both themes,
+ * so there is no per-theme artwork and no dependence on the shell's
+ * body[data-ds-dark-theme] toggle. The accent matches the devBIM brand
+ * blue already used by the deployment family. */
+
+.mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #fff;
+  background: #1e88e5;
+  border-radius: 18%;
+  user-select: none;
+}
+
+.name {
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 24px;
+  letter-spacing: 0.2px;
+}
+
+.accent {
+  color: #1e88e5;
+}
