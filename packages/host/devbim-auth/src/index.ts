@@ -42,6 +42,12 @@ export interface Config {
   wordmarkLead: string
   /** Accented tail of the login wordmark. */
   wordmarkAccent: string
+  /**
+   * Replacement `<title>` text for every served index render (the gate's
+   * own `/` and the SPA fallback share the webserver index pipeline). Empty
+   * leaves the built bundle's baked title untouched.
+   */
+  indexTitle: string
 }
 
 export const Config: z<Config> = z.object({
@@ -50,6 +56,7 @@ export const Config: z<Config> = z.object({
   entryTitle: z.string().default('devBIM — вход'),
   wordmarkLead: z.string().default('dev'),
   wordmarkAccent: z.string().default('BIM'),
+  indexTitle: z.string().default(''),
 })
 
 const LOGIN_PATH = '/devbim/login'
@@ -186,7 +193,8 @@ button:hover { background: #1976d2; }
  * unauthenticated visits with a redirect to the login page (the token
  * exchange and cookie minting stay Connection's), the login route exchanges
  * the correct password for the session cookie, and every other path keeps
- * its existing owner.
+ * its existing owner. A non-empty `indexTitle` additionally rewrites the
+ * served index `<title>` through the webserver's index taps.
  * @param ctx - plugin context carrying the webServer and connection services.
  * @param config - validated {@link Config}.
  */
@@ -283,4 +291,12 @@ export function apply(ctx: Context, config: Config): void {
 
   ctx.effect(() => ctx.webServer.register(gate), 'devbim-auth: index gate')
   ctx.effect(() => ctx.webServer.register(login), 'devbim-auth: login route')
+  // Every index render (this gate's `/` and the SPA fallback) flows through
+  // the webserver's index pipeline, so one tap rebrands the served tab title
+  // the bundle baked at build time; the login page renders outside it.
+  if (config.indexTitle !== '') {
+    ctx.effect(() => ctx.webServer.tapIndex(html =>
+      html.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(config.indexTitle)}</title>`)),
+    'devbim-auth: index title')
+  }
 }

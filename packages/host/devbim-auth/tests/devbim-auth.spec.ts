@@ -33,11 +33,11 @@ afterEach(async () => {
 })
 
 /** Boot the Web rows plus the gate through the real Loader; `gateConfig` lines are produced after the fixture root exists. */
-async function loadComposition(gateConfig: () => string[]): Promise<Context> {
+async function loadComposition(gateConfig: () => string[], indexHtml = '<head></head><body>shell</body>'): Promise<Context> {
   root = await mkdtemp(join(tmpdir(), 'dsh-devbim-auth-'))
   const dist = join(root, 'dist')
   await mkdir(dist)
-  await writeFile(join(dist, 'index.html'), '<head></head><body>shell</body>')
+  await writeFile(join(dist, 'index.html'), indexHtml)
   const configPath = join(root, 'cordis.yml')
   await writeFile(configPath, [
     "- name: '@deepseek-ai/dsh-credentials-local'",
@@ -227,6 +227,29 @@ describe('real Loader composition', () => {
     expect(page.body).toContain('<title>&lt;script&gt;alert(1)&lt;/script&gt;</title>')
     expect(page.body).toContain('>a&amp;b<span>')
     expect(page.body).not.toContain('<script>')
+  })
+
+  it('rewrites the served index title from config on every index render', { timeout: 60_000 }, async () => {
+    const loaded = await loadComposition(() => [
+      ...activeGate('sekret'),
+      "    indexTitle: 'NW — A & B'",
+    ], '<head><title>Локальная сборка DSH</title></head><body>shell</body>')
+    const port = boundPort(loaded.webServer)
+    const login = await request(port, '/devbim/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: 'password=sekret',
+    })
+    expect(login).toMatchObject({ status: 303 })
+    if (login.location === null) throw new Error('login did not redirect to the token exchange')
+    const exchange = await request(port, login.location)
+    const setCookie = exchange.setCookie
+    if (setCookie === null) throw new Error('token exchange did not set a cookie')
+    const index = await request(port, '/', { headers: { cookie: setCookie.split(';', 1)[0]! } })
+    expect(index.body).toContain('<title>NW — A &amp; B</title>')
+    expect(index.body).toContain('shell')
+    // The login page keeps its own entry title; only index renders pass through the tap.
+    expect((await request(port, '/devbim/login')).body).toContain('<title>devBIM — вход</title>')
   })
 
   it('resolves the built frontend dist when distIndex is absent', { timeout: 60_000 }, async () => {

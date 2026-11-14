@@ -35,7 +35,7 @@ kind: "package-reference"
       name: '@deepseek-ai/dsh-client-ui-brand-north-waterfront'
 ```
 
-浏览器标题仍是构建环境事务（`DSH_CLIENT_TITLE`，由客户端打包器内联）；favicon 与 web manifest 位于 `apps/web/public`。
+浏览器标题默认取构建环境值（`DSH_CLIENT_TITLE`，由客户端打包器内联）；需要为标签页标题定品牌的部署可通过 `dsh-host-devbim-auth` 的 `indexTitle` 配置覆盖——它在每次 index 渲染时改写所服务的标题。favicon 与 web manifest 位于 `apps/web/public`。
 
 <a id="understand-the-implementation"></a>
 ## 理解实现
@@ -72,7 +72,7 @@ kind: "package-reference"
 <a id="known-limitations-and-deferred-work"></a>
 
 - **无位图或矢量画作** — 徽标是样式化文本；设计好的 NW 字形可在不动 slot 契约的前提下替换。
-- **浏览器标题独立** — `DSH_CLIENT_TITLE` 在构建时选定标题文本，而非通过 UI slot。
+- **浏览器标题独立于 slot 系统** — 默认取构建时的 `DSH_CLIENT_TITLE`；`dsh-host-devbim-auth` 的 `indexTitle` 配置在服务时按部署覆盖。
 
 <a id="dev-note"></a>
 ### 开发备注

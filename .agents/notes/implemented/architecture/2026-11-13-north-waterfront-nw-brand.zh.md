@@ -16,7 +16,7 @@ Status: implemented
 
 密码门禁保持一个包。`dsh-host-devbim-auth` 增加 config 字段 `entryTitle`（默认 `devBIM — вход`）、`wordmarkLead`（默认 `dev`）、`wordmarkAccent`（默认 `BIM`），渲染时全部做 HTML 转义；NW patch 传入 `entryTitle: 'NW — вход'`、`wordmarkLead: 'NW'`、`wordmarkAccent: ''`。门禁保持单一实现，令牌交换、会话 cookie 与 Host 隔离只被拥有和测试一次，依据 dependencies-over-hand-rolling；随部署变化的文案作为带 devBIM 默认值的已验证 Config 字段，依据 no-hardcoded-tunables。`/devbim/login` 路由路径是技术 URL，不是品牌文案，两个部署都保持不变。
 
-浏览器标签页标题是构建环境输入，不在 slot 系统之内：客户端打包器内联 `DSH_CLIENT_TITLE`（在 `apps/web/vite.config.ts` 做 HTML 转义），`dsh-web-north-waterfront.cmd` 在启动 `dsh web` 前把它设为 `NW — Северный берег`。favicon 与 web manifest 对每个部署都保持共享的 `apps/web/public` 集合；客户端专属 favicon 被推迟。
+浏览器标签页标题按请求改写，而非构建时烙定：`DSH_CLIENT_TITLE` 只在 vite 构建时被客户端打包器读取，`dsh web` 从不构建 bundle，且两个从源码启动的部署服务同一个 `apps/web/dist`，因此启动器环境变量无法只为其中一个站点定品牌。门禁为此再增加 `indexTitle`（默认为空）：非空时注册一个 `webServer.tapIndex` 变换，在每次 index 渲染时替换所服务的 `<title>`（HTML 转义）——门禁的 `/` 与 SPA fallback 共享该管线，登录页在管线之外渲染。NW patch 传入 `indexTitle: 'NW — Северный берег'`；内部 patch 不设置，保留构建烙定的标题。favicon 与 web manifest 对每个部署都保持共享的 `apps/web/public` 集合；客户端专属 favicon 被推迟。
 
 ## 考虑过的替代方案
 
@@ -32,4 +32,4 @@ Status: implemented
 - 该包携带仓库版本 `0.2.2-rc.2` 而非计划中的 `0.1.0`，因为 workspace-constraints 门禁要求每个 dsh 系列包的 manifest 携带仓库根版本。
 - `@deepseek-ai/dsh-host-devbim-auth` 携带三个带 devBIM 默认值的标题字段，未设置它们的内部部署渲染与之前完全一致；两个包 `src` 树的 per-file 覆盖率为 100% 行/分支/函数。
 - 两个部署保持各自的品牌、密码（客户端站点用 `.env.north-waterfront`，devBIM 用仓库 `.env`）、端口、隧道与 DSH_HOME 状态，由启动器和 patch 原有安排。
-- 两个站点服务相同的 favicon 与 manifest 集合，标签页标题仅通过启动器环境区分；给客户端站点自己的图标需要被推迟的 per-deployment 资产接缝。
+- 两个站点服务相同的 favicon 与 manifest 集合，标签页标题通过门禁的 `indexTitle` 配置区分（NW patch 设置，内部部署为空）；给客户端站点自己的图标需要被推迟的 per-deployment 资产接缝。

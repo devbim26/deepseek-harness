@@ -35,7 +35,7 @@ Mount this plugin in the browser roster of a deployment branded as north-waterfr
       name: '@deepseek-ai/dsh-client-ui-brand-north-waterfront'
 ```
 
-The browser title stays a build-environment concern (`DSH_CLIENT_TITLE`, baked by the client bundlers); the favicon and web manifest live in `apps/web/public`.
+The browser title defaults to the build-environment value (`DSH_CLIENT_TITLE`, baked by the client bundlers); a deployment that brands the tab title overrides it through `dsh-host-devbim-auth`'s `indexTitle` config, which rewrites every served index render. The favicon and web manifest live in `apps/web/public`.
 
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
@@ -72,7 +72,7 @@ None; this package neither assembles nor sends a provider request.
 <a id="known-limitations-and-deferred-work"></a>
 
 - **No raster or vector artwork** — the badge is styled text; a designed NW glyph can replace it without touching the slot contract.
-- **The browser title is independent** — `DSH_CLIENT_TITLE` selects title text at build time rather than through a UI slot.
+- **The browser title is independent of the slots** — it defaults to the build-time `DSH_CLIENT_TITLE`; the `dsh-host-devbim-auth` `indexTitle` config overrides it per deployment at serve time.
 
 <a id="dev-note"></a>
 ### Dev Note

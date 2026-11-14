@@ -30,6 +30,9 @@
         entryTitle: 'NW — вход'
         wordmarkLead: 'NW'
         wordmarkAccent: ''
+        # The served index <title> (the tab title): rewritten per request by
+        # the gate, because the shared built bundle keeps its bake-time title.
+        indexTitle: 'NW — Северный берег'
 
 # The client DSH_HOME stages fresh with no stored credentials: the model
 # provider key comes from the launcher env (.env.north-waterfront) and the
