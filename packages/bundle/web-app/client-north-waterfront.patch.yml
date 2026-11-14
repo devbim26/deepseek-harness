@@ -1,10 +1,11 @@
 # Client-facing deployment overlay for north-waterfront.dev-bim.com: the
-# customer site for the "Северный берег" drawings delivery. Keeps the devBIM
-# brand and password gate, hides every team-facing surface (settings, plugin
-# manager, model picker, terminal/files panels, agent-orchestration UI), and
-# narrows the agent's tool set to the drawing5 tools. The permission catalog
-# keeps only workspace-write and pins it as the new-session default, so the
-# client user works inside their own workspace folder with no access switch.
+# customer site for the "Северный берег" drawings delivery. Keeps the NW
+# (north-waterfront) brand and password gate, hides every team-facing surface
+# (settings, plugin manager, model picker, terminal/files panels,
+# agent-orchestration UI), and narrows the agent's tool set to the drawing5
+# tools. The permission catalog keeps only workspace-write and pins it as the
+# new-session default, so the client user works inside their own workspace
+# folder with no access switch.
 # Session state, stored credentials, and settings live in the launcher's
 # separate DSH_HOME, not in anything this layer touches.
 # Launch: dsh-web-north-waterfront.cmd
@@ -14,9 +15,9 @@
   disabled: true
 
 - insert:
-    # devBIM occupants for the sidebar brand row and the blank-session hero.
-    - id: ui-brand-devbim
-      name: '@deepseek-ai/dsh-client-ui-brand-devbim'
+    # north-waterfront occupants for the sidebar brand row and the blank-session hero.
+    - id: ui-brand-north-waterfront
+      name: '@deepseek-ai/dsh-client-ui-brand-north-waterfront'
 
     # Password gate: DEVBIM_WEB_PASSWORD comes from .env.north-waterfront
     # loaded by the client launcher, so the internal and client sites keep
@@ -26,6 +27,9 @@
       name: '@deepseek-ai/dsh-host-devbim-auth'
       config:
         password: !!js process.env.DEVBIM_WEB_PASSWORD ?? ''
+        entryTitle: 'NW — вход'
+        wordmarkLead: 'NW'
+        wordmarkAccent: ''
 
 # The client DSH_HOME stages fresh with no stored credentials: the model
 # provider key comes from the launcher env (.env.north-waterfront) and the
@@ -152,7 +156,7 @@
       - id: persona
         name: '@deepseek-ai/dsh-persona'
         config:
-          prefix: You are the drawings assistant of the devBIM client site, powered by the {{model}} model. Work from the drawing5 tools and say plainly when the loaded set has no answer.
+          prefix: You are the drawings assistant of the north-waterfront client site, powered by the {{model}} model. Work from the drawing5 tools and say plainly when the loaded set has no answer.
       - id: agent-instructions
         name: '@deepseek-ai/dsh-agent-instructions'
         config:

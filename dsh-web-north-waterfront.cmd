@@ -2,9 +2,9 @@
 rem Smart launcher for the client site dsh web (north-waterfront.dev-bim.com).
 rem Mirrors dsh-web.cmd with a separate port (3081), a separate DSH_HOME
 rem (isolated sessions, credentials, and settings), its own env file, and the
-rem client-restricted overlay. All logic lines are ASCII (cmd parses the file
-rem in the OEM codepage until chcp takes effect); Cyrillic appears only in
-rem echo text after the chcp 65001 line.
+rem client-restricted overlay. Logic lines before chcp 65001 stay ASCII (cmd
+rem parses the file in the OEM codepage until then); after it, Cyrillic
+rem appears in echo text and in the client tab title set line.
 rem This file must stay UTF-8 without BOM, with CRLF line endings.
 setlocal EnableExtensions
 chcp 65001 >nul
@@ -141,6 +141,8 @@ if exist "%USERPROFILE%\.cloudflared\config-north-waterfront.yml" (
     echo Пропускаю туннель: нет %USERPROFILE%\.cloudflared\config-north-waterfront.yml
 )
 :tunnel_up
+rem Client tab title: baked into the client bundle when dsh web builds it.
+set "DSH_CLIENT_TITLE=NW — Северный берег"
 call %PNPM% dsh web --patch "%ROOT%packages\bundle\web-app\client-north-waterfront.patch.yml" --port %PORT%
 set "EXITCODE=%errorlevel%"
 echo.
