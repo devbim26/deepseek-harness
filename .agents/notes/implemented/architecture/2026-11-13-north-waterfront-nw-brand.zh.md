@@ -24,11 +24,12 @@ Status: implemented
 
 **第二个门禁包 `dsh-host-north-waterfront-auth`，内嵌 NW 文案。** 否决：它会复制 `dsh-host-devbim-auth` 已经拥有并测试的登录渲染、令牌交换、cookie 处理与 Host 隔离；三个字符串 config 字段覆盖全部可见差异。
 
-**现在就发布 north-waterfront 的 favicon 与 manifest。** 推迟：favicon 与 manifest 从共享的 `apps/web/public` 集合提供，没有 per-deployment 接缝；增加一个是纯外观的后续工作，两个品牌包的 README 都记录了这次推迟。
+**现在就发布 north-waterfront 的 favicon 与 manifest。** 推迟：favicon 与 manifest 从共享的 `apps/web/public` 集合提供，没有 per-deployment 接缝；增加一个是纯外观的后续工作，两个品牌包的 README 记录了这一共享位置，但未记录这次推迟。
 
 ## 后果
 
 - 新包 `@deepseek-ai/dsh-client-ui-brand-north-waterfront`（lib、README 三件套、浏览器插件 spec）注册进 `packages/bundle/web-app`，并在 `scripts/verify-package-readme-model-experience.ts` 中审计；`client-north-waterfront.patch.yml` 以它替代 `ui-brand-official` 组合。
+- 该包携带仓库版本 `0.2.2-rc.2` 而非计划中的 `0.1.0`，因为 workspace-constraints 门禁要求每个 dsh 系列包的 manifest 携带仓库根版本。
 - `@deepseek-ai/dsh-host-devbim-auth` 携带三个带 devBIM 默认值的标题字段，未设置它们的内部部署渲染与之前完全一致；两个包 `src` 树的 per-file 覆盖率为 100% 行/分支/函数。
 - 两个部署保持各自的品牌、密码（客户端站点用 `.env.north-waterfront`，devBIM 用仓库 `.env`）、端口、隧道与 DSH_HOME 状态，由启动器和 patch 原有安排。
 - 两个站点服务相同的 favicon 与 manifest 集合，标签页标题仅通过启动器环境区分；给客户端站点自己的图标需要被推迟的 per-deployment 资产接缝。

@@ -24,11 +24,12 @@ The browser tab title is build-environment input, not a slot: the client bundler
 
 **A second gate package `dsh-host-north-waterfront-auth` with NW copy baked in.** Rejected: it would duplicate the login render, token exchange, cookie handling, and Host fence that `dsh-host-devbim-auth` already owns and tests; three string config fields cover the whole visible difference.
 
-**Ship a north-waterfront favicon and manifest now.** Deferred: the favicon and manifest are served from the shared `apps/web/public` set with no per-deployment seam; adding one is cosmetic-only follow-up work, and both brand packages' READMEs record the deferral.
+**Ship a north-waterfront favicon and manifest now.** Deferred: the favicon and manifest are served from the shared `apps/web/public` set with no per-deployment seam; adding one is cosmetic-only follow-up work, and both brand packages' READMEs record that shared location but not the deferral.
 
 ## Consequences
 
 - New package `@deepseek-ai/dsh-client-ui-brand-north-waterfront` (lib, README trio, browser-plugin spec) is registered in `packages/bundle/web-app` and audited in `scripts/verify-package-readme-model-experience.ts`; `client-north-waterfront.patch.yml` composes it in place of `ui-brand-official`.
+- The package carries the repository version `0.2.2-rc.2` instead of the plan's `0.1.0` because the workspace-constraints gate requires every dsh-family package manifest to carry the repository root version.
 - `@deepseek-ai/dsh-host-devbim-auth` carries the three title fields with devBIM defaults, so the internal deployment, which sets none of them, renders exactly as before; per-file coverage on both packages' `src` trees is 100% lines/branches/functions.
 - The two deployments keep separate brands, passwords (`.env.north-waterfront` for the client site, repo `.env` for devBIM), ports, tunnels, and DSH_HOME state, as the launcher and patches already arrange.
 - Both sites serve the same favicon and manifest set and differ in the tab title only through the launcher env; giving the client site its own icons requires the deferred per-deployment asset seam.
