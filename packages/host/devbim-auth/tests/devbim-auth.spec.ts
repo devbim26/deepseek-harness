@@ -64,13 +64,17 @@ async function loadComposition(gateConfig: () => string[]): Promise<Context> {
     ['@deepseek-ai/dsh-client-connection', Connection],
     ['@deepseek-ai/dsh-host-devbim-auth', DevBimAuth],
   ])
+  // The test stub satisfies only the v2 `import` seam EntryTree uses; the
+  // Node-internal loader interfaces cannot be constructed outside the loader
+  // package (LoadCache is unexported), so this follows the documented
+  // `loader.internal = modules` test seam cast.
   context.loader.internal = {
     version: 'v2',
     async import(specifier: string) {
       if (!modules.has(specifier)) throw new Error(`unexpected Loader import: ${specifier}`)
       return modules.get(specifier)
     },
-  } as unknown as NonNullable<typeof context.loader.internal>
+  } as never
   await context.loader.create({
     name: 'cordis:include',
     config: { path: pathToFileURL(configPath).href },

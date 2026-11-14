@@ -121,7 +121,7 @@ function escapeHtml(text: string): string {
  * @param config - validated {@link Config} carrying the entry title and wordmark halves.
  * @returns the complete login page as an HTML string.
  */
-export function loginPage(wrongPassword: boolean, config: Config): string {
+function loginPage(wrongPassword: boolean, config: Config): string {
   return `<!doctype html>
 <html lang="ru">
 <head>
