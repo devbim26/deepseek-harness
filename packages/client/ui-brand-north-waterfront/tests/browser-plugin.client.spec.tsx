@@ -2,6 +2,8 @@
 import { Context } from '@deepseek-ai/cordis'
 import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, render } from '@testing-library/react'
+import { stubConfigForm } from '@deepseek-ai/dsh-client-test-runtime'
+import { apply as applyLocale, inject as localeInject } from '@deepseek-ai/dsh-client-locale/client'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { apply, inject } from '../src/client/index.ts'
 import {
@@ -33,6 +35,11 @@ const settle = (): Promise<void> => new Promise(resolve => setTimeout(resolve, 0
 async function bench(initial: readonly string[] = [...SIDEBAR_HOLES, HERO_HOLE]) {
   const ctx = new Context()
   await ctx.plugin(SlotRegistry).await()
+  // LocaleRuntime's inject requires the settings transport; the brand plugin
+  // only exercises dictionary registration and slot occupancy here.
+  ctx.provide('remote', {} as never)
+  ctx.provide('configForms', { get: () => stubConfigForm().scope } as never)
+  await ctx.plugin({ inject: localeInject, apply: applyLocale }).await()
   const slots = ctx.get('slots') as SlotRegistry
   const registerWith = (holes: readonly string[]) => slots.register({
     name: 'root',
@@ -48,8 +55,17 @@ describe('north-waterfront browser-brand plugin', () => {
     expect(hostApply).not.toThrow()
   })
 
-  it('declares only the slot service it uses', () => {
-    expect(inject).toEqual(['slots'])
+  it('declares exactly the services it uses', () => {
+    expect(inject).toEqual(['slots', 'locale'])
+  })
+
+  it('registers the brand dictionaries under the shared namespace', async () => {
+    const subject = await bench([])
+    await subject.ctx.plugin({ inject: [...inject], apply }).await()
+    const t = subject.ctx.locale.bind('ui-brand-north-waterfront')
+    expect(t('mark.initials')).toBe('NW')
+    expect(t('name.lead')).toBe('north-')
+    expect(t('name.accent')).toBe('waterfront')
   })
 
   it('fills every brand seat once declared and removes every occupant on teardown', async () => {
@@ -82,24 +98,30 @@ describe('north-waterfront browser-brand plugin', () => {
     for (const hole of SIDEBAR_HOLES) expect(subject.slots.entries(hole)).toHaveLength(0)
   })
 
-  it('renders a text badge with no image assets at every requested size', () => {
-    const mark = render(<NorthWaterfrontBrandMark size={34} />)
+  it('renders a text badge with no image assets at every requested size', async () => {
+    const subject = await bench()
+    await subject.ctx.plugin({ inject: [...inject], apply }).await()
+    const t = subject.ctx.locale.bind('ui-brand-north-waterfront')
+    const mark = render(<NorthWaterfrontBrandMark size={34} t={t} />)
     expect(mark.container.querySelectorAll('img')).toHaveLength(0)
     const badge = mark.container.firstElementChild
     expect(badge?.textContent).toBe('NW')
     expect(badge?.getAttribute('style')).toContain('width: 34px')
     expect(badge?.getAttribute('style')).toContain('height: 34px')
-    mark.rerender(<NorthWaterfrontBrandMark size={24} />)
+    mark.rerender(<NorthWaterfrontBrandMark size={24} t={t} />)
     expect(mark.container.firstElementChild?.getAttribute('style')).toContain('width: 24px')
     mark.unmount()
 
-    const hero = render(<NorthWaterfrontHeroMark size={34} className="host-hero" />)
+    const hero = render(<NorthWaterfrontHeroMark size={34} className="host-hero" t={t} />)
     expect(hero.container.firstElementChild?.getAttribute('class')).toContain('host-hero')
     expect(hero.container.firstElementChild?.textContent).toBe('NW')
   })
 
-  it('renders the wordmark with the accented waterfront half', () => {
-    const name = render(<NorthWaterfrontBrandName />)
+  it('renders the wordmark with the accented waterfront half', async () => {
+    const subject = await bench()
+    await subject.ctx.plugin({ inject: [...inject], apply }).await()
+    const t = subject.ctx.locale.bind('ui-brand-north-waterfront')
+    const name = render(<NorthWaterfrontBrandName t={t} />)
     expect(name.container.textContent).toBe('north-waterfront')
     expect(name.container.querySelector('span > span')?.textContent).toBe('waterfront')
   })

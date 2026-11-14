@@ -43,7 +43,7 @@ The browser title stays a build-environment concern (`DSH_CLIENT_TITLE`, baked b
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-The sidebar pair installs as one declaration-aware registration set under the `sidebar.brand.mark` declaration, exactly like the official and devBIM packages; the hero mark is a second, independent set waiting on `conversation.hero.brand.mark`, so each declaring package can come and go without dragging the other seat's brand away. The browser half is [`src/client/index.ts`](src/client/index.ts); the node half is an empty Loader seat. The badge is plain styled text, so the package carries no asset files.
+The sidebar pair installs as one declaration-aware registration set under the `sidebar.brand.mark` declaration, exactly like the official and devBIM packages; the hero mark is a second, independent set waiting on `conversation.hero.brand.mark`, so each declaring package can come and go without dragging the other seat's brand away. Brand copy is locale-owned: the package registers its `ui-brand-north-waterfront` dictionaries and each occupant renders the framework-injected `t` seat, so no user-visible text is hard-coded. The browser half is [`src/client/index.ts`](src/client/index.ts); the node half is an empty Loader seat. The badge is plain styled text, so the package carries no asset files.
 
 </details>
 
@@ -84,4 +84,4 @@ The brand was introduced for the north-waterfront.dev-bim.com client site alongs
 
 </details>
 
-**Runtime invariant:** No companion is published. The package retains no mutable state, and its three slot occupants install and leave through two transactional effects.
+**Runtime invariant:** No companion is published. The package retains no mutable state, and its three slot occupants install and leave through two transactional effects beside the one dictionary-registration effect.

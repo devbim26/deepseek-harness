@@ -43,7 +43,7 @@ kind: "package-reference"
 <details>
 <summary>实现细节 — 点击展开</summary>
 
-侧栏一对占位以 `sidebar.brand.mark` 声明之下的声明感知注册组安装，与官方及 devBIM 包完全一致；首屏标识是等待 `conversation.hero.brand.mark` 的第二个独立注册组，因此两个声明包可以各自来去而不会牵连另一席位的品牌。浏览器半部是 [`src/client/index.ts`](src/client/index.ts)；node 半部是一个空 Loader 席位。徽标是纯样式化文本，本包不携带资产文件。
+侧栏一对占位以 `sidebar.brand.mark` 声明之下的声明感知注册组安装，与官方及 devBIM 包完全一致；首屏标识是等待 `conversation.hero.brand.mark` 的第二个独立注册组，因此两个声明包可以各自来去而不会牵连另一席位的品牌。品牌文案归 locale 所有：本包注册 `ui-brand-north-waterfront` 词典，每个占位渲染框架注入的 `t` 席位，用户可见文本没有硬编码。浏览器半部是 [`src/client/index.ts`](src/client/index.ts)；node 半部是一个空 Loader 席位。徽标是纯样式化文本，本包不携带资产文件。
 
 </details>
 
@@ -84,4 +84,4 @@ kind: "package-reference"
 
 </details>
 
-**运行时不变量：** 不发布 companion。本包不持有可变状态，三个 slot 占位通过两个事务性 effect 安装与撤离。
+**运行时不变量：** 不发布 companion。本包不持有可变状态，三个 slot 占位通过两个事务性 effect 安装与撤离，另有一个词典注册 effect。

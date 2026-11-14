@@ -1824,7 +1824,7 @@ export interface Config {
 - `source`: [`packages/host/devbim-auth/src/index.ts:30`](../packages/host/devbim-auth/src/index.ts)
 
 ```ts config-catalog
-/** Plugin config: the shared entry secret plus the dist anchor override. */
+/** Plugin config: the shared entry secret, the dist anchor override, and the branded entry copy. */
 export interface Config {
   /** Shared entry password; empty disables the gate entirely. */
   password: string
@@ -1834,6 +1834,12 @@ export interface Config {
    * the Web bundle glue uses.
    */
   distIndex: string
+  /** Login-page `<title>` text. */
+  entryTitle: string
+  /** Plain-coloured lead of the login wordmark. */
+  wordmarkLead: string
+  /** Accented tail of the login wordmark. */
+  wordmarkAccent: string
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-host-devbim-auth -->
@@ -5116,6 +5122,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 | `@deepseek-ai/dsh-client-ui-approval` | — | [`packages/client/ui-approval/src/index.ts`](../packages/client/ui-approval/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-attachment` | — | [`packages/client/ui-attachment/src/index.ts`](../packages/client/ui-attachment/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-brand-devbim` | — | [`packages/client/ui-brand-devbim/src/index.ts`](../packages/client/ui-brand-devbim/src/index.ts) |
+| `@deepseek-ai/dsh-client-ui-brand-north-waterfront` | — | [`packages/client/ui-brand-north-waterfront/src/index.ts`](../packages/client/ui-brand-north-waterfront/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-brand-official` | — | [`packages/client/ui-brand-official/src/index.ts`](../packages/client/ui-brand-official/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-chat` | — | [`packages/client/ui-chat/src/index.ts`](../packages/client/ui-chat/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-commands` | — | [`packages/client/ui-commands/src/index.ts`](../packages/client/ui-commands/src/index.ts) |
