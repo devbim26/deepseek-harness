@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-11-13-north-waterfront-nw-brand.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-13-north-waterfront-nw-brand.md
+/agent-note-north-waterfront-nw-brand:
+  en: 417243fd2df2472a
+  zh: 540abc5e6dc54de1
+/agent-note-north-waterfront-nw-brand/problem:
+  en: 2a764c3dc1123e19
+  zh: d65e5fb231c75504
+/agent-note-north-waterfront-nw-brand/decision:
+  en: 287ce96ad95e834a
+  zh: e4f4cab2780f3c2c
+/agent-note-north-waterfront-nw-brand/alternatives-considered:
+  en: 5904443f057c7911
+  zh: 51722ae416f22095
+/agent-note-north-waterfront-nw-brand/consequences:
+  en: f72258fe871e7676
+  zh: 33b0893e54362e15
