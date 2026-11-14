@@ -2,9 +2,11 @@
 # customer site for the "Северный берег" drawings delivery. Keeps the devBIM
 # brand and password gate, hides every team-facing surface (settings, plugin
 # manager, model picker, terminal/files panels, agent-orchestration UI), and
-# narrows the agent's tool set to the drawing5 tools. Session state, stored
-# credentials, and settings live in the launcher's separate DSH_HOME, not in
-# anything this layer touches.
+# narrows the agent's tool set to the drawing5 tools. The permission catalog
+# keeps only workspace-write and pins it as the new-session default, so the
+# client user works inside their own workspace folder with no access switch.
+# Session state, stored credentials, and settings live in the launcher's
+# separate DSH_HOME, not in anything this layer touches.
 # Launch: dsh-web-north-waterfront.cmd
 #   (dsh web --port 3081 --patch packages/bundle/web-app/client-north-waterfront.patch.yml)
 
@@ -46,6 +48,20 @@
   inject: [webStartup]
   config:
     trustedHosts: !!js "['north-waterfront.dev-bim.com', ...ctx.webStartup.trustedHosts]"
+
+# -- Access presets: one workspace folder per client user. --------------------
+# Same-id override of the base `permission` row's whole config (a patch
+# replaces the targeted row's config, so every key is restated). Only
+# workspace-write stays in the catalog and new sessions pin it as the
+# default, so the composer seat beside "+" and the "+" command popup offer
+# no read-only or full-access switch and no confirmation gate is reachable.
+- id: permission
+  config:
+    presets:
+      workspace-write:
+        sandbox: workspace-write
+        approval: ask
+    defaultPreset: workspace-write
 
 # -- Client UI surface: chat and the Чертежи window only. --------------------
 # The settings SHELL (`ui-settings`) stays enabled: it provides the
