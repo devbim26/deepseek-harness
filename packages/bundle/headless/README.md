@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-`dsh-headless` runs one dsh task from the command line and prints the final answer, then exits — no GUI, no server, no browser. Type `dsh --profile headless "run the tests"` and the agent handles it with the same model, tools, and safety defaults as every other surface. It suits scripts, CI, and one-off jobs: it opens no ports and leaves nothing running behind. It also offers a JSON event stream (`--json`) and `--session-id` to resume a conversation. Exit code 0 means the task completed; 1 means it aborted or errored. The boundary: one task per invocation, no interactive follow-up.
+`dsh-headless` runs one dsh task from the command line and prints the final answer, then exits — no GUI, no server, no browser. Type `dsh --profile headless "run the tests"` and the agent handles it with the same model, tools, and safety defaults as every other surface. Document tasks ship enabled: the packaged Office skills author Excel, Word, and PowerPoint files, the LibreOffice-backed Office tools render and convert them to PDF or PNG, and the `present` tool declares the finished files as deliverables. It suits scripts, CI, and one-off jobs: it opens no ports and leaves nothing running behind. It also offers a JSON event stream (`--json`) and `--session-id` to resume a conversation. Exit code 0 means the task completed; 1 means it aborted or errored. The boundary: one task per invocation, no interactive follow-up.
 
 ## Table of Contents
 
@@ -49,6 +49,13 @@ The task and run options use these settings:
 | `permissionMode` | session policy | Apply a configured permission preset before submitting the task, including on resume |
 
 The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-headless) is the exhaustive source for every accepted field and its JSDoc.
+
+<a id="authoring-documents-and-delivering-files"></a>
+### Authoring documents and delivering files
+
+Document tasks ship enabled. The packaged Office skills cover Excel (through Python), Word, and PowerPoint, and the Office tools render, convert, and recalculate Office files through LibreOffice; `office_convert` writes PDF copies into a private output directory that the task copies into the workspace with shell commands.
+
+After creating the files, the agent calls `present` with their paths so the run records them as final deliverables. Files must already exist in the Session workspace or another path the Session filesystem can access, and the printed final answer names the delivered paths.
 
 <a id="credentials"></a>
 ### Credentials
@@ -129,7 +136,7 @@ The runner awaits the complete application (`ctx.get('loader')?.await()`) so the
 
 ### Patch surface over base
 
-The patch rides over `dsh-base`: it inherits the projection cache and shared PTC runtime, sets the coding persona prefix and separate cwd suffix on the base `system-prompt` row, inherits native tool execution and accepts a [PTC overlay](../../../apps/cli/config/examples/ptc.yml), disables the shared HMR row, and mounts the startup provider and the runner. The cache checkpoints each persisted one-shot session for later consumers; its durability barrier flushes each covered log prefix before publishing the cache row and may split otherwise coalesced JSONL runs. The startup provider ([`src/startup.ts`](src/startup.ts)) injects `ctx.cmdlineArgs` ([`dsh-cmdline`](../../boot/cmdline/README.md)), reads the task and invocation options, prints the app's `--help`, and provides `headlessStartup`; the runner reads its task, Session identity, and output mode from lazy config. It reads the explicit CLI permission preset and approval policy directly from `headlessStartup`, with runner config as the default. The sandbox-policy row also waits for this service, retaining the base mode and workspace defaults while receiving the explicit directory grants.
+The patch rides over `dsh-base`: it inherits the projection cache and shared PTC runtime, sets the coding persona prefix and separate cwd suffix on the base `system-prompt` row, inherits native tool execution and accepts a [PTC overlay](../../../apps/cli/config/examples/ptc.yml), disables the shared HMR row, and mounts the startup provider, the runner, and the Office skill, tool, kit, and `present` rows for document tasks. The cache checkpoints each persisted one-shot session for later consumers; its durability barrier flushes each covered log prefix before publishing the cache row and may split otherwise coalesced JSONL runs. The startup provider ([`src/startup.ts`](src/startup.ts)) injects `ctx.cmdlineArgs` ([`dsh-cmdline`](../../boot/cmdline/README.md)), reads the task and invocation options, prints the app's `--help`, and provides `headlessStartup`; the runner reads its task, Session identity, and output mode from lazy config. It reads the explicit CLI permission preset and approval policy directly from `headlessStartup`, with runner config as the default. The sandbox-policy row also waits for this service, retaining the base mode and workspace defaults while receiving the explicit directory grants.
 
 ### Exit mapping
 
