@@ -24,6 +24,25 @@
         sessionId: !!js ctx.headlessStartup.sessionId
         json: !!js ctx.headlessStartup.json
 
+    # One-shot document tasks: Office authoring skills, LibreOffice-backed
+    # render/convert/recalculate tools, and final file delivery through present.
+    - id: office-kit
+      name: '@deepseek-ai/dsh-office-kit'
+      config:
+        outputDirectory: !!js dshHomePath('office-kit', 'outputs')
+
+    # The Office tools stay registered without Kit; calls report the service's unavailable error.
+    - id: tool-office
+      name: '@deepseek-ai/dsh-tool-office'
+
+    - id: skill-office
+      name: '@deepseek-ai/dsh-skill-office'
+      config:
+        pythonEnvironment: 'user'
+
+    - id: present
+      name: '@deepseek-ai/dsh-tool-present'
+
 # Replacing config retains the base mode/root defaults while adding the CLI grants.
 - id: sandbox-policy
   inject: [headlessStartup]

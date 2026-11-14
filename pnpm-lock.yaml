@@ -2689,6 +2689,18 @@ importers:
       '@deepseek-ai/dsh-cmdline':
         specifier: workspace:*
         version: link:../../boot/cmdline
+      '@deepseek-ai/dsh-office-kit':
+        specifier: workspace:*
+        version: link:../../document/office-kit
+      '@deepseek-ai/dsh-skill-office':
+        specifier: workspace:*
+        version: link:../../skill/skill-office
+      '@deepseek-ai/dsh-tool-office':
+        specifier: workspace:*
+        version: link:../../document/tool-office
+      '@deepseek-ai/dsh-tool-present':
+        specifier: workspace:*
+        version: link:../../deliverables/tool-present
       '@deepseek-ai/dsh-util-values':
         specifier: workspace:*
         version: link:../../util/values
