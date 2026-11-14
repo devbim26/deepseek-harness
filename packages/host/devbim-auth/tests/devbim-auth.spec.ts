@@ -247,6 +247,7 @@ describe('real Loader composition', () => {
     if (setCookie === null) throw new Error('token exchange did not set a cookie')
     const index = await request(port, '/', { headers: { cookie: setCookie.split(';', 1)[0]! } })
     expect(index.body).toContain('<title>NW — A &amp; B</title>')
+    expect(index.body).toContain('<meta name="dsh-product-title" content="NW — A &amp; B">')
     expect(index.body).toContain('shell')
     // The login page keeps its own entry title; only index renders pass through the tap.
     expect((await request(port, '/devbim/login')).body).toContain('<title>devBIM — вход</title>')

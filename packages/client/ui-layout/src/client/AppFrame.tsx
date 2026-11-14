@@ -258,7 +258,15 @@ export function AppFrame({
   const onRightbarDrag = useCallback((dx: number) => {
     actions.setRightbar(rightbarBase.current - dx)
   }, [actions])
-  const productTitle = process.env.DSH_CLIENT_TITLE ?? t('brand.localBuild')
+  // A host-side rewrite of the served index (devbim-auth's indexTitle) brands
+  // the tab through the dsh-product-title meta row without a per-deployment
+  // build. Read on the first render; deployments that set none keep the
+  // build-configured or localized product title.
+  const servedTitle = useRef<string | null>(null)
+  if (servedTitle.current === null) {
+    servedTitle.current = document.querySelector('meta[name="dsh-product-title"]')?.getAttribute('content') ?? ''
+  }
+  const productTitle = servedTitle.current !== '' ? servedTitle.current : process.env.DSH_CLIENT_TITLE ?? t('brand.localBuild')
   // The rendered template lets the grid solve the squeeze natively: the centre
   // declares its protected minimum and the right column bids up to the clamped
   // preference, so a window resize lands in the same layout pass as the frame

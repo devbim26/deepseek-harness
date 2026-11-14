@@ -195,6 +195,20 @@ describe('AppFrame', () => {
     expect(document.title).toBe('DSH Local Build')
   })
 
+  it('prefers a served product-title meta row over the build-configured one', () => {
+    vi.stubEnv('DSH_CLIENT_TITLE', 'Product')
+    const meta = document.createElement('meta')
+    meta.name = 'dsh-product-title'
+    meta.content = 'NW — Северный берег'
+    document.head.append(meta)
+    try {
+      mountFrame()
+      expect(document.title).toBe('NW — Северный берег')
+    } finally {
+      meta.remove()
+    }
+  })
+
   it('follows the selected durable Session title', () => {
     vi.stubEnv('DSH_CLIENT_TITLE', 'Product')
     selectedSessionTitle = 'First'

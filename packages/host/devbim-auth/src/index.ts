@@ -44,8 +44,10 @@ export interface Config {
   wordmarkAccent: string
   /**
    * Replacement `<title>` text for every served index render (the gate's
-   * own `/` and the SPA fallback share the webserver index pipeline). Empty
-   * leaves the built bundle's baked title untouched.
+   * own `/` and the SPA fallback share the webserver index pipeline), also
+   * published as a `dsh-product-title` meta row the client's title
+   * projection prefers. Empty leaves the built bundle's baked title
+   * untouched.
    */
   indexTitle: string
 }
@@ -293,10 +295,15 @@ export function apply(ctx: Context, config: Config): void {
   ctx.effect(() => ctx.webServer.register(login), 'devbim-auth: login route')
   // Every index render (this gate's `/` and the SPA fallback) flows through
   // the webserver's index pipeline, so one tap rebrands the served tab title
-  // the bundle baked at build time; the login page renders outside it.
+  // the bundle baked at build time; the login page renders outside it. The
+  // companion meta row carries the same value to the client: the app's title
+  // projection reads it so a rewrite wins over the build default without
+  // touching deployments that set no indexTitle.
   if (config.indexTitle !== '') {
     ctx.effect(() => ctx.webServer.tapIndex(html =>
-      html.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(config.indexTitle)}</title>`)),
+      html
+        .replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(config.indexTitle)}</title>`)
+        .replace(/<\/head>/i, `<meta name="dsh-product-title" content="${escapeHtml(config.indexTitle)}"></head>`)),
     'devbim-auth: index title')
   }
 }

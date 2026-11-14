@@ -16,7 +16,7 @@ Status: implemented
 
 密码门禁保持一个包。`dsh-host-devbim-auth` 增加 config 字段 `entryTitle`（默认 `devBIM — вход`）、`wordmarkLead`（默认 `dev`）、`wordmarkAccent`（默认 `BIM`），渲染时全部做 HTML 转义；NW patch 传入 `entryTitle: 'NW — вход'`、`wordmarkLead: 'NW'`、`wordmarkAccent: ''`。门禁保持单一实现，令牌交换、会话 cookie 与 Host 隔离只被拥有和测试一次，依据 dependencies-over-hand-rolling；随部署变化的文案作为带 devBIM 默认值的已验证 Config 字段，依据 no-hardcoded-tunables。`/devbim/login` 路由路径是技术 URL，不是品牌文案，两个部署都保持不变。
 
-浏览器标签页标题按请求改写，而非构建时烙定：`DSH_CLIENT_TITLE` 只在 vite 构建时被客户端打包器读取，`dsh web` 从不构建 bundle，且两个从源码启动的部署服务同一个 `apps/web/dist`，因此启动器环境变量无法只为其中一个站点定品牌。门禁为此再增加 `indexTitle`（默认为空）：非空时注册一个 `webServer.tapIndex` 变换，在每次 index 渲染时替换所服务的 `<title>`（HTML 转义）——门禁的 `/` 与 SPA fallback 共享该管线，登录页在管线之外渲染。NW patch 传入 `indexTitle: 'NW — Северный берег'`；内部 patch 不设置，保留构建烙定的标题。favicon 与 web manifest 对每个部署都保持共享的 `apps/web/public` 集合；客户端专属 favicon 被推迟。
+浏览器标签页标题按请求改写，而非构建时烙定：`DSH_CLIENT_TITLE` 只在 vite 构建时被客户端打包器读取，`dsh web` 从不构建 bundle，且两个从源码启动的部署服务同一个 `apps/web/dist`，因此启动器环境变量无法只为其中一个站点定品牌。门禁为此再增加 `indexTitle`（默认为空）：非空时注册一个 `webServer.tapIndex` 变换，在每次 index 渲染时替换所服务的 `<title>`（HTML 转义）——门禁的 `/` 与 SPA fallback 共享该管线，登录页在管线之外渲染——并把同一值发布为 `dsh-product-title` meta 行。客户端的标题投影（`AppFrame`）先于构建时或本地化的产品标题读取该 meta 行，因此改写在活体标签页中生效，而未设置 `indexTitle` 的部署保持原有的 env/本地化行为。NW patch 传入 `indexTitle: 'NW — Северный берег'`；内部 patch 不设置，保留本地化默认值。favicon 与 web manifest 对每个部署都保持共享的 `apps/web/public` 集合；客户端专属 favicon 被推迟。
 
 ## 考虑过的替代方案
 

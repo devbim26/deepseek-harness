@@ -36,7 +36,7 @@ kind: "package-reference"
     password: !!js process.env.DEVBIM_WEB_PASSWORD ?? ''
 ```
 
-`password` 是随部署变化的秘密；为空即关闭门禁（不注册路由，fallback 继续通过令牌流程服务首页）。`distIndex` 覆盖构建前端的 index 位置，默认从 `@deepseek-ai/dsh-web-frontend` 清单解析——与 Web bundle 胶水使用的锚点相同——正常部署无需设置。`entryTitle` 是登录页的标签页标题；`wordmarkLead` 与 `wordmarkAccent` 是登录页字标的素色与强调两段；三者均默认为 devBIM 文案，现有部署渲染不变，且每个值在插值前都会做 HTML 转义。`indexTitle` 通过 webserver 的 index tap 在每次 index 渲染时替换所服务的 `<title>`（应用标签页标题）——本门禁的 `/` 与 SPA fallback 都走该管线——值做 HTML 转义；为空（默认）保留构建产物在构建时烙定的标题，登录页不受影响，因为它在 index 管线之外渲染。
+`password` 是随部署变化的秘密；为空即关闭门禁（不注册路由，fallback 继续通过令牌流程服务首页）。`distIndex` 覆盖构建前端的 index 位置，默认从 `@deepseek-ai/dsh-web-frontend` 清单解析——与 Web bundle 胶水使用的锚点相同——正常部署无需设置。`entryTitle` 是登录页的标签页标题；`wordmarkLead` 与 `wordmarkAccent` 是登录页字标的素色与强调两段；三者均默认为 devBIM 文案，现有部署渲染不变，且每个值在插值前都会做 HTML 转义。`indexTitle` 通过 webserver 的 index tap 在每次 index 渲染时替换所服务的 `<title>`——本门禁的 `/` 与 SPA fallback 都走该管线——并把同一值发布为 `dsh-product-title` meta 行，客户端的标题投影会优先于构建时标题读取它；值做 HTML 转义，为空（默认）保留构建产物在构建时烙定的标题且不注入任何内容，登录页不受影响，因为它在 index 管线之外渲染。
 
 ### 门禁约束
 
