@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-11-05-devbim-drawing5-mcp-bridge.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-05-devbim-drawing5-mcp-bridge.md
-2026-11-05-devbim-drawing5-mcp-bridge.md: bc2399fd43143288da453d5f5f4b75c67b67fee3
-2026-11-05-devbim-drawing5-mcp-bridge.zh.md: 946fbf286184ebbb8b9c1a126e096c1958e8b9d1
+/agent-note-the-devbim-profile-attaches-the-drawing5-mcp-server:
+  en: d6aa9e5486a28668
+  zh: 9fbbefffb7e6258a
+/agent-note-the-devbim-profile-attaches-the-drawing5-mcp-server/problem:
+  en: 91bc1ddf51d7120e
+  zh: 29b208fba628699b
+/agent-note-the-devbim-profile-attaches-the-drawing5-mcp-server/decision:
+  en: 013112aea9240679
+  zh: d678a7fe0991323c
+/agent-note-the-devbim-profile-attaches-the-drawing5-mcp-server/verification:
+  en: f266966325686b31
+  zh: fd69b30a15d885a6
+/agent-note-the-devbim-profile-attaches-the-drawing5-mcp-server/alternatives-considered:
+  en: 054f2613e6bdabbb
+  zh: 7f57772783f90357
+/agent-note-the-devbim-profile-attaches-the-drawing5-mcp-server/consequences:
+  en: bbb6c9e125ebc2db
+  zh: 023d0a918cb5c238

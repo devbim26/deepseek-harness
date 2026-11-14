@@ -2,6 +2,8 @@
 
 Status: implemented
 
+English | [中文](2026-11-12-devbim-rebase-on-dsh-0.2.2-rc.2.zh.md)
+
 ## Problem
 
 The devBIM history was a commit layer over the fork-master snapshot, 10 394 commits behind upstream `deepseek-ai/deepseek-harness` master. Upstream 0.2.2-rc.2 ships a native Excel document preview, solution-only client-face TypeScript projects, the directory-relative token-exchange redirect in `Connection.authorizeIndex`, and requires `node >=24.9.0`. Staying on the snapshot would fork the base permanently and strand every future upstream fix.

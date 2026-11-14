@@ -1,6 +1,37 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-brand-devbim/README.md
-README.md: fc4adb4eb91b187dced00dd0bcad52bc962e35b7
-README.zh.md: a7f6d6677ad55569e81ab1eb8f4d96c9e97cdba3
+/:
+  en: 3845ec909ace1207
+  zh: 85aa489bb1a3b6fe
+/deepseek-ai-dsh-client-ui-brand-devbim:
+  en: b93d6369d04e79c7
+  zh: 98cbb66550df1dac
+/deepseek-ai-dsh-client-ui-brand-devbim/summary:
+  en: f0abb4000bfd1be1
+  zh: 49d44a97f366200e
+/deepseek-ai-dsh-client-ui-brand-devbim/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: fba51714eb33b2ca
+/deepseek-ai-dsh-client-ui-brand-devbim/use-this-package:
+  en: ceed512c24e9bb99
+  zh: 5d9c0c3281e05d7f
+/deepseek-ai-dsh-client-ui-brand-devbim/understand-the-implementation:
+  en: e006177c1734a317
+  zh: 423e882e4adaa730
+/deepseek-ai-dsh-client-ui-brand-devbim/further-exploration:
+  en: 5ea99c44a363982f
+  zh: 3a0b0c22f28aa0b2
+/deepseek-ai-dsh-client-ui-brand-devbim/model-experience:
+  en: 618008c7641070e7
+  zh: efbc68402fc98499
+/deepseek-ai-dsh-client-ui-brand-devbim/model-experience/kv-cache-effect:
+  en: ca75c51c89c2c9b0
+  zh: bacec35330ccc487
+/deepseek-ai-dsh-client-ui-brand-devbim/known-limitations-and-deferred-work:
+  en: e4974e2ab8ec478f
+  zh: 7b12c0ea8a3058d5
+/deepseek-ai-dsh-client-ui-brand-devbim/known-limitations-and-deferred-work/dev-note:
+  en: 257a0213c1da80b5
+  zh: 40fb816e33dc508f

@@ -2,6 +2,8 @@
 
 Status: implemented
 
+English | [中文](2026-11-05-devbim-public-tunnel-and-password-gate.zh.md)
+
 ## Problem
 
 `dsh web` on port 3080 (the devBIM deployment of DeepSeek Harness) was reachable only as `http://127.0.0.1:3080/?token=<launchToken>`, where the launch token prints once to the operator's console on startup and rotates every restart. Remote access (different device, different network, after a server bounce) had no entry: the token URL was unreachable and the only built-in alternative was a per-deployment client session cookie minted through the same token exchange.

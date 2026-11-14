@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-10-devbim-brand-occupants.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-10-devbim-brand-occupants.md
-2026-09-10-devbim-brand-occupants.md: 15948fe0b7b0bb5c39b49784b3f34bca5a5b3237
-2026-09-10-devbim-brand-occupants.zh.md: 5d833891b70d7f4f88c68cd0420f6a6151a6f19f
+/agent-note-devbim-brand-occupants-a-replacement-brand-package-composed-by-overlay:
+  en: dab0902c3e44bb50
+  zh: 49030a9df3a36179
+/agent-note-devbim-brand-occupants-a-replacement-brand-package-composed-by-overlay/problem:
+  en: 4ef86b2ee093aec2
+  zh: 8b287144e12b226e
+/agent-note-devbim-brand-occupants-a-replacement-brand-package-composed-by-overlay/decision:
+  en: 3a103e6fce9fd3fc
+  zh: 8547cfbd4ce16766
+/agent-note-devbim-brand-occupants-a-replacement-brand-package-composed-by-overlay/alternatives-considered:
+  en: 79b5215e873684dd
+  zh: afd433997235a7f8
+/agent-note-devbim-brand-occupants-a-replacement-brand-package-composed-by-overlay/consequences:
+  en: 25798f9a7c73bd4d
+  zh: 057c6694d3e77bb1
