@@ -1842,6 +1842,14 @@ export interface Config {
   wordmarkLead: string
   /** Accented tail of the login wordmark. */
   wordmarkAccent: string
+  /**
+   * Replacement `<title>` text for every served index render (the gate's
+   * own `/` and the SPA fallback share the webserver index pipeline), also
+   * published as a `dsh-product-title` meta row the client's title
+   * projection prefers. Empty leaves the built bundle's baked title
+   * untouched.
+   */
+  indexTitle: string
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-host-devbim-auth -->
