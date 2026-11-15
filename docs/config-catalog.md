@@ -151,6 +151,44 @@ export type Config = PresetDefinition
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-agent-preset -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-agent-preset-custom -->
+<a id="deepseek-aidsh-agent-preset-custom"></a>
+
+## `@deepseek-ai/dsh-agent-preset-custom`
+
+- `inject`: `agentPresets` · `storageDomain`
+- `refs`: [`PresetDefinition`](../packages/preset/agent-preset-registry/src/index.ts)
+- `source`: [`packages/preset/agent-preset-custom/src/config.ts:14`](../packages/preset/agent-preset-custom/src/config.ts)
+
+```ts config-catalog
+/** Config of the `agent-preset-custom` service row. */
+export interface Config {
+  /** Site persona prepended to every custom agent's instructions. */
+  instructionsPrefix: string
+  /** Fixed child rows (agent-instructions, time-context, compaction) the deployment copies from its standard preset, minus persona. */
+  basePlugins: PresetDefinition['plugins']
+  /** Whitelist: entry key → the plugin row a selecting agent mounts. */
+  allowedTools: Record<string, AllowedToolsEntry>
+  /** Name length cap. */
+  maxNameChars: number
+  /** Description length cap. */
+  maxDescriptionChars: number
+  /** Instructions length cap. */
+  maxInstructionsChars: number
+  /** Deployment-wide record cap. */
+  maxAgents: number
+}
+
+/** One whitelisted plugin row that a selecting agent mounts. */
+export interface AllowedToolsEntry {
+  /** Package name of the mounted plugin row. */
+  name: string
+  /** Optional row config; the Loader validates it when the agent mounts the row. */
+  config?: unknown
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-agent-preset-custom -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-agent-preset-registry -->
 <a id="deepseek-aidsh-agent-preset-registry"></a>
 
@@ -4451,6 +4489,25 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-tool-office -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-tool-pdf -->
+<a id="deepseek-aidsh-tool-pdf"></a>
+
+## `@deepseek-ai/dsh-tool-pdf`
+
+- `inject`: `tools` · `fs` · `workingDirectory` · `attachments` · `agents`
+- `source`: [`packages/document/tool-pdf/src/index.ts:22`](../packages/document/tool-pdf/src/index.ts)
+
+```ts config-catalog
+/** Per-call assembly limits. */
+export interface Config {
+  /** Maximum images embedded in one report. */
+  maxImages: number
+  /** Maximum stored bytes accepted for one embedded image. */
+  maxImageBytes: number
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-tool-pdf -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-tool-present -->
 <a id="deepseek-aidsh-tool-present"></a>
 
@@ -5138,6 +5195,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 | `@deepseek-ai/dsh-client-ui-conversation` | — | [`packages/client/ui-conversation/src/index.ts`](../packages/client/ui-conversation/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-cordis` | — | [`packages/extensions/ui-cordis/src/index.ts`](../packages/extensions/ui-cordis/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-creation-recommendations` | — | [`packages/experimental/client-ui-creation-recommendations/src/index.ts`](../packages/experimental/client-ui-creation-recommendations/src/index.ts) |
+| `@deepseek-ai/dsh-client-ui-custom-agents` | — | [`packages/client/ui-custom-agents/src/index.ts`](../packages/client/ui-custom-agents/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-deliverables` | `connection` · `sessionQuery` · `sessionController` · `workspaceFiles` · `fs` · `sandboxPolicy` · `workspaceChanges` | [`packages/client/ui-deliverables/src/index.ts`](../packages/client/ui-deliverables/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-directory-picker-browse` | — | [`packages/client/ui-directory-picker-browse/src/index.ts`](../packages/client/ui-directory-picker-browse/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-directory-picker-native` | — | [`packages/client/ui-directory-picker-native/src/index.ts`](../packages/client/ui-directory-picker-native/src/index.ts) |
