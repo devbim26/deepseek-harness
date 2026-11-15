@@ -5,12 +5,13 @@ import * as StorageJson from '@deepseek-ai/dsh-storage-json'
 import { DomainFacility } from '@deepseek-ai/dsh-storage-domain'
 import { harness as presetHarness } from '../../agent-preset-registry/tests/harness.ts'
 import CustomAgentPresets from '../src/index.ts'
+import type { PresetDefinition } from '@deepseek-ai/dsh-agent-preset-registry'
 import type { Context } from '@deepseek-ai/cordis'
 
 /** Deployment-authored defaults the specs assert against. */
 export const standardConfig = {
   instructionsPrefix: 'You are the drawings assistant.',
-  basePlugins: [] as readonly object[],
+  basePlugins: [] as PresetDefinition['plugins'],
   allowedTools: {
     'ask-user': { name: '@deepseek-ai/dsh-tool-ask-user' },
     todo: { name: '@deepseek-ai/dsh-tool-todo', config: { allowParallelInProgress: true } },
