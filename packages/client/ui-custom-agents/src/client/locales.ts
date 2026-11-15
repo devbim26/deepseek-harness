@@ -5,6 +5,7 @@ export type CustomAgentsKey =
   | 'open' | 'createTitle' | 'editTitle' | 'name' | 'namePlaceholder' | 'description' | 'descriptionPlaceholder'
   | 'instructions' | 'instructionsPlaceholder' | 'tools' | 'save' | 'cancel' | 'remove' | 'removeConfirm'
   | 'empty' | 'edit' | 'saved' | 'limitReached' | 'invalidInput' | 'conflict' | 'errorUnavailable' | 'charsUsed'
+  | 'nameRequired' | 'instructionsRequired'
 
 /** English copy. */
 export const en: Record<CustomAgentsKey, string> = {
@@ -30,6 +31,8 @@ export const en: Record<CustomAgentsKey, string> = {
   conflict: 'The agent changed elsewhere; reopen and retry',
   errorUnavailable: 'The custom-agent service is unavailable',
   charsUsed: '{used} / {limit} characters',
+  nameRequired: 'Enter a name for the agent',
+  instructionsRequired: 'Enter the instructions',
 }
 
 /** Russian copy. */
@@ -56,6 +59,8 @@ export const ru: Record<CustomAgentsKey, string> = {
   conflict: 'Агент изменён в другом окне; откройте заново и повторите',
   errorUnavailable: 'Сервис своих агентов недоступен',
   charsUsed: '{used} / {limit} символов',
+  nameRequired: 'Введите название агента',
+  instructionsRequired: 'Введите инструкцию',
 }
 
 /** Chinese copy. */
@@ -82,4 +87,6 @@ export const zh: Record<CustomAgentsKey, string> = {
   conflict: '该智能体已在其他窗口修改；请重新打开后重试',
   errorUnavailable: '自定义智能体服务不可用',
   charsUsed: '{used} / {limit} 个字符',
+  nameRequired: '请输入智能体名称',
+  instructionsRequired: '请输入指令',
 }

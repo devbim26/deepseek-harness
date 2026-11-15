@@ -53,6 +53,15 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
     return t('invalidInput', { reason: outcome.reason ?? '' })
   }
   const submit = async (): Promise<void> => {
+    // The obvious empty-field cases answer locally in the site language; the
+    // service's coded reasons cover what remains.
+    const missing = fields.name.trim() === ''
+      ? t('nameRequired')
+      : fields.instructions.trim() === '' ? t('instructionsRequired') : undefined
+    if (missing !== undefined) {
+      setFailure(missing)
+      return
+    }
     const outcome = editing === undefined
       ? await controller.create(fields)
       : await controller.update(editing.id, fields, editing.version)
@@ -77,6 +86,7 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
       onClose={onClose}
       title={editing === undefined ? t('createTitle') : t('editTitle')}
       closeLabel={t('cancel')}
+      className={css.dialog ?? ''}
       contentClassName={css.content ?? ''}
       footer={(
         <>
