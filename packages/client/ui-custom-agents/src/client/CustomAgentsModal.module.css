@@ -1,0 +1,113 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 480px;
+}
+
+.content {
+  max-width: 640px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rowText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rowName {
+  font-weight: 500;
+}
+
+.rowDescription {
+  color: var(--dsw-text-muted, #667085);
+  font-size: 12px;
+}
+
+.rowActions,
+.confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.confirmText {
+  font-size: 12px;
+  max-width: 220px;
+}
+
+.empty {
+  color: var(--dsw-text-muted, #667085);
+  font-size: 13px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fieldLabel {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.counter {
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--dsw-text-muted, #667085);
+}
+
+.input {
+  width: 100%;
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 13px;
+  border: 1px solid var(--dsw-border, #d0d5dd);
+  border-radius: 6px;
+  background: transparent;
+  resize: vertical;
+}
+
+.tools {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.failure {
+  color: var(--dsw-text-danger, #b42318);
+  font-size: 12px;
+}
+
+.saved {
+  color: var(--dsw-text-success, #067647);
+  font-size: 12px;
+}
