@@ -25,6 +25,7 @@ This table connects model-visible tool names to the plugin package and service s
 | `@deepseek-ai/dsh-plan-mode` | `exit_plan_mode` | `ctx.tools`, `ctx.systemPrompt`, `ctx.agents`, `ctx.userQuestions (execution time, opportunistic)` | `tool/call`, `plan/mode inactive on an approved review`, `tool/result` | - | exit_plan_mode stays in the model-facing schema while planning is inactive so transitions add no tool-catalog churn on top of the plan-policy change. Its execute path rejects calls outside plan mode; in plan mode it presents the plan over the user-questions seam (approve / keep planning with feedback), and approval logs plan mode inactive at the step boundary. |
 | `@deepseek-ai/dsh-tool-bash` | `bash` | `ctx.workingDirectory`, `ctx.tools`, `ctx.shell`, `ctx.systemPrompt`, `ctx.shellEnv`, `ctx.jobs for run_in_background and the job-backed foreground path` | `tool/call`, `tool/result` | - | The bash tool is the model-facing consumer of the bash executor seam. With a job registry composed every call registers with the generic `ctx.jobs` runtime as it starts, collected/stopped through the `job_*` tools from `@deepseek-ai/dsh-tool-jobs`; without one, or with `enableRunInBackground: false`, the tool registers a foreground-only schema without the `run_in_background` parameter. |
 | `@deepseek-ai/dsh-tool-office` | `office_convert`, `office_recalculate`, `office_render` | `ctx.workingDirectory`, `ctx.tools`, `ctx.fs`, `ctx.agents`, `ctx.officeKit`, `ctx.attachments and ctx.llm for office_render` | `tool/call`, `tool/result with rendered image attachments`, `temporary converted files in the Office kit output store` | - | Declared to an Agent from the step after it successfully loads an Office skill, and kept while the previous request header declares an Office tool. Admitted calls fail with the Office service's unavailable error when LibreOffice Kit is not installed. |
+| `@deepseek-ai/dsh-tool-pdf` | `pdf_report` | `ctx.workingDirectory`, `ctx.tools`, `ctx.fs`, `ctx.agents`, `ctx.attachments` | `tool/call`, `tool/result with a rendered file envelope`, `fs/observed for the written report` | - | Writes the encoded PDF through the host filesystem at the resolved local target, because the filesystem service models text writes only. Shell-free deployments mount it beside present for the delivery card. |
 | `@deepseek-ai/dsh-tool-present` | `present` | `ctx.workingDirectory`, `ctx.tools`, `ctx.fs`, `ctx.agents` | `tool/call`, `deliverables/presented after a successful final result`, `tool/result` | - | Deliveries belong to the calling Session; Web ui-deliverables supplies source-file opening and cards. |
 | `@deepseek-ai/dsh-tool-pwsh` | `pwsh` | `ctx.workingDirectory`, `ctx.tools`, `ctx.shell`, `ctx.systemPrompt`, `ctx.shellEnv`, `ctx.jobs for run_in_background and the job-backed foreground path` | `tool/call`, `tool/result` | - | The pwsh tool is the PowerShell-dialect consumer of the bash executor seam for Windows compositions (a PowerShell executor such as `@deepseek-ai/dsh-pwsh-local` backs `ctx.shell`); it mirrors the bash tool call-for-call minus sandbox controls — `run_in_background` runs register with the generic `ctx.jobs` runtime and are collected/stopped through the `job_*` tools, and the managed `DSH_*` environment comes from `@deepseek-ai/dsh-shell-env`. Each call runs in a fresh process (no persistent PTY session), with native `C:\...` paths and `$env:NAME` variables. |
 | `@deepseek-ai/dsh-tool-cordis` | `cordis_inspect_list`, `cordis_inspect_query` | `ctx.tools`, `ctx.cordisInspect` | `tool/call`, `tool/result` | - | Creator mode provides two read-only runtime inspection tools. The Cordis host runner supplies the inspection registry; Client queries require a connected page. Author persistent changes as bundles and install them with plugin_manager. |
@@ -852,6 +853,90 @@ Render document pages, slides, or worksheet areas as images you can view.
 Source: [`packages/document/tool-office/src/index.ts`](../packages/document/tool-office/src/index.ts)
 
 Declared to an Agent from the step after it successfully loads an Office skill, and kept while the previous request header declares an Office tool. Admitted calls fail with the Office service's unavailable error when LibreOffice Kit is not installed.
+
+<a id="deepseek-aidsh-tool-pdf"></a>
+
+## `@deepseek-ai/dsh-tool-pdf`
+
+### `pdf_report`
+
+Assemble a PDF report file in the working directory from text sections and images that earlier tool calls returned, such as drawing sheet images. Blocks render in order; pass the tool call id of each image result. After the file is written, declare it to the user with the present tool. Use it when the user asks for a PDF document; prefer your final response when plain text suffices.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "file_path": {
+      "type": "string",
+      "description": "Output path ending in .pdf, relative to the Session working directory."
+    },
+    "title": {
+      "type": "string",
+      "description": "Report title printed at the top of the first page."
+    },
+    "blocks": {
+      "type": "array",
+      "description": "Ordered report blocks; the document renders them in this order.",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "Discriminant: a text block."
+              },
+              "heading": {
+                "type": "string",
+                "description": "Section heading printed above the text."
+              },
+              "text": {
+                "type": "string",
+                "description": "Body text; newlines start new paragraphs."
+              }
+            },
+            "required": [
+              "type",
+              "text"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "Discriminant: an image block."
+              },
+              "call_id": {
+                "type": "string",
+                "description": "Tool call id whose result carried the images; every image of that result embeds."
+              },
+              "caption": {
+                "type": "string",
+                "description": "Caption printed under each embedded image of the call."
+              }
+            },
+            "required": [
+              "type",
+              "call_id"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "required": [
+    "file_path",
+    "blocks"
+  ]
+}
+```
+
+Source: [`packages/document/tool-pdf/src/index.ts`](../packages/document/tool-pdf/src/index.ts)
+
+Writes the encoded PDF through the host filesystem at the resolved local target, because the filesystem service models text writes only. Shell-free deployments mount it beside present for the delivery card.
 
 <a id="deepseek-aidsh-tool-present"></a>
 

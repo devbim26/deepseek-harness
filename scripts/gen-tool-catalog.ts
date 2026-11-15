@@ -6,7 +6,7 @@
  * `.agents/notes/archived/process/2026-07-02-tool-schema-catalog.md`.
  */
 
-import { globSync, readFileSync, writeFileSync } from 'node:fs'
+import { globSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, dirname, resolve } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import LlmRuntime from '@deepseek-ai/dsh-llm'
@@ -58,6 +58,8 @@ import CordisHostRunner from '@deepseek-ai/dsh-cordis-host-runner'
 import * as ToolCordis from '@deepseek-ai/dsh-tool-cordis'
 import * as ToolPresent from '@deepseek-ai/dsh-tool-present'
 import * as ToolOffice from '@deepseek-ai/dsh-tool-office'
+import * as ToolPdf from '@deepseek-ai/dsh-tool-pdf'
+import LocalAttachmentStore from '@deepseek-ai/dsh-attachment-local'
 import * as ToolFs from '@deepseek-ai/dsh-tool-fs'
 import * as ToolFsSearch from '@deepseek-ai/dsh-tool-fs-search'
 import * as ToolStrReplaceEditor from '@deepseek-ai/dsh-tool-str-replace-editor'
@@ -345,6 +347,20 @@ const TOOL_PACKAGES: ToolPackage[] = [
       await ctx.plugin(ToolOffice)
     },
     note: 'Declared to an Agent from the step after it successfully loads an Office skill, and kept while the previous request header declares an Office tool. Admitted calls fail with the Office service\'s unavailable error when LibreOffice Kit is not installed.',
+  },
+  {
+    pkg: '@deepseek-ai/dsh-tool-pdf',
+    dir: 'tool-pdf',
+    source: 'packages/document/tool-pdf/src/index.ts',
+    requires: ['ctx.workingDirectory', 'ctx.tools', 'ctx.fs', 'ctx.agents', 'ctx.attachments'],
+    writes: ['tool/call', 'tool/result with a rendered file envelope', 'fs/observed for the written report'],
+    async mount(ctx) {
+      // Schema harvest never assembles a document or reads attachments.
+      await ctx.plugin(AgentRegistry)
+      await ctx.plugin(LocalAttachmentStore, { dshHome: mkdtempSync('dsh-tool-catalog-attachments-') })
+      await ctx.plugin(ToolPdf)
+    },
+    note: 'Writes the encoded PDF through the host filesystem at the resolved local target, because the filesystem service models text writes only. Shell-free deployments mount it beside present for the delivery card.',
   },
   {
     pkg: '@deepseek-ai/dsh-tool-present',

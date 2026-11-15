@@ -189,3 +189,10 @@
         name: '@deepseek-ai/dsh-tool-todo'
         config:
           allowParallelInProgress: true
+      # PDF reports without shell or Python: the tool embeds images from the
+      # Session's durable attachments (drawing5 sheet results) and writes the
+      # file into the client workspace; present shows the delivery card.
+      - id: tool-pdf
+        name: '@deepseek-ai/dsh-tool-pdf'
+      - id: present
+        name: '@deepseek-ai/dsh-tool-present'
