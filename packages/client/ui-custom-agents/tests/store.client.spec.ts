@@ -2,33 +2,36 @@ import { describe, expect, it } from 'vitest'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import { RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
 import { CustomAgentsController } from '../src/client/custom-agents-store.ts'
-import type { CustomAgentCatalog } from '@deepseek-ai/dsh-agent-preset-custom/types'
+import type { CustomAgentCatalog, CustomAgentRecord } from '@deepseek-ai/dsh-agent-preset-custom/types'
+
+const seededAgent: CustomAgentRecord = { id: 'custom/agent', slug: 'agent', name: 'Сметчик', description: 'd', instructions: 'i', tools: [], version: 1, updatedAt: '2026-11-15T00:00:00.000Z' }
 
 const catalog: CustomAgentCatalog = {
-  agents: [{ id: 'custom/agent', slug: 'agent', name: 'Сметчик', description: 'd', instructions: 'i', tools: [], version: 1, updatedAt: '2026-11-15T00:00:00.000Z' }],
+  agents: [seededAgent],
   policy: { allowedTools: [{ key: 'todo', label: 'Задачи' }], maxNameChars: 64, maxDescriptionChars: 200, maxInstructionsChars: 16384, maxAgents: 50 },
 }
 
 /** A scripted remote answering fixed outcomes; records emitted events. */
 function fakeCtx(outcomes: {
-  list?: { ok: boolean; value?: CustomAgentCatalog; message?: string }
+  list?: { ok: true; value: CustomAgentCatalog } | { ok: false; message: string }
   create?: { ok: boolean }
   events?: string[]
 }): ClientContext {
+  // Member-typed stubs keep every provided face assignable from the real
+  // Context, so the final cast stays within comparable types.
+  const customAgentPresets: ClientContext['remote']['customAgentPresets'] = {
+    list: () => outcomes.list?.ok === true
+      ? Promise.resolve({ ok: true as const, value: outcomes.list.value })
+      : Promise.resolve({ ok: false as const, error: new RemoteError('gateway/internal', outcomes.list?.message ?? 'down', {}) }),
+    create: () => Promise.resolve(outcomes.create?.ok === true
+      ? { ok: true as const, value: seededAgent }
+      : { ok: false as const, error: new RemoteError('gateway/internal', 'refused', {}) }),
+    update: () => Promise.resolve({ ok: true as const, value: seededAgent }),
+    delete: () => Promise.resolve({ ok: true as const, value: undefined }),
+  }
   const partial = {
-    remote: {
-      customAgentPresets: {
-        list: () => outcomes.list?.ok === true
-          ? Promise.resolve({ ok: true as const, value: outcomes.list.value })
-          : Promise.resolve({ ok: false as const, error: new RemoteError('gateway/internal', outcomes.list?.message ?? 'down', {}) }),
-        create: () => Promise.resolve(outcomes.create?.ok === true
-          ? { ok: true as const, value: catalog.agents[0] }
-          : { ok: false as const, error: new RemoteError('gateway/internal', 'refused', {}) }),
-        update: () => Promise.resolve({ ok: true as const, value: catalog.agents[0] }),
-        remove: () => Promise.resolve({ ok: true as const, value: undefined }),
-      },
-    },
-    emit: (event: string) => { outcomes.events?.push(event) },
+    remote: { customAgentPresets },
+    emit: ((event: 'custom-agents/changed') => { outcomes.events?.push(event) }) as ClientContext['emit'],
   }
   return partial as ClientContext
 }
