@@ -136,8 +136,10 @@
 # the whole chat inactive.
 - id: directory-picker
   disabled: true
-- id: ui-file-actions
-  disabled: true
+# ui-file-actions stays enabled: its file context menus (Download, Copy path)
+# are pure UI over the workspace-files read service the client already has, so
+# the client can save presented reports (a PDF card has no intrinsic download
+# button). It adds no file listing and no fs tools.
 # Chat attachments are dead weight without fs tools, and drawing uploads go
 # through the Чертежи window; `ui-file-drag` stays enabled because the
 # document-preview panel waits on its service.
