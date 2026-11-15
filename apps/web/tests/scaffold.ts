@@ -422,6 +422,15 @@ export interface LaunchOptions {
     definitions?: import('@deepseek-ai/dsh-agent-preset-registry').PresetDefinition[]
   }
   /**
+   * Mount the custom-agent preset service with a scenario-owned whitelist and
+   * limits. Records live in the scaffold's own storage root; a scenario seeds
+   * them through `ctx.customAgentPresets` after boot.
+   */
+  customAgentPresets?: {
+    instructionsPrefix?: string
+    allowedTools?: Record<string, { name: string; config?: unknown }>
+  }
+  /**
    * Patch the telemetry exporter URL while preserving the shipped enabled
    * setting. A scenario-owned loopback collector contains all fixture uploads.
    */
@@ -685,6 +694,13 @@ export async function launchWebScaffold(options: LaunchOptions = {}): Promise<We
     ...options.agentPresets === undefined ? [] : [
       { id: 'agent-preset-registry', config: { default: options.agentPresets.default } },
       { insert: (options.agentPresets.definitions ?? []).map(config => ({ id: `preset-${config.id}`, name: '@deepseek-ai/dsh-agent-preset', config })) },
+    ],
+    ...options.customAgentPresets === undefined ? [] : [
+      { insert: [{ id: 'agent-preset-custom', name: '@deepseek-ai/dsh-agent-preset-custom', config: {
+        instructionsPrefix: options.customAgentPresets.instructionsPrefix ?? '',
+        basePlugins: [],
+        allowedTools: options.customAgentPresets.allowedTools ?? {},
+      } }] },
     ],
     ...options.deepSeekWebApi === undefined ? [] : [
       {
