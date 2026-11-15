@@ -1,7 +1,7 @@
 /** Test harness: the real preset registry stack plus a memory-backed storage domain. */
 import { MemoryMediaPool, MemoryStorageBackend } from '../../../storage/storage-domain/tests/helpers/memory-backend.ts'
 import Storage from '@deepseek-ai/dsh-storage'
-import StorageJson from '@deepseek-ai/dsh-storage-json'
+import * as StorageJson from '@deepseek-ai/dsh-storage-json'
 import { DomainFacility } from '@deepseek-ai/dsh-storage-domain'
 import { harness as presetHarness } from '../../agent-preset-registry/tests/harness.ts'
 import CustomAgentPresets from '../src/index.ts'
@@ -35,11 +35,11 @@ export async function harness(
   storage: { jsonRoot?: string } = {},
 ): Promise<{ ctx: Context }> {
   const ctx = await presetHarness()
+  await ctx.plugin(Storage)
   const backendName = storage.jsonRoot !== undefined ? 'json' : 'memory'
   if (storage.jsonRoot !== undefined) {
     await ctx.plugin(StorageJson, { root: storage.jsonRoot })
   } else {
-    await ctx.plugin(Storage)
     ctx.storage.backend.register('memory', new MemoryStorageBackend(new MemoryMediaPool()))
   }
   const facility = new DomainFacility(ctx, { backend: backendName, routes: {} })
