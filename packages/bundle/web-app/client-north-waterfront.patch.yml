@@ -9,8 +9,8 @@
 # The preset-picker chip returns with the custom-agent builder: users compose
 # their own agents from the whitelist below (persona instructions + optional
 # whitelisted rows). User input reaches the Loader only as typed
-# configuration values; Creator/PTC/Minimal stay hidden by the Coding Tools
-# gate, and no plugin manager or settings surface is reachable.
+# configuration values; the shipped coding presets are not declared here at
+# all, and no plugin manager or settings surface is reachable.
 # Session state, stored credentials, and settings live in the launcher's
 # separate DSH_HOME, not in anything this layer touches.
 # Launch: dsh-web-north-waterfront.cmd
@@ -153,6 +153,15 @@
   disabled: true
 
 # -- Agent tool surface: drawings only. ---------------------------------------
+# The shipped coding presets (PTC, Minimal, Creator) are not declared on this
+# site: the picker shows Standard and the custom agents only, regardless of
+# the per-browser Coding Tools preference the overlay cannot pin.
+- id: preset-ptc
+  disabled: true
+- id: preset-minimal
+  disabled: true
+- id: preset-cordis
+  disabled: true
 # Same-id override of the standard preset's whole config (a patch replaces
 # the targeted row's config, so every key is restated). Kept: persona,
 # instructions context, time context, the compaction group, ask-user, todo.
