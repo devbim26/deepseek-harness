@@ -30,9 +30,17 @@ export interface CustomAgentInput {
   readonly tools: readonly string[]
 }
 
+/** One whitelisted tool as the form renders it. */
+export interface CustomAgentToolOption {
+  /** The record key the agent stores. */
+  readonly key: string
+  /** Human-readable label; the key when the deployment config omits one. */
+  readonly label: string
+}
+
 /** The deployment-authored limits and whitelist the form renders against. */
 export interface CustomAgentPolicy {
-  readonly allowedTools: readonly string[]
+  readonly allowedTools: readonly CustomAgentToolOption[]
   readonly maxNameChars: number
   readonly maxDescriptionChars: number
   readonly maxInstructionsChars: number

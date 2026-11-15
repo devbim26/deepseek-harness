@@ -20,7 +20,7 @@ const t = (key: string, params?: Record<string, unknown>): string => {
 
 const catalog: CustomAgentCatalog = {
   agents: [{ id: 'custom/agent', slug: 'agent', name: 'Сметчик', description: 'Считает', instructions: 'i', tools: [], version: 1, updatedAt: '2026-11-15T00:00:00.000Z' }],
-  policy: { allowedTools: ['todo'], maxNameChars: 64, maxDescriptionChars: 200, maxInstructionsChars: 16384, maxAgents: 50 },
+  policy: { allowedTools: [{ key: 'todo', label: 'Задачи' }], maxNameChars: 64, maxDescriptionChars: 200, maxInstructionsChars: 16384, maxAgents: 50 },
 }
 
 const READY: CustomAgentsState = {

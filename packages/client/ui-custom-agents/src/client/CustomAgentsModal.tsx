@@ -163,13 +163,13 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
               <legend className={css.fieldLabel}>{t('tools')}</legend>
               {policy.allowedTools.map(tool => (
                 <Checkbox
-                  key={tool}
-                  label={tool}
-                  checked={fields.tools.includes(tool)}
+                  key={tool.key}
+                  label={tool.label}
+                  checked={fields.tools.includes(tool.key)}
                   onChange={(checked) => {
                     setFields({
                       ...fields,
-                      tools: checked ? [...fields.tools, tool] : fields.tools.filter(entry => entry !== tool),
+                      tools: checked ? [...fields.tools, tool.key] : fields.tools.filter(entry => entry !== tool.key),
                     })
                   }}
                 />

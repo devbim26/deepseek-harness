@@ -55,7 +55,8 @@ export class CustomAgentPresets extends TypertRemoteService {
 
   private policy(): CustomAgentPolicy {
     return {
-      allowedTools: Object.keys(this.config.allowedTools),
+      allowedTools: Object.entries(this.config.allowedTools)
+        .map(([key, entry]) => ({ key, label: entry.label ?? key })),
       maxNameChars: this.config.maxNameChars,
       maxDescriptionChars: this.config.maxDescriptionChars,
       maxInstructionsChars: this.config.maxInstructionsChars,

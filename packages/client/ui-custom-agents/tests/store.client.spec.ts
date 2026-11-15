@@ -6,7 +6,7 @@ import type { CustomAgentCatalog } from '@deepseek-ai/dsh-agent-preset-custom/ty
 
 const catalog: CustomAgentCatalog = {
   agents: [{ id: 'custom/agent', slug: 'agent', name: 'Сметчик', description: 'd', instructions: 'i', tools: [], version: 1, updatedAt: '2026-11-15T00:00:00.000Z' }],
-  policy: { allowedTools: ['todo'], maxNameChars: 64, maxDescriptionChars: 200, maxInstructionsChars: 16384, maxAgents: 50 },
+  policy: { allowedTools: [{ key: 'todo', label: 'Задачи' }], maxNameChars: 64, maxDescriptionChars: 200, maxInstructionsChars: 16384, maxAgents: 50 },
 }
 
 /** A scripted remote answering fixed outcomes; records emitted events. */
@@ -40,7 +40,7 @@ describe('custom agents store', () => {
     expect(controller.store.getSnapshot()).toMatchObject({
       status: 'ready',
       agents: [expect.objectContaining({ name: 'Сметчик' })],
-      policy: expect.objectContaining({ allowedTools: ['todo'] }),
+      policy: expect.objectContaining({ allowedTools: [{ key: 'todo', label: 'Задачи' }] }),
     })
   })
 

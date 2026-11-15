@@ -7,7 +7,7 @@ describe('custom agent presets service', () => {
     const catalog = await ctx.customAgentPresets.remoteExportList()
     expect(catalog.agents).toEqual([])
     expect(catalog.policy).toMatchObject({
-      allowedTools: ['ask-user', 'todo'],
+      allowedTools: [{ key: 'ask-user', label: 'Ask the user' }, { key: 'todo', label: 'Task list' }],
       maxNameChars: 64,
       maxInstructionsChars: 16384,
       maxAgents: 50,

@@ -13,8 +13,8 @@ export const standardConfig = {
   instructionsPrefix: 'You are the drawings assistant.',
   basePlugins: [] as PresetDefinition['plugins'],
   allowedTools: {
-    'ask-user': { name: '@deepseek-ai/dsh-tool-ask-user' },
-    todo: { name: '@deepseek-ai/dsh-tool-todo', config: { allowParallelInProgress: true } },
+    'ask-user': { name: '@deepseek-ai/dsh-tool-ask-user', label: 'Ask the user' },
+    todo: { name: '@deepseek-ai/dsh-tool-todo', config: { allowParallelInProgress: true }, label: 'Task list' },
   },
   maxNameChars: 64,
   maxDescriptionChars: 200,

@@ -254,8 +254,10 @@
         allowedTools:
           ask-user:
             name: '@deepseek-ai/dsh-tool-ask-user'
+            label: Вопросы пользователю
           todo:
             name: '@deepseek-ai/dsh-tool-todo'
+            label: Задачи
             config:
               allowParallelInProgress: true
     - id: ui-custom-agents
