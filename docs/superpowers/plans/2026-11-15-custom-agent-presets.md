@@ -4,7 +4,7 @@
 
 **Goal:** Пользователи клиентского прода создают своих агентов через ограниченную форму (имя, описание, инструкция, инструменты из whitelist), записи хранятся как данные в `DSH_HOME`, синтезируются в пресеты через `agentPresets.register()` и выбираются в существующем чипе выбора агента.
 
-**Architecture:** Новый хост-пакет `@deepseek-ai/dsh-agent-preset-custom` (seam: сервис `customAgentPresets` c Remote CRUD + storage-domain `custom-agent-presets` + синтез `PresetDefinition`) и клиентский пакет `@deepseek-ai/dsh-client-ui-custom-agents` (менеджер в модале, вход через новый слот `agentPreset.picker.actions` в попапе чипа). Оверлей north-waterfront включает `ui-agent-preset` и вставляет обе строки с конфигом whitelist/лимитов. Ядро agent-loop и сессия-проекция не трогаются.
+**Architecture:** Новый хост-пакет `@deepseek-ai/dsh-agent-preset-custom` (seam: сервис `customAgentPresets` c Remote CRUD + storage-domain `custom_agent_presets` + синтез `PresetDefinition`) и клиентский пакет `@deepseek-ai/dsh-client-ui-custom-agents` (менеджер в модале, вход через новый слот `agentPreset.picker.actions` в попапе чипа). Оверлей north-waterfront включает `ui-agent-preset` и вставляет обе строки с конфигом whitelist/лимитов. Ядро agent-loop и сессия-проекция не трогаются.
 
 **Tech Stack:** TypeScript ESM (strict), Cordis-плагины, `TypertRemoteService` + `@Remote` (typert codegen), `storage-domain` (`defineDomain`, zod), schemastery Config, React + `dsh-client-ui-*` слоты/примитивы, vitest + Playwright e2e.
 
@@ -20,7 +20,7 @@
 - UI-копирайт — только через типизированные словари и `t` (гейт `verify-client-ui-i18n`); словари — `ru` и `en` (остальные шесть — механическое расширение позже).
 - README каждого нового пакета — триплет `README.md` + `README.zh.md` + `README.i18n.yaml`; после правок пары: `pnpm run verify-translation-pairing --write <path>/README.md`.
 - Файлы кончаются ровно одним `\n`; pre-commit (lefthook) гоняет whitespace и vendor-manifest guard.
-- Именование: сервис-ключ `customAgentPresets`; id пресетов `custom/<slug>`; коды ошибок `custom-agent-presets/invalid|not-found|limit|conflict`; слот `agentPreset.picker.actions`; событие `custom-agents/changed`; домен `custom-agent-presets`.
+- Именование: сервис-ключ `customAgentPresets`; id пресетов `custom/<slug>`; коды ошибок `custom-agent-presets/invalid|not-found|limit|conflict`; слот `agentPreset.picker.actions`; событие `custom-agents/changed`; домен `custom_agent_presets` (имя юнита — без дефисов: `UNIT_NAME_RE = /^[a-z][a-z0-9_]*$/`).
 - Концентрация лимитов в Config (schemastery), никакой магии в коде; whitelist — только конфиг оверлея.
 - Сессия-проекция `agentPreset` и `SessionEventMap` не меняются → ожидаемые outputs TypeScript/Python SDK и снапшоты записанных сессий не обновляются.
 - Команды: точечный тест — `pnpm exec vitest run <путь-к-пакету>`; быстрая проверка типов пакета — `pnpm exec tsc -b packages/preset/agent-preset-custom` (или `packages/client/ui-custom-agents`); перед завершением — `pnpm run build:artifacts`, затем `pnpm run build:check`; доки — `pnpm run doc-sync`; гигиена — `pnpm run hygiene`. E2E web: `pnpm exec vitest run --config vitest.e2e.config.ts apps/web/tests/custom-agent-presets.e2e.ts`.
@@ -43,7 +43,7 @@
 
 **Interfaces:**
 - Consumes: `AgentPresetRegistry.register(definition: PresetDefinition): Promise<() => Promise<void>>` (ctx-ключ `agentPresets`); `ctx.storageDomain.open(spec)`; `DomainFacility(ctx, { backend, routes })`.
-- Produces: типы `CustomAgentRecord { id; slug; name; description; instructions; tools: readonly string[]; version: number; updatedAt: string }`, `CustomAgentInput { name; description; instructions; tools }`, `CustomAgentPolicy { allowedTools; maxNameChars; maxDescriptionChars; maxInstructionsChars; maxAgents }`, `CustomAgentCatalog { agents; policy }`; сервис-ключ `customAgentPresets`; домен `custom-agent-presets` v1 (таблица `agents`).
+- Produces: типы `CustomAgentRecord { id; slug; name; description; instructions; tools: readonly string[]; version: number; updatedAt: string }`, `CustomAgentInput { name; description; instructions; tools }`, `CustomAgentPolicy { allowedTools; maxNameChars; maxDescriptionChars; maxInstructionsChars; maxAgents }`, `CustomAgentCatalog { agents; policy }`; сервис-ключ `customAgentPresets`; домен `custom_agent_presets` v1 (таблица `agents`).
 
 - [ ] **Step 1: Написать падающий тест**
 
@@ -1403,7 +1403,7 @@ git commit -m "feat(web-app): mount the custom agent preset service and manager"
 
 Обновить шапку-комментарий (строки 1-12): добавить, что чип выбора агента возвращён вместе с конструктором кастомных агентов в пределах whitelist, а Creator/PTC/Minimal остаются скрыты гейтом Coding Tools.
 
-- [ ] **Step 2: Деплой-дока** — в `DEPLOY-CLIENT-SITE.md` добавить раздел: список агентов хранится в `%USERPROFILE%\.dsh-north-waterfront\storages\` (домен `custom-agent-presets`, json), whitelist и лимиты — в `client-north-waterfront.patch.yml` (allowedTools/basePlugins/limits), включение/выключение — правкой оверлея; профиль перечитывает патч через HMR, новые строки требуют рестарт.
+- [ ] **Step 2: Деплой-дока** — в `DEPLOY-CLIENT-SITE.md` добавить раздел: список агентов хранится в `%USERPROFILE%\.dsh-north-waterfront\storages\` (домен `custom_agent_presets`, json), whitelist и лимиты — в `client-north-waterfront.patch.yml` (allowedTools/basePlugins/limits), включение/выключение — правкой оверлея; профиль перечитывает патч через HMR, новые строки требуют рестарт.
 
 - [ ] **Step 3: Commit**
 
