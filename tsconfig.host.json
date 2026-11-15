@@ -334,6 +334,7 @@
     { "path": "./packages/client/ui-settings-general/tsconfig.host.json" },
     { "path": "./packages/document/office-kit" },
     { "path": "./packages/document/tool-office" },
+    { "path": "./packages/document/tool-pdf" },
 
     { "path": "./packages/credentials/deepseek-account" },
     { "path": "./packages/client/ui-deliverables/tsconfig.host.json" },
@@ -574,6 +575,7 @@
     { "path": "./packages/experimental/webhook-github" },
     { "path": "./packages/todo/tool-todo" },
     { "path": "./packages/plan/plan-mode" },
+    { "path": "./packages/preset/agent-preset-custom" },
     { "path": "./packages/preset/agent-preset-registry" },
     { "path": "./packages/preset/agent-preset" },
     { "path": "./packages/preset/persona" },

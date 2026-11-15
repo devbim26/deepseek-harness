@@ -62,6 +62,9 @@
       "path": "../../llm/llm"
     },
     {
+      "path": "../../preset/agent-preset-custom"
+    },
+    {
       "path": "../../preset/agent-preset-registry"
     },
     {
