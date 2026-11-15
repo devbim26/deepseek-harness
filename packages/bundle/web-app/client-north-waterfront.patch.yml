@@ -6,6 +6,11 @@
 # tools. The permission catalog keeps only workspace-write and pins it as the
 # new-session default, so the client user works inside their own workspace
 # folder with no access switch.
+# The preset-picker chip returns with the custom-agent builder: users compose
+# their own agents from the whitelist below (persona instructions + optional
+# whitelisted rows). User input reaches the Loader only as typed
+# configuration values; Creator/PTC/Minimal stay hidden by the Coding Tools
+# gate, and no plugin manager or settings surface is reachable.
 # Session state, stored credentials, and settings live in the launcher's
 # separate DSH_HOME, not in anything this layer touches.
 # Launch: dsh-web-north-waterfront.cmd
@@ -89,8 +94,9 @@
   disabled: true
 - id: ui-settings-session-log
   disabled: true
-- id: ui-agent-preset
-  disabled: true
+# ui-agent-preset stays enabled: its chip is the client's agent-preset choice
+# and the entry into the custom-agent builder below. The picker action slot
+# only carries the manager entry; the settings section is unreachable here.
 - id: subagent-model-selection-settings
   disabled: true
 # The quota/account notice needs the accountUi service from the disabled
@@ -198,3 +204,50 @@
         name: '@deepseek-ai/dsh-tool-pdf'
       - id: present
         name: '@deepseek-ai/dsh-tool-present'
+
+# -- Custom agents: user-created presets within this deployment's whitelist. --
+# The service stores records as data in the site DSH_HOME (json backend) and
+# mounts each one into the preset registry as `custom/<slug>`. Every write
+# re-validates against this config: a user agent is the site persona prefix
+# plus the user's instructions, the fixed base rows copied from the kept
+# preset-standard list above (minus persona), and any whitelisted tool rows
+# the user selected. Raise allowedTools only with a sandbox review of the
+# added rows.
+- insert:
+    - id: agent-preset-custom
+      name: '@deepseek-ai/dsh-agent-preset-custom'
+      config:
+        instructionsPrefix: You are the drawings assistant of the north-waterfront client site, powered by the {{model}} model. Work from the drawing5 tools and say plainly when the loaded set has no answer.
+        basePlugins:
+          - id: agent-instructions
+            name: '@deepseek-ai/dsh-agent-instructions'
+            config:
+              maxBytes: 65536
+          - id: time-context
+            name: '@deepseek-ai/dsh-time-context'
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+              toolResultPruner: true
+            config:
+              - id: compaction-basic
+                name: '@deepseek-ai/dsh-compaction-basic'
+              - id: command-compact
+                name: '@deepseek-ai/dsh-command-compact'
+              - id: tool-result-pruner
+                name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+                config:
+                  thresholdChars: 8192
+                  headChars: 4096
+                  tailChars: 1024
+        allowedTools:
+          ask-user:
+            name: '@deepseek-ai/dsh-tool-ask-user'
+          todo:
+            name: '@deepseek-ai/dsh-tool-todo'
+            config:
+              allowParallelInProgress: true
+    - id: ui-custom-agents
+      name: '@deepseek-ai/dsh-client-ui-custom-agents'
