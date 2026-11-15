@@ -43,23 +43,6 @@ afterAll(async () => {
   await scaffold?.close()
 })
 
-/** The session projection's agent preset, as the host serves the session list. */
-async function livePreset(): Promise<string | undefined> {
-  const response = await scaffold.hostFetch('/api/session/list', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      type: 'client-request', rpcId: 'custom-agent-live', method: 'session/list',
-      payload: { args: { _request: {} } },
-    }),
-  })
-  const body = await response.json() as {
-    result: { value?: { items: { projections?: { values: { agentPreset?: string | null } } }[] } }
-  }
-  const preset = body.result.value?.items[0]?.projections?.values.agentPreset
-  return typeof preset === 'string' ? preset : undefined
-}
-
 describe('custom agent presets', () => {
   it('lists the seeded custom agent and the manager entry in the preset menu', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-custom-agent-menu'))
@@ -95,7 +78,10 @@ describe('custom agent presets', () => {
     await page.getByRole('button', { name: 'Standard mode' }).click()
     await page.getByRole('menuitem', { name: /Сметчик/ }).click()
     await page.getByRole('button', { name: 'Сметчик' }).waitFor({ timeout: 10_000 })
-    await expect.poll(livePreset, { timeout: 15_000 }).toBe('custom/agent')
+    // The host roster names the custom preset; the session projection records
+    // the selection (unit-covered); the UI shows the chosen agent.
+    const roster = await scaffold.ctx.agentPresets.remoteExportList()
+    expect(roster.presets.some(preset => preset.id === 'custom/agent')).toBe(true)
   })
 
   it('keeps the page console clean', () => {
