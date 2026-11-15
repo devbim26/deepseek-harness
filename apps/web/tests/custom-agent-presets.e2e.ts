@@ -64,8 +64,8 @@ describe('custom agent presets', () => {
     await page.getByLabel('Name').fill('Отчётчик')
     await page.getByLabel('Instructions').fill('Собирай отчёт по выполненным работам.')
     await page.getByRole('button', { name: 'Save' }).click()
-    await page.getByText('Saved').waitFor({ timeout: 10_000 })
-    await page.keyboard.press('Escape')
+    // Saved: the dialog closes itself; the next open starts a fresh form.
+    await page.getByRole('dialog').waitFor({ state: 'detached', timeout: 10_000 })
     await page.getByRole('button', { name: 'Standard mode' }).click()
     const menu = page.getByRole('menu')
     await menu.waitFor({ timeout: 10_000 })

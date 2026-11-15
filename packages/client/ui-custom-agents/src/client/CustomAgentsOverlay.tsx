@@ -32,6 +32,9 @@ export function CustomAgentsOverlay({
   if (!state.modalOpen) return null
   return (
     <CustomAgentsModal
+      // One instance per open: the form can never inherit the previous
+      // open's editing state, whatever path closed it last time.
+      key={state.openSeq}
       t={t}
       useCustomAgents={useCustomAgents}
       controller={controller}

@@ -89,13 +89,27 @@ describe('custom agent picker entry', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 
-  it('submits the form and emits custom-agents/changed', async () => {
+  it('submits the form, closes the dialog, and emits custom-agents/changed', async () => {
     const view_ = view()
     fireEvent.click(entry())
     fireEvent.change(screen.getByLabelText(en.name), { target: { value: 'Отчётчик' } })
     fireEvent.change(screen.getByLabelText(en.instructions), { target: { value: 'Собирай отчёт.' } })
     fireEvent.click(screen.getByRole('button', { name: en.save }))
     await waitFor(() => expect(view_.events).toContain('custom-agents/changed'))
-    expect(screen.getByText(en.saved)).not.toBeNull()
+    expect(view_.store.getSnapshot().modalOpen).toBe(false)
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('opens a fresh create form on every open, never the previous editing state', () => {
+    const view_ = view()
+    fireEvent.click(entry())
+    // Enter edit mode of the stored agent.
+    fireEvent.click(screen.getByRole('button', { name: en.edit }))
+    expect(screen.getByLabelText(en.name)).toHaveProperty('value', 'Сметчик')
+    // Close and reopen through the controller: the form must reset.
+    act(() => { view_.controller.closeManager() })
+    act(() => { view_.controller.openManager() })
+    expect(screen.getByRole('dialog')).not.toBeNull()
+    expect(screen.getByLabelText(en.name)).toHaveProperty('value', '')
   })
 })

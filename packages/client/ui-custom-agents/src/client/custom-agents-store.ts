@@ -15,9 +15,11 @@ export interface CustomAgentsState {
   error: string | undefined
   /** Whether the manager dialog is showing; lives here so it outlives the picker menu. */
   modalOpen: boolean
+  /** Bumped on every open; keys the dialog so each open mounts a fresh form. */
+  openSeq: number
 }
 
-const INITIAL: CustomAgentsState = { status: 'idle', agents: [], policy: undefined, saving: false, error: undefined, modalOpen: false }
+const INITIAL: CustomAgentsState = { status: 'idle', agents: [], policy: undefined, saving: false, error: undefined, modalOpen: false, openSeq: 0 }
 
 /** Outcome of one write, for the form's error surface. */
 export type WriteOutcome =
@@ -31,9 +33,10 @@ export class CustomAgentsController {
 
   constructor(private readonly ctx: ClientContext) {}
 
-  /** Show the manager dialog; the picker menu entry calls this before dismissing itself. */
+  /** Show the manager dialog with a fresh form; the picker menu entry calls this before dismissing itself. */
   openManager(): void {
-    this.store.set({ ...this.store.getSnapshot(), modalOpen: true })
+    const previous = this.store.getSnapshot()
+    this.store.set({ ...previous, modalOpen: true, openSeq: previous.openSeq + 1 })
     void this.load()
   }
 

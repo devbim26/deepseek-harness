@@ -37,13 +37,11 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
   const [fields, setFields] = useState<CustomAgentInput>(BLANK)
   const [deleting, setDeleting] = useState<CustomAgentRecord | undefined>(undefined)
   const [failure, setFailure] = useState<string | undefined>(undefined)
-  const [saved, setSaved] = useState(false)
 
   const startEdit = (record: CustomAgentRecord): void => {
     setEditing(record)
     setFields({ name: record.name, description: record.description, instructions: record.instructions, tools: [...record.tools] })
     setFailure(undefined)
-    setSaved(false)
   }
   const outcomeMessage = (outcome: WriteOutcome): string | undefined => {
     if (outcome.ok) return undefined
@@ -66,12 +64,13 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
       ? await controller.create(fields)
       : await controller.update(editing.id, fields, editing.version)
     const message = outcomeMessage(outcome)
-    setFailure(message)
-    if (message === undefined) {
-      setSaved(true)
-      setEditing(undefined)
-      setFields(BLANK)
+    if (message !== undefined) {
+      setFailure(message)
+      return
     }
+    // Saved: the roster already refreshed; close so the next "New custom
+    // agent" opens a fresh form instead of the previous one's editing state.
+    onClose()
   }
   const remove = async (record: CustomAgentRecord): Promise<void> => {
     const outcome = await controller.remove(record.id, record.version)
@@ -121,7 +120,6 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
         </section>
         <form className={css.form} aria-label={t('createTitle')} onSubmit={(event) => { event.preventDefault(); void submit() }}>
           {failure !== undefined && <p className={css.failure}>{failure}</p>}
-          {saved && failure === undefined && <p className={css.saved}>{t('saved')}</p>}
           <div className={css.field}>
             <label className={css.fieldLabel} htmlFor="custom-agents-name">{t('name')}</label>
             <input
@@ -131,7 +129,7 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
               value={fields.name}
               placeholder={t('namePlaceholder')}
               maxLength={policy?.maxNameChars}
-              onChange={(event) => { setFields({ ...fields, name: event.target.value }); setSaved(false) }}
+              onChange={(event) => { setFields({ ...fields, name: event.target.value }) }}
             />
           </div>
           <div className={css.field}>
@@ -142,7 +140,7 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
               value={fields.description}
               placeholder={t('descriptionPlaceholder')}
               maxLength={policy?.maxDescriptionChars}
-              onChange={(event) => { setFields({ ...fields, description: event.target.value }); setSaved(false) }}
+              onChange={(event) => { setFields({ ...fields, description: event.target.value }) }}
             />
           </div>
           <div className={css.field}>
@@ -154,7 +152,7 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
               value={fields.instructions}
               placeholder={t('instructionsPlaceholder')}
               maxLength={policy?.maxInstructionsChars}
-              onChange={(event) => { setFields({ ...fields, instructions: event.target.value }); setSaved(false) }}
+              onChange={(event) => { setFields({ ...fields, instructions: event.target.value }) }}
             />
             {policy !== undefined && <span className={css.counter}>{t('charsUsed', { used: fields.instructions.length, limit: policy.maxInstructionsChars })}</span>}
           </div>
