@@ -77,7 +77,7 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
       onClose={onClose}
       title={editing === undefined ? t('createTitle') : t('editTitle')}
       closeLabel={t('cancel')}
-      contentClassName={css.content}
+      contentClassName={css.content ?? ''}
       footer={(
         <>
           <Button onClick={onClose}>{t('cancel')}</Button>
@@ -112,9 +112,10 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
         <form className={css.form} aria-label={t('createTitle')} onSubmit={(event) => { event.preventDefault(); void submit() }}>
           {failure !== undefined && <p className={css.failure}>{failure}</p>}
           {saved && failure === undefined && <p className={css.saved}>{t('saved')}</p>}
-          <label className={css.field}>
-            <span className={css.fieldLabel}>{t('name')}</span>
+          <div className={css.field}>
+            <label className={css.fieldLabel} htmlFor="custom-agents-name">{t('name')}</label>
             <input
+              id="custom-agents-name"
               data-modal-autofocus
               className={css.input}
               value={fields.name}
@@ -122,23 +123,22 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
               maxLength={policy?.maxNameChars}
               onChange={(event) => { setFields({ ...fields, name: event.target.value }); setSaved(false) }}
             />
-          </label>
-          <label className={css.field}>
-            <span className={css.fieldLabel}>{t('description')}</span>
+          </div>
+          <div className={css.field}>
+            <label className={css.fieldLabel} htmlFor="custom-agents-description">{t('description')}</label>
             <input
+              id="custom-agents-description"
               className={css.input}
               value={fields.description}
               placeholder={t('descriptionPlaceholder')}
               maxLength={policy?.maxDescriptionChars}
               onChange={(event) => { setFields({ ...fields, description: event.target.value }); setSaved(false) }}
             />
-          </label>
-          <label className={css.field}>
-            <span className={css.fieldLabel}>
-              {t('instructions')}
-              {policy !== undefined && <span className={css.counter}>{t('charsUsed', { used: fields.instructions.length, limit: policy.maxInstructionsChars })}</span>}
-            </span>
+          </div>
+          <div className={css.field}>
+            <label className={css.fieldLabel} htmlFor="custom-agents-instructions">{t('instructions')}</label>
             <textarea
+              id="custom-agents-instructions"
               className={css.input}
               rows={6}
               value={fields.instructions}
@@ -146,7 +146,8 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
               maxLength={policy?.maxInstructionsChars}
               onChange={(event) => { setFields({ ...fields, instructions: event.target.value }); setSaved(false) }}
             />
-          </label>
+            {policy !== undefined && <span className={css.counter}>{t('charsUsed', { used: fields.instructions.length, limit: policy.maxInstructionsChars })}</span>}
+          </div>
           {policy !== undefined && policy.allowedTools.length > 0 && (
             <fieldset className={css.tools}>
               <legend className={css.fieldLabel}>{t('tools')}</legend>
