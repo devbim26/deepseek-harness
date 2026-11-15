@@ -13,9 +13,11 @@ export interface CustomAgentsState {
   policy: CustomAgentPolicy | undefined
   saving: boolean
   error: string | undefined
+  /** Whether the manager dialog is showing; lives here so it outlives the picker menu. */
+  modalOpen: boolean
 }
 
-const INITIAL: CustomAgentsState = { status: 'idle', agents: [], policy: undefined, saving: false, error: undefined }
+const INITIAL: CustomAgentsState = { status: 'idle', agents: [], policy: undefined, saving: false, error: undefined, modalOpen: false }
 
 /** Outcome of one write, for the form's error surface. */
 export type WriteOutcome =
@@ -27,6 +29,17 @@ export class CustomAgentsController {
   readonly store: SnapshotStore<CustomAgentsState> = createSnapshotStore(INITIAL)
 
   constructor(private readonly ctx: ClientContext) {}
+
+  /** Show the manager dialog; the picker menu entry calls this before dismissing itself. */
+  openManager(): void {
+    this.store.set({ ...this.store.getSnapshot(), modalOpen: true })
+    void this.load()
+  }
+
+  /** Hide the manager dialog. */
+  closeManager(): void {
+    this.store.set({ ...this.store.getSnapshot(), modalOpen: false })
+  }
 
   /** Read the catalog; an unreachable remote marks the manager unavailable, not empty. */
   async load(): Promise<void> {

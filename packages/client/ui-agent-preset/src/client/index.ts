@@ -242,7 +242,10 @@ export function apply(ctx: ClientContext): void {
         name: 'conversation.hero.agentPreset',
         locale: 'settings.agentPreset',
         inject: seatInjected,
-        children: { 'agentPreset.picker.actions': { kind: 'list', scope: 'root' } },
+        children: {
+          'agentPreset.picker.actions': { kind: 'list', scope: 'root' },
+          'agentPreset.picker.overlays': { kind: 'list', scope: 'root' },
+        },
       }, AgentPresetSeat)
       const label = scope.slots.register({
         name: 'conversation.session.header.actions',

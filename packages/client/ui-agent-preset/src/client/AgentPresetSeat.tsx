@@ -71,7 +71,7 @@ function introStaggerMs(count: number): number {
 export type AgentPresetSeatProps =
   PropsRuntime<'conversation.hero.agentPreset'>
   & PropsLocale<'settings.agentPreset'>
-  & PropsRenderSlots<'agentPreset.picker.actions'>
+  & PropsRenderSlots<'agentPreset.picker.actions' | 'agentPreset.picker.overlays'>
   & InjectFace<AgentPresetSeatInjected>
 
 /**
@@ -162,6 +162,9 @@ export function AgentPresetSeat({
 
   return (
     <>
+      {/* Overlay companions mount here — outside the menu tree — so a menu
+          action can hand off to a dialog that outlives the closed menu. */}
+      {renderSlot('agentPreset.picker.overlays', {})}
       {ready && <Menu
         open={open && options.length > 0}
         onClose={() => { setOpen(false) }}

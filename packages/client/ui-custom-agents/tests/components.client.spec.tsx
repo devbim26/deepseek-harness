@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
-import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CreateCustomAgentButton } from '../src/client/CreateCustomAgentButton.tsx'
+import { CustomAgentsOverlay } from '../src/client/CustomAgentsOverlay.tsx'
 import { CustomAgentsController, type CustomAgentsState } from '../src/client/custom-agents-store.ts'
 import type { CustomAgentCatalog } from '@deepseek-ai/dsh-agent-preset-custom/types'
 import { en } from '../src/client/locales.ts'
@@ -22,7 +23,9 @@ const catalog: CustomAgentCatalog = {
   policy: { allowedTools: ['todo'], maxNameChars: 64, maxDescriptionChars: 200, maxInstructionsChars: 16384, maxAgents: 50 },
 }
 
-const READY: CustomAgentsState = { status: 'ready', agents: catalog.agents, policy: catalog.policy, saving: false, error: undefined }
+const READY: CustomAgentsState = {
+  status: 'ready', agents: catalog.agents, policy: catalog.policy, saving: false, error: undefined, modalOpen: false,
+}
 
 /** The scripted remote context; records emitted cordis events. */
 function fakeCtx(events: string[]): ClientContext {
@@ -39,20 +42,27 @@ function fakeCtx(events: string[]): ClientContext {
 }
 
 function view(state: Partial<CustomAgentsState> = {}) {
-  const store = createSnapshotStore<CustomAgentsState>({ ...READY, ...state })
   const events: string[] = []
   const controller = new CustomAgentsController(fakeCtx(events))
+  // Seed the controller's own store: the overlay subscribes to the same store
+  // instance the injected face hands out.
+  controller.store.set({ ...READY, ...state })
   const load = vi.fn(async () => {})
   const onDismiss = vi.fn()
   const props = {
     t,
-    useCustomAgents: bindSnapshotSelector(store as SnapshotStore<CustomAgentsState>),
+    useCustomAgents: bindSnapshotSelector(controller.store as SnapshotStore<CustomAgentsState>),
     controller,
     load,
     onDismiss,
   }
-  render(<CreateCustomAgentButton {...props} />)
-  return { store, load, onDismiss, events }
+  render(
+    <>
+      <CreateCustomAgentButton {...props} />
+      <CustomAgentsOverlay t={t} useCustomAgents={props.useCustomAgents} controller={controller} />
+    </>,
+  )
+  return { store: controller.store, load, onDismiss, events, controller }
 }
 
 function entry(): HTMLElement {
@@ -60,7 +70,7 @@ function entry(): HTMLElement {
 }
 
 describe('custom agent picker entry', () => {
-  it('opens the manager modal and lists the site agents', () => {
+  it('opens the manager dialog through the overlay and lists the site agents', () => {
     const view_ = view()
     expect(screen.queryByRole('dialog')).toBeNull()
     fireEvent.click(entry())
@@ -68,6 +78,15 @@ describe('custom agent picker entry', () => {
     expect(view_.load).toHaveBeenCalledOnce()
     expect(screen.getByRole('dialog')).not.toBeNull()
     expect(screen.getByText('Сметчик')).not.toBeNull()
+  })
+
+  it('keeps the dialog open after the menu entry unmounts', () => {
+    const view_ = view()
+    fireEvent.click(entry())
+    expect(screen.getByRole('dialog')).not.toBeNull()
+    // The menu closing unmounts the entry; the dialog lives in the overlay.
+    act(() => { view_.controller.closeManager() })
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 
   it('submits the form and emits custom-agents/changed', async () => {

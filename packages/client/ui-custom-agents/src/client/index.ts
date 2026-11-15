@@ -10,6 +10,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-agent-preset/client'
 // Type-only: pulls the slots Context merge (ctx.slots).
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { CreateCustomAgentButton } from './CreateCustomAgentButton.tsx'
+import { CustomAgentsOverlay } from './CustomAgentsOverlay.tsx'
 import { CustomAgentsController } from './custom-agents-store.ts'
 import { en, ru, zh, type CustomAgentsKey } from './locales.ts'
 
@@ -24,7 +25,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 export const inject = ['slots', 'locale', 'remote', 'remote.customAgentPresets']
 
 /**
- * Mount the manager entry into the preset picker's action slot.
+ * Mount the manager entry into the preset picker's action slot and its dialog
+ * into the companion overlay slot.
  * @param ctx - the browser plugin context.
  */
 export function apply(ctx: ClientContext): void {
@@ -36,4 +38,10 @@ export function apply(ctx: ClientContext): void {
     locale: 'customAgents',
     inject: () => ({ hooks: { customAgents: controller.store }, controller, load: () => controller.load() }),
   }, CreateCustomAgentButton))
+  ctx.slots.inject('agentPreset.picker.overlays', () => ctx.slots.register({
+    name: 'agentPreset.picker.overlays',
+    id: 'custom-agents-dialog',
+    locale: 'customAgents',
+    inject: () => ({ hooks: { customAgents: controller.store }, controller }),
+  }, CustomAgentsOverlay))
 }
