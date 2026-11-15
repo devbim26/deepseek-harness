@@ -14,7 +14,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ObservableSnapshot, SnapshotStore } from '@deepseek-ai/dsh-client-store'
-import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { InjectFace, PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import {
   IconAgentPresetOutlineRegular, IconChevronDownOutlineRegular, IconWarningOutlineRegular, Menu, Toast,
 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -71,6 +71,7 @@ function introStaggerMs(count: number): number {
 export type AgentPresetSeatProps =
   PropsRuntime<'conversation.hero.agentPreset'>
   & PropsLocale<'settings.agentPreset'>
+  & PropsRenderSlots<'agentPreset.picker.actions'>
   & InjectFace<AgentPresetSeatInjected>
 
 /**
@@ -79,7 +80,7 @@ export type AgentPresetSeatProps =
  * @returns The chip and any pending selection refusal, or null outside the main view.
  */
 export function AgentPresetSeat({
-  sessionId, useSessionRetainInfo, load, select, dismissRefusal, introduced, useAgentPresetSeat, useDeveloperTools, t,
+  sessionId, useSessionRetainInfo, load, select, dismissRefusal, introduced, useAgentPresetSeat, useDeveloperTools, renderSlot, t,
 }: AgentPresetSeatProps) {
   const developerTools = useDeveloperTools(value => value)
   const state = useAgentPresetSeat(snapshot => snapshot)
@@ -201,7 +202,9 @@ export function AgentPresetSeat({
             <IconChevronDownOutlineRegular className={css.chevron} />
           </button>
         )}
-      />}
+      >
+        {renderSlot('agentPreset.picker.actions', { onDismiss: () => { setOpen(false) } })}
+      </Menu>}
       {toast !== null && (
         <Toast
           key={toast.seq}

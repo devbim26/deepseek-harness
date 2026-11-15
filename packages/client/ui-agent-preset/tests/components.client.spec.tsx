@@ -73,6 +73,7 @@ function renderSeat(
     useSessionRetainInfo: session === undefined
       ? useSessionRetainInfo
       : <Selected,>(selector: (value: SessionRetainInfo | undefined) => Selected) => selector(session.retainInfo),
+    renderSlot: () => null,
     t: translate,
   } as AgentPresetSeatProps
   render(<AgentPresetSeat {...props} />)

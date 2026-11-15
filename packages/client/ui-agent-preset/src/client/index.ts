@@ -53,8 +53,20 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   }
 }
 
+declare module '@deepseek-ai/cordis' {
+  interface Events {
+    /**
+     * A custom-agent write succeeded; the preset roster may have changed.
+     * The custom-agent manager emits it; this plugin's roster refresh subscribes.
+     * @mode emit
+     */
+    'custom-agents/changed'(): void
+  }
+}
+
 export type { AgentPresetLabelInjected, AgentPresetLabelProps } from './AgentPresetLabel.tsx'
 export type { AgentPresetSeatInjected, AgentPresetSeatProps } from './AgentPresetSeat.tsx'
+export type { AgentPresetPickerActionsProps } from './slot-contract.ts'
 export type { AgentPresetSectionInjected, AgentPresetSectionProps } from './AgentPresetSection.tsx'
 export type { AgentPresetSeatState } from './seat-store.ts'
 export type { AgentPresetSectionState, PresetView } from './section-store.ts'
@@ -165,6 +177,9 @@ export function apply(ctx: ClientContext): void {
         if (ns !== AGENT_PRESET_SETTINGS_NS) return
         refresh()
       }),
+      // A custom-agent write may add, rename, or drop a roster row; the
+      // emitter is the manager surface that performed it.
+      ctx.on('custom-agents/changed', refresh),
       ctx.on('connection/reset', refresh),
     ]
     reconcile()
@@ -227,6 +242,7 @@ export function apply(ctx: ClientContext): void {
         name: 'conversation.hero.agentPreset',
         locale: 'settings.agentPreset',
         inject: seatInjected,
+        children: { 'agentPreset.picker.actions': { kind: 'list', scope: 'root' } },
       }, AgentPresetSeat)
       const label = scope.slots.register({
         name: 'conversation.session.header.actions',
