@@ -2944,6 +2944,9 @@ importers:
       '@deepseek-ai/dsh-agent-preset':
         specifier: workspace:*
         version: link:../../preset/agent-preset
+      '@deepseek-ai/dsh-agent-preset-custom':
+        specifier: workspace:*
+        version: link:../../preset/agent-preset-custom
       '@deepseek-ai/dsh-agent-preset-registry':
         specifier: workspace:*
         version: link:../../preset/agent-preset-registry
@@ -3037,6 +3040,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-cordis':
         specifier: workspace:*
         version: link:../../extensions/ui-cordis
+      '@deepseek-ai/dsh-client-ui-custom-agents':
+        specifier: workspace:*
+        version: link:../../client/ui-custom-agents
       '@deepseek-ai/dsh-client-ui-deliverables':
         specifier: workspace:*
         version: link:../../client/ui-deliverables

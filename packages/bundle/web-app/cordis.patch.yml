@@ -455,6 +455,10 @@
     - id: ui-agent-preset
       name: '@deepseek-ai/dsh-client-ui-agent-preset'
 
+    # The custom-agent manager over the preset picker's action slot.
+    - id: ui-custom-agents
+      name: '@deepseek-ai/dsh-client-ui-custom-agents'
+
     # Region-local More menus: pin or unpin plugin launchers and start a
     # plugin draft.
     - id: entry-customization
@@ -618,3 +622,6 @@
       name: '@deepseek-ai/dsh-agent-preset-registry'
       config:
         default: standard
+
+    - id: agent-preset-custom
+      name: '@deepseek-ai/dsh-agent-preset-custom'
