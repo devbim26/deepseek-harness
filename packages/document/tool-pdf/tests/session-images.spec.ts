@@ -88,7 +88,7 @@ describe('collectReportImages', () => {
     expect(skipped).toEqual([])
     expect(images).toHaveLength(3)
     expect(images[0]).toMatchObject({ callId: 'call-a', mediaType: 'image/png', caption: 'Лист 38' })
-    expect(images[0].data.byteLength).toBeGreaterThan(0)
+    expect(images[0]?.data.byteLength).toBeGreaterThan(0)
   })
 
   it('skips unknown call ids, imageless results, unsupported media, and oversize images', async () => {

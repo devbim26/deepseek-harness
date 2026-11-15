@@ -13,7 +13,7 @@ import { SESSION_FORMAT_VERSION, Session, SessionId } from '@deepseek-ai/dsh-ses
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import { executeToolFixture } from '@deepseek-ai/dsh-tool-testkit'
-import ToolRuntime from '@deepseek-ai/dsh-tools'
+import ToolRuntime, { type ToolExecutionResult } from '@deepseek-ai/dsh-tools'
 import * as NativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
 import { mkdtemp, mkdir, readFile, realpath, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -66,7 +66,7 @@ interface Setup {
   owner: Agent
   root: string
   fiber: unknown
-  execute: (args: Record<string, unknown>) => Promise<{ isError: boolean; value: unknown }>
+  execute: (args: Record<string, unknown>) => Promise<ToolExecutionResult>
 }
 
 /** Compose the real services the tool injects, over a temp workspace. */
@@ -178,7 +178,7 @@ describe('pdf_report', () => {
     const { ctx, execute } = await compose()
     expect((await execute({ file_path: 'exists.pdf', blocks: [{ type: 'text', text: 'first' }] })).isError).toBe(false)
     await ctx.plugin(Object.assign((inner: Context) => {
-      inner.on('fs/write-intent', (_target, _actor, next) => {
+      inner.on('fs/write-intent', async (_target, _actor, next) => {
         void next()
         return { kind: 'createIfAbsent' }
       })
@@ -223,6 +223,6 @@ describe('pdf_report', () => {
     if (tool === undefined || tool.presentCall === undefined) throw new Error('pdf_report definition missing')
     const view = tool.presentCall({ file_path: 'a.pdf', blocks: [{ type: 'text', text: 'x' }] })
     expect(view).toMatchObject({ card: 'generic', kind: 'other' })
-    expect(view.title).toContain('a.pdf')
+    expect(view?.title).toContain('a.pdf')
   })
 })
