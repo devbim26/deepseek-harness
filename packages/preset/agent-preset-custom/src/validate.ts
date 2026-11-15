@@ -5,7 +5,11 @@ import type { CustomAgentInput } from './types.ts'
 
 const SLUG_RE = /^[a-z0-9][a-z0-9-]*$/
 
-/** Derive the ASCII slug for a name: Latin letters and digits only, `-`-separated. */
+/**
+ * Derive the ASCII slug for a name: Latin letters and digits only, `-`-separated.
+ * @param name - the display name to slugify.
+ * @returns the slug, or `'agent'` when the name carries no ASCII letters.
+ */
 export function slugForName(name: string): string {
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48)
   return slug === '' || !SLUG_RE.test(slug) ? 'agent' : slug

@@ -1,0 +1,46 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/preset/agent-preset-custom/README.md
+/:
+  en: 426d7c7c7799d0a5
+  zh: 31fe34ee530f579f
+/deepseek-ai-dsh-agent-preset-custom:
+  en: 8814f336c1d4005c
+  zh: 5b816b6d338f7c61
+/deepseek-ai-dsh-agent-preset-custom/summary:
+  en: c721247c4f1e7587
+  zh: 02203078439b45ed
+/deepseek-ai-dsh-agent-preset-custom/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 09388d293f9be9cb
+/deepseek-ai-dsh-agent-preset-custom/use-this-package:
+  en: 8054d9dc317c2c5b
+  zh: e479c024d121fef8
+/deepseek-ai-dsh-agent-preset-custom/understand-the-implementation:
+  en: 8bc1f4a0e5a4d939
+  zh: 9460428b452387dc
+/deepseek-ai-dsh-agent-preset-custom/further-exploration:
+  en: 7834e057b512eadb
+  zh: c4d16b86c4fe6d79
+/deepseek-ai-dsh-agent-preset-custom/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-agent-preset-custom/model-experience/custom-preset-selection:
+  en: af0b876cd0df7405
+  zh: 998633217fd6e9d3
+/deepseek-ai-dsh-agent-preset-custom/model-experience/custom-preset-selection/what-the-model-sees:
+  en: 54fb7cdc2f4a292b
+  zh: a2bef74d7e120151
+/deepseek-ai-dsh-agent-preset-custom/model-experience/custom-preset-selection/token-effect:
+  en: 0281d7f0f672f634
+  zh: f43ced7268daa9e9
+/deepseek-ai-dsh-agent-preset-custom/model-experience/custom-preset-selection/kv-cache-effect:
+  en: d223c2ec2e0984a8
+  zh: b2eb2758a79cfd61
+/deepseek-ai-dsh-agent-preset-custom/known-limitations-and-deferred-work:
+  en: 1154d7c4b05d5d10
+  zh: 7e7e1ad5fcd5043d
+/deepseek-ai-dsh-agent-preset-custom/known-limitations-and-deferred-work/dev-note:
+  en: b13c694327c36574
+  zh: ce4e1f224fd20d18

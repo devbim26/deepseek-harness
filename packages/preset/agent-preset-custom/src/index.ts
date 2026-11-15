@@ -63,6 +63,10 @@ export class CustomAgentPresets extends TypertRemoteService {
     }
   }
 
+  /**
+   * Serve the current catalog and the deployment policy.
+   * @returns every stored record plus the whitelist and limits the form renders against.
+   */
   @Remote('list')
   async remoteExportList(): Promise<CustomAgentCatalog> {
     const table = this.requireTable()
@@ -83,6 +87,11 @@ export class CustomAgentPresets extends TypertRemoteService {
     }
   }
 
+  /**
+   * Validate, persist, and mount one new agent; the id derives from the name.
+   * @param input - the client-submitted fields.
+   * @returns the stored record at version 1.
+   */
   @Remote('create')
   async create(input: CustomAgentInput): Promise<CustomAgentRecord> {
     const table = this.requireTable()
@@ -107,6 +116,14 @@ export class CustomAgentPresets extends TypertRemoteService {
     return record
   }
 
+  /**
+   * Validate, persist, and remount one agent as a new revision; running
+   * sessions keep their composition.
+   * @param id - the record id.
+   * @param input - the client-submitted fields.
+   * @param version - the caller's version stamp.
+   * @returns the stored record at `version + 1`.
+   */
   @Remote('update')
   async update(id: string, input: CustomAgentInput, version: number): Promise<CustomAgentRecord> {
     const table = this.requireTable()
@@ -127,6 +144,11 @@ export class CustomAgentPresets extends TypertRemoteService {
     return record
   }
 
+  /**
+   * Unmount and delete one agent under optimistic concurrency.
+   * @param id - the record id.
+   * @param version - the caller's version stamp.
+   */
   @Remote('delete')
   async remove(id: string, version: number): Promise<void> {
     const table = this.requireTable()

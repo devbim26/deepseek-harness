@@ -843,6 +843,46 @@ Types: [Session](session.md)
 
 Source: [`packages/core/agent/src/index.ts`](../../packages/core/agent/src/index.ts)
 
+<a id="ctxcustomagentpresets--customagentpresets"></a>
+
+### `ctx.customAgentPresets` — `CustomAgentPresets`
+
+Registry-backed CRUD for deployment-constrained, user-created agent presets.
+
+```ts cordis-catalog
+/**
+ * Serve the current catalog and the deployment policy.
+ * @returns every stored record plus the whitelist and limits the form renders against.
+ */
+@Remote('list') async remoteExportList(): Promise<CustomAgentCatalog>
+
+/**
+ * Validate, persist, and mount one new agent; the id derives from the name.
+ * @param input - the client-submitted fields.
+ * @returns the stored record at version 1.
+ */
+@Remote('create') async create(input: CustomAgentInput): Promise<CustomAgentRecord>
+
+/**
+ * Validate, persist, and remount one agent as a new revision; running
+ * sessions keep their composition.
+ * @param id - the record id.
+ * @param input - the client-submitted fields.
+ * @param version - the caller's version stamp.
+ * @returns the stored record at `version + 1`.
+ */
+@Remote('update') async update(id: string, input: CustomAgentInput, version: number): Promise<CustomAgentRecord>
+
+/**
+ * Unmount and delete one agent under optimistic concurrency.
+ * @param id - the record id.
+ * @param version - the caller's version stamp.
+ */
+@Remote('delete') async remove(id: string, version: number): Promise<void>
+```
+
+Source: [`packages/preset/agent-preset-custom/src/index.ts`](../../packages/preset/agent-preset-custom/src/index.ts)
+
 <a id="agent-events"></a>
 
 ### `agent/*` events

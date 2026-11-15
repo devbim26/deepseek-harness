@@ -110,8 +110,7 @@ describe('custom agent presets service', () => {
 
 - [ ] **Step 2: Убедиться, что тест падает**
 
-Run: `pnpm exec vitest run packages/preset/agent-preset-custom`
-Expected: FAIL — «Cannot find module '.../src/index.ts'» (пакета ещё нет).
+Run: `pnpm exec vitest run packages/preset/agent-preset-custom` — Expected: FAIL, «Cannot find module '.../src/index.ts'» (пакета ещё нет).
 
 - [ ] **Step 3: Создать скаффолд пакета**
 
@@ -419,13 +418,11 @@ export default CustomAgentPresets
 
 - [ ] **Step 5: Прогнать тест**
 
-Run: `pnpm exec vitest run packages/preset/agent-preset-custom`
-Expected: PASS (1 тест). Если registry-harness тянет сборные зависимости — прогреть один раз `pnpm run build:artifacts` и повторить.
+Run: `pnpm exec vitest run packages/preset/agent-preset-custom` — Expected: PASS (1 тест). Если registry-harness тянет сборные зависимости — прогреть один раз `pnpm run build:artifacts` и повторить.
 
 - [ ] **Step 6: Проверить типы и закоммитить**
 
-Run: `pnpm exec tsc -b packages/preset/agent-preset-custom && pnpm install`
-Expected: без ошибок; линк пакета в workspace создан.
+Run: `pnpm exec tsc -b packages/preset/agent-preset-custom && pnpm install` — Expected: без ошибок; линк пакета в workspace создан.
 
 ```bash
 git add packages/preset/agent-preset-custom pnpm-lock.yaml

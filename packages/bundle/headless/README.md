@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-`dsh-headless` runs one dsh task from the command line and prints the final answer, then exits — no GUI, no server, no browser. Type `dsh --profile headless "run the tests"` and the agent handles it with the same model, tools, and safety defaults as every other surface. Document tasks ship enabled: the packaged Office skills author Excel, Word, and PowerPoint files, the LibreOffice-backed Office tools render and convert them to PDF or PNG, and the `present` tool declares the finished files as deliverables. It suits scripts, CI, and one-off jobs: it opens no ports and leaves nothing running behind. It also offers a JSON event stream (`--json`) and `--session-id` to resume a conversation. Exit code 0 means the task completed; 1 means it aborted or errored. The boundary: one task per invocation, no interactive follow-up.
+`dsh-headless` runs one dsh task from the command line, prints the final answer, and exits — no GUI, server, or browser. `dsh --profile headless "run the tests"` uses the same model, tools, and safety defaults as every other surface. Document tasks ship enabled: packaged Office skills author Excel, Word, and PowerPoint files; LibreOffice-backed Office tools render and convert them to PDF or PNG; `present` declares the finished files as deliverables. It suits scripts, CI, one-off jobs: no ports open, nothing left running. A JSON event stream (`--json`) and `--session-id` resume are available. Exit 0 means completed; 1 aborted or errored.
 
 ## Table of Contents
 

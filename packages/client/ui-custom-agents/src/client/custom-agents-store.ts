@@ -26,6 +26,7 @@ export type WriteOutcome =
 
 /** Loads the catalog and performs CRUD through the typed remote. */
 export class CustomAgentsController {
+  /** Manager snapshot the menu entry and the overlay both subscribe to. */
   readonly store: SnapshotStore<CustomAgentsState> = createSnapshotStore(INITIAL)
 
   constructor(private readonly ctx: ClientContext) {}
@@ -52,6 +53,11 @@ export class CustomAgentsController {
     this.store.set({ ...this.store.getSnapshot(), status: 'ready', agents: result.value.agents, policy: result.value.policy, error: undefined })
   }
 
+  /**
+   * Create one agent from the submitted fields; the service re-validates.
+   * @param input - the form fields.
+   * @returns the created record, or the coded failure for the form.
+   */
   async create(input: CustomAgentInput): Promise<WriteOutcome> {
     this.store.set({ ...this.store.getSnapshot(), saving: true })
     try {
@@ -65,6 +71,13 @@ export class CustomAgentsController {
     }
   }
 
+  /**
+   * Update one agent under optimistic concurrency.
+   * @param id - the record id.
+   * @param input - the form fields.
+   * @param version - the caller's version stamp.
+   * @returns the updated record, or the coded failure for the form.
+   */
   async update(id: string, input: CustomAgentInput, version: number): Promise<WriteOutcome> {
     this.store.set({ ...this.store.getSnapshot(), saving: true })
     try {
@@ -78,6 +91,12 @@ export class CustomAgentsController {
     }
   }
 
+  /**
+   * Delete one agent under optimistic concurrency.
+   * @param id - the record id.
+   * @param version - the caller's version stamp.
+   * @returns ok with no record, or the coded failure for the form.
+   */
   async remove(id: string, version: number): Promise<WriteOutcome> {
     const result = await this.ctx.remote.customAgentPresets.delete(id, version)
     if (!result.ok) return this.writeFailure(result.error)

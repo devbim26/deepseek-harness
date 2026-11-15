@@ -72,6 +72,7 @@ export const SERVICE_PAGE: Record<string, string> = {
   mcpManager: 'mcp.md',
   agentDefaultModel: 'core.md',
   agentPresets: 'core.md',
+  customAgentPresets: 'core.md',
   agents: 'core.md',
   approval: 'approval.md',
   officeKit: 'office-kit.md',
@@ -286,6 +287,7 @@ export const EVENT_SCOPE_PAGE: Record<string, string> = {
  * exemption cannot mask another declaration in that scope.
  */
 export const EVENT_WALK_EXEMPTIONS: Record<string, string> = {
+  'custom-agents/changed': 'client-face roster refresh signal — packages/client/ui-custom-agents/README.md owns the API',
   'account-ui/change': 'client-side account lifecycle signal — packages/client/ui-settings-account/README.md owns the API',
   'account-ui/refresh': 'client-side account refresh signal — packages/client/ui-settings-account/README.md owns the API',
   'workspace/archive-notice': 'client-face archive follow-up copy — packages/client/ui-workspace/README.md owns the API',
@@ -1067,6 +1069,9 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   AgentPresetDocument: 'preset composition view is owned by packages/preset/agent-preset-registry/README.md',
   AgentPresetComposition: 'flattened composition rows are owned by packages/preset/agent-preset-registry/README.md',
   AgentPresetInspection: 'retained revision modules and isolation diagnostics are owned by packages/preset/agent-preset-registry/README.md',
+  CustomAgentCatalog: 'stored agents and the deployment policy are owned by packages/preset/agent-preset-custom/README.md',
+  CustomAgentInput: 'client-submitted fields are owned by packages/preset/agent-preset-custom/README.md',
+  CustomAgentRecord: 'stored agent record is owned by packages/preset/agent-preset-custom/README.md',
   PresetMetadata: 'preset display text is owned by packages/preset/agent-preset-registry/README.md',
   BashEnvContributor: 'service-local extension type is owned by packages/shell/tool-bash/src/index.ts',
   BashEnvVariableInfo: 'service-local metadata type is owned by packages/shell/tool-bash/src/index.ts',

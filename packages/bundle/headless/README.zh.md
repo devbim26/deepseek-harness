@@ -9,7 +9,7 @@ kind: "package-bundle"
 
 ## 概述
 
-`dsh-headless` 从命令行运行一个 dsh 任务并打印最终答案，然后退出——没有 GUI、没有服务器、没有浏览器。输入 `dsh --profile headless "run the tests"`，agent（智能体）会以与所有其他表层相同的模型、工具与安全默认值完成该任务。文档任务开箱即用：随附的 Office 技能负责编写 Excel、Word 和 PowerPoint 文件，由 LibreOffice 支撑的 Office 工具把它们渲染并转换为 PDF 或 PNG，`present` 工具把完成的文件声明为最终交付物。它非常适合脚本、CI 与一次性任务：进程不打开任何端口，也不会留下任何后台运行的东西。监督进程还可以通过按行 JSON 事件流（`--json`）驱动它，并用该事件流报告的标识（`--session-id`）在同一段对话上继续唤醒。退出码告诉你结果——任务完成时为 0，中止或出错时为 1。主要边界：每次调用只运行一个任务，没有交互式后续。
+`dsh-headless` 从命令行运行一个 dsh 任务，打印最终答案，然后退出——没有 GUI、服务器或浏览器。`dsh --profile headless "run the tests"` 使用与所有其他表层相同的模型、工具与安全默认值。文档任务开箱即用：随附的 Office 技能负责编写 Excel、Word 和 PowerPoint 文件；由 LibreOffice 支撑的 Office 工具把它们渲染并转换为 PDF 或 PNG；`present` 把完成的文件声明为最终交付物。它适合脚本、CI 与一次性任务：不打开端口，不留任何后台进程。按行 JSON 事件流（`--json`）与 `--session-id` 续聊开箱即用。退出码 0 表示完成；1 表示中止或出错。
 
 ## 目录
 
