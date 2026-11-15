@@ -1,6 +1,6 @@
 /** Shared report input and result types for the pdf_report tool. */
 
-/** One embedded image with its provenance and optional caption. */
+/** One embedded image with its originating tool call and optional caption. */
 export interface ReportImage {
   /** Tool call id whose result carried the image. */
   callId: string

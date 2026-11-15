@@ -66,11 +66,19 @@ The vendored Noto Sans faces (SIL Open Font License, see `assets/fonts/LICENSE`)
 <a id="model-experience"></a>
 ## Model Experience
 
-The tool is admitted like any registered tool. Its result renders one `<path>` envelope naming the written file, its page and image counts, and one line per skipped image with the reason; the model fixes the request and retries when call ids were wrong. The call card shows the target path and the block count.
+### pdf_report
+
+#### What the model sees
+
+The result renders one `<path>` envelope naming the written file, its page and image counts, and one line per skipped image with the reason; the model fixes the request and retries when call ids were wrong. The call card shows the target path and the block count.
+
+#### Token effect
+
+Each call appends one tool result.
 
 #### KV Cache effect
 
-Each call appends one tool result; the render is bounded by the skip list length, which the image caps bound.
+The result is bounded by the skip list length, which the image caps bound.
 
 ## Known Limitations and Deferred Work
 

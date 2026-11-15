@@ -48,6 +48,25 @@
     serverUrl: http://127.0.0.1:8808
     token: !!js process.env.DRAWING5_KEY ?? ''
 
+# dsh-plugin-smeta подключает сметный ассистент БелЕНиР (скилл smeta-mcp и
+# окно «Сметы»). Плагин по умолчанию смотрит на https://smeta.dev-bim.com;
+# на деплой-машине MCP-сервер локальный (python -m smeta mcp :8021), поэтому
+# обе строки плагина переопределяются — верхнеуровневые, без insert:, с теми
+# же id: smeta-mcp и smeta-skill. Авторизации нет. Инструменты mcp__smeta__*:
+# search_rascenki, get_rascenka, calc_position, get_stats, get_health.
+- id: smeta-mcp
+  name: '@deepseek-ai/dsh-mcp-client'
+  config:
+    serverName: smeta
+    transport: streamable-http
+    url: http://127.0.0.1:8021/mcp
+    toolCallTimeoutMs: 120000
+
+- id: smeta-skill
+  name: dsh-plugin-smeta
+  config:
+    serverUrl: http://127.0.0.1:8021
+
 # The public tunnel authority joins the /api Host/Origin trust fence. The
 # bundle's connection row injects `webStartup`; this overlay restates the
 # injection so the expression may read the invocation's `--trusted-host`
