@@ -631,7 +631,7 @@ export function synthesizeDefinition(record: CustomAgentRecord, config: Config):
 
 В `src/index.ts`: убрать `await import` для definition/spec (перенести в статические импорты), добавить методы в класс:
 
-```ts
+```text
   /** Derive the first unused `custom/<slug>` id for a name. */
   private unusedId(name: string): string {
     const table = this.requireTable()
@@ -720,7 +720,7 @@ git commit -m "feat(agent-preset-custom): synthesize registry definitions and se
 
 - [ ] **Step 1: Расширить harness** — в `tests/harness.ts` добавить опцию:
 
-```ts
+```text
 export async function harness(config: Partial<HarnessConfig> = {}, storage: { jsonRoot?: string } = {}): Promise<...> {
   const ctx = await presetHarness()
   if (storage.jsonRoot !== undefined) {
@@ -876,7 +876,7 @@ export {}
 
 и в массив `disposers` refresh-эффекта (строки ~158-166) добавить подписку:
 
-```ts
+```text
         ctx.on('custom-agents/changed', refresh),
 ```
 
@@ -1420,7 +1420,7 @@ git commit -m "docs(deploy): enable the custom agent builder on the north-waterf
 
 - [ ] **Step 1: Scaffold-опция** — в `LaunchOptions` добавить:
 
-```ts
+```text
   customAgentPresets?: {
     instructionsPrefix?: string
     allowedTools?: Record<string, { name: string; config?: unknown }>
@@ -1429,7 +1429,7 @@ git commit -m "docs(deploy): enable the custom agent builder on the north-waterf
 
 в compose-список rows рядом с `agentPresets` (строки ~685-688):
 
-```ts
+```text
     ...options.customAgentPresets === undefined ? [] : [
       { insert: [{ id: 'agent-preset-custom', name: '@deepseek-ai/dsh-agent-preset-custom', config: {
         instructionsPrefix: options.customAgentPresets.instructionsPrefix ?? '',
