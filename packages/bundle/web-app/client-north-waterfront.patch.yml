@@ -162,12 +162,23 @@
   disabled: true
 - id: preset-cordis
   disabled: true
+# The plugin bundles insert the drawing5/smeta MCP rows at the host plane by
+# default. Here they are disabled and mounted per-agent instead (in the
+# standard preset below and, for custom agents, by the manager's checkbox):
+# a per-agent mount is the only way an unchecked plugin row is a hard block —
+# the agent never mounts the row, so its mcp__drawing5__* / mcp__smeta__*
+# tools never exist for that agent. A host-plane row would leak the tools to
+# every agent and collide with the per-agent serverName.
+- id: drawing5-mcp
+  disabled: true
+- id: smeta-mcp
+  disabled: true
 # Same-id override of the standard preset's whole config (a patch replaces
 # the targeted row's config, so every key is restated). Kept: persona,
-# instructions context, time context, the compaction group, ask-user, todo.
-# The drawing5 MCP rows are host-plane and stay available without a preset.
+# instructions context, time context, the compaction group, ask-user, todo,
+# the drawing5/smeta MCP rows (now per-agent), PDF reports, present.
 # Dropped: shell, filesystem, search, jobs, schedule, skills, goal, plan,
-# delegation/subagents, web, present, office, plugin tools.
+# delegation/subagents, web, office, plugin tools.
 - id: preset-standard
   config:
     id: standard
@@ -206,6 +217,26 @@
         name: '@deepseek-ai/dsh-tool-todo'
         config:
           allowParallelInProgress: true
+      # Per-agent drawing5/smeta MCP mounts (host-plane rows disabled above):
+      # same addresses and env as the plugin defaults, so .env.north-waterfront
+      # keeps driving them. Agent-scoped mounts may share the serverName across
+      # agents; each session opens its own connection.
+      - id: drawing5-mcp
+        name: '@deepseek-ai/dsh-mcp-client'
+        config:
+          serverName: drawing5
+          transport: streamable-http
+          url: !!js (process.env.DRAWING5_SERVER_URL ?? "https://drawing5.dev-bim.com") + "/mcp"
+          headers:
+            Authorization: !!js '`Bearer ${process.env.DRAWING5_API_KEY ?? ""}`'
+          toolCallTimeoutMs: 120000
+      - id: smeta-mcp
+        name: '@deepseek-ai/dsh-mcp-client'
+        config:
+          serverName: smeta
+          transport: streamable-http
+          url: !!js (process.env.SMETA_SERVER_URL ?? "https://smeta.dev-bim.com") + "/mcp"
+          toolCallTimeoutMs: 120000
       # PDF reports without shell or Python: the tool embeds images from the
       # Session's durable attachments (drawing5 sheet results) and writes the
       # file into the client workspace; present shows the delivery card.
@@ -220,8 +251,10 @@
 # re-validates against this config: a user agent is the site persona prefix
 # plus the user's instructions, the fixed base rows copied from the kept
 # preset-standard list above (minus persona), and any whitelisted tool rows
-# the user selected. Raise allowedTools only with a sandbox review of the
-# added rows.
+# the user checked. The whitelist carries the system tool rows and the domain
+# MCP rows (host-plane disabled above): a checked checkbox mounts the row into
+# that agent; an unchecked one is a hard block — the mcp__*__* tools never
+# exist for it. Raise allowedTools only with a sandbox review of the added rows.
 - insert:
     - id: agent-preset-custom
       name: '@deepseek-ai/dsh-agent-preset-custom'
@@ -251,14 +284,43 @@
                   thresholdChars: 8192
                   headChars: 4096
                   tailChars: 1024
+          # File delivery for every custom agent: present only declares
+          # existing files as turn-tail delivery cards — it creates nothing
+          # and reads no contents, so it stays out of the checkbox whitelist.
+          # Pair it with a file-producing path (today tool-pdf in the standard
+          # preset; the smeta MCP server can write exports into the workspace).
+          - id: present
+            name: '@deepseek-ai/dsh-tool-present'
         allowedTools:
           ask-user:
             name: '@deepseek-ai/dsh-tool-ask-user'
             label: Вопросы пользователю
+            description: Агент может задать вам вопрос и дождаться ответа. Отметьте, чтобы инструмент был доступен.
           todo:
             name: '@deepseek-ai/dsh-tool-todo'
             label: Задачи
+            description: Агент ведёт список задач по текущей работе. Отметьте, чтобы инструмент был доступен.
             config:
               allowParallelInProgress: true
+          drawing5:
+            name: '@deepseek-ai/dsh-mcp-client'
+            label: Чертежи (drawing5)
+            description: Инструменты mcp__drawing5__* — проекты, листы, поиск по чертежам. Отметьте, чтобы агент имел доступ; без отметки доступ заблокирован.
+            config:
+              serverName: drawing5
+              transport: streamable-http
+              url: !!js (process.env.DRAWING5_SERVER_URL ?? "https://drawing5.dev-bim.com") + "/mcp"
+              headers:
+                Authorization: !!js '`Bearer ${process.env.DRAWING5_API_KEY ?? ""}`'
+              toolCallTimeoutMs: 120000
+          smeta:
+            name: '@deepseek-ai/dsh-mcp-client'
+            label: Сметы (БелЕНиР)
+            description: Инструменты mcp__smeta__* — поиск расценок и расчёт позиций. Отметьте, чтобы агент имел доступ; без отметки доступ заблокирован.
+            config:
+              serverName: smeta
+              transport: streamable-http
+              url: !!js (process.env.SMETA_SERVER_URL ?? "https://smeta.dev-bim.com") + "/mcp"
+              toolCallTimeoutMs: 120000
     - id: ui-custom-agents
       name: '@deepseek-ai/dsh-client-ui-custom-agents'
