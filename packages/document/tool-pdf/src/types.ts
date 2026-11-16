@@ -24,6 +24,7 @@ export interface SkippedImage {
 export type ReportBlock =
   | { type: 'text'; heading?: string; text: string }
   | { type: 'image'; callId: string; caption?: string }
+  | { type: 'table'; header: string[]; rows: string[][] }
 
 /** Assembled report outcome. */
 export interface PdfReportResult {

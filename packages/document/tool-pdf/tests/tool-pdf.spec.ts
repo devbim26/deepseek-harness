@@ -198,6 +198,29 @@ describe('pdf_report', () => {
     expect((await execute({ file_path: 'a.pdf', blocks: [{ type: 'divider', text: 'x' }] })).isError).toBe(true)
   })
 
+  it('writes tabular data as a styled table and rejects tables without header or rows', async () => {
+    const { root, execute } = await compose()
+    const ok = await execute({
+      file_path: 'смета.pdf',
+      blocks: [
+        { type: 'text', text: 'Состав работ.' },
+        { type: 'table', header: ['Наименование', 'Кол-во', 'Сумма'], rows: [
+          ['Монтаж розетки', '12', '7 200.00'],
+          ['Прокладка кабеля', '85'],
+        ] },
+      ],
+    })
+    expect(ok.isError).toBe(false)
+    if (ok.isError) throw new Error('pdf_report failed')
+    expect(ok.value).toMatchObject({ pages: 1, imagesEmbedded: 0 })
+    const written = await readFile(join(root, 'смета.pdf'))
+    expect(written.subarray(0, 4).toString('latin1')).toBe('%PDF')
+    expect((await execute({ file_path: 'a.pdf', blocks: [{ type: 'table', rows: [['x']] }] })).isError).toBe(true)
+    expect((await execute({ file_path: 'a.pdf', blocks: [{ type: 'table', header: [] , rows: [['x']] }] })).isError).toBe(true)
+    expect((await execute({ file_path: 'a.pdf', blocks: [{ type: 'table', header: ['A'] }] })).isError).toBe(true)
+    expect((await execute({ file_path: 'a.pdf', blocks: [{ type: 'table', header: ['A'], rows: [] }] })).isError).toBe(true)
+  })
+
   it('rejects a non-file target path', async () => {
     const { root, execute } = await compose()
     await mkdir(join(root, 'folder.pdf'))

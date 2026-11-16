@@ -1,5 +1,5 @@
 ---
-description: "Assemble PDF report files from text sections and tool-result images with the pdf_report tool, without shell or Python."
+description: "Assemble PDF report files from text sections, tables, and tool-result images with the pdf_report tool, without shell or Python."
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Use `pdf_report` to write a PDF report file into the Session working directory. The model passes ordered text blocks and image blocks that reference earlier tool calls; the tool reads those calls' images from the Session log through the durable attachment store and embeds them. The tool needs no shell, no Python, and no filesystem tools, which fits restricted deployments such as client-facing sites: the model assembles a report from what it already produced and delivers the file with `present`.
+Use `pdf_report` to write a PDF report file into the Session working directory. The model passes ordered text blocks, table blocks, and image blocks that reference earlier tool calls; the tool reads those calls' images from the Session log through the durable attachment store and embeds them. Table blocks render tabular data as styled tables with a filled header row, zebra rows, and column widths fitted to the content. The tool needs no shell, no Python, and no filesystem tools, which fits restricted deployments such as client-facing sites: the model assembles a report from what it already produced and delivers the file with `present`.
 
 ## Table of Contents
 
@@ -34,7 +34,7 @@ Mount the plugin next to a filesystem service and the attachment store:
     maxImageBytes: 20971520
 ```
 
-`file_path` resolves through the Session working directory and must end in `.pdf`. The tool writes the encoded document through the host filesystem at the resolved local path, so it requires a local filesystem backend; confined deployments grant the write through the same `fs/write-intent` policy slot the `write` tool uses. `blocks` render in order: a `text` block prints its optional heading and body, and an `image` block embeds every image its `call_id` result carried, in result order, with the optional caption under each. Images come from the attachment store, so the producing call may be an MCP tool, another agent tool, or an upload; unsupported media types, oversized images, and unknown call ids are reported per image in `imagesSkipped` instead of failing the call. Call `present` after the write so the host shows the delivery card.
+`file_path` resolves through the Session working directory and must end in `.pdf`. The tool writes the encoded document through the host filesystem at the resolved local path, so it requires a local filesystem backend; confined deployments grant the write through the same `fs/write-intent` policy slot the `write` tool uses. `blocks` render in order: a `text` block prints its optional heading and body, a `table` block draws a styled grid from its `header` and `rows` — ragged rows pad with empty cells and the header repeats after page breaks — and an `image` block embeds every image its `call_id` result carried, in result order, with the optional caption under each. Images come from the attachment store, so the producing call may be an MCP tool, another agent tool, or an upload; unsupported media types, oversized images, and unknown call ids are reported per image in `imagesSkipped` instead of failing the call. Call `present` after the write so the host shows the delivery card.
 
 The vendored Noto Sans faces (SIL Open Font License, see `assets/fonts/LICENSE`) cover Latin, Greek, and Cyrillic text. `maxImages` bounds the embedded count and `maxImageBytes` bounds one stored image; both fail loud at load when not positive integers.
 
@@ -48,7 +48,7 @@ The vendored Noto Sans faces (SIL Open Font License, see `assets/fonts/LICENSE`)
 
 `src/session-images.ts` folds `session.snapshotEvents()` into the latest `tool/result` per requested call id, collects its `image` content blocks, and reads each through `ctx.attachments.readImage`. A missing attachment service, a missing call result, an unsupported media type, a size or count cap violation, and an empty image list each become a per-image skip entry, so one bad image never fails the whole report.
 
-`src/pdf.ts` is a pure assembler: A4 pages, 48pt margins, embedded subset Noto Sans faces, measured text wrapping with character-level hard breaks for overlong words, fit-to-width images, and captions. Pages break when a line, image, or reserved gap would cross the bottom margin.
+`src/pdf.ts` is a pure assembler: A4 pages, 48pt margins, embedded subset Noto Sans faces, measured text wrapping with character-level hard breaks for overlong words, tables with content-weighted column widths and wrapped cell lines whose header repeats after page breaks, fit-to-width images, and captions. Pages break when a line, image, or reserved gap would cross the bottom margin.
 
 </details>
 

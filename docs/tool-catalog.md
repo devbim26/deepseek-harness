@@ -860,7 +860,7 @@ Declared to an Agent from the step after it successfully loads an Office skill, 
 
 ### `pdf_report`
 
-Assemble a PDF report file in the working directory from text sections and images that earlier tool calls returned, such as drawing sheet images. Blocks render in order; pass the tool call id of each image result. After the file is written, declare it to the user with the present tool. Use it when the user asks for a PDF document; prefer your final response when plain text suffices.
+Assemble a PDF report file in the working directory from text sections, tables, and images that earlier tool calls returned, such as drawing sheet images. Blocks render in order; pass the tool call id of each image result. Pass tabular data as table blocks: they render as styled tables with a header row, zebra rows, and column widths fitted to the content, never as plain text. After the file is written, declare it to the user with the present tool. Use it when the user asks for a PDF document; prefer your final response when plain text suffices.
 
 ```json
 {
@@ -899,6 +899,38 @@ Assemble a PDF report file in the working directory from text sections and image
             "required": [
               "type",
               "text"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "Discriminant: a table block."
+              },
+              "header": {
+                "type": "array",
+                "description": "Column titles; their count fixes the column layout.",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "rows": {
+                "type": "array",
+                "description": "Body rows of cell text; shorter rows pad with empty cells.",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "required": [
+              "type",
+              "header",
+              "rows"
             ]
           },
           {

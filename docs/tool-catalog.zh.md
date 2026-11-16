@@ -864,7 +864,7 @@ Agent 成功加载 Office 技能后，从下一步起向其声明这些工具；
 
 ### `pdf_report`
 
-把 PDF 报告文件组装到工作目录中，内容为文本小节和先前工具调用返回的图像，例如图纸页图像。块按顺序渲染；为每个含图像的结果传递 tool call id。文件写入后，用 present 工具向用户声明它。当用户要求 PDF 文档时使用它；如果纯文本已足够，优先使用最终回复。
+把 PDF 报告文件组装到工作目录中，内容为文本小节、表格和先前工具调用返回的图像，例如图纸页图像。块按顺序渲染；为每个含图像的结果传递 tool call id。把表格数据作为 table 块传递：它们渲染为带表头行、斑马纹行和按内容适配列宽的样式化表格，而不是纯文本。文件写入后，用 present 工具向用户声明它。当用户要求 PDF 文档时使用它；如果纯文本已足够，优先使用最终回复。
 
 ```json
 {
@@ -903,6 +903,38 @@ Agent 成功加载 Office 技能后，从下一步起向其声明这些工具；
             "required": [
               "type",
               "text"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "Discriminant: a table block."
+              },
+              "header": {
+                "type": "array",
+                "description": "Column titles; their count fixes the column layout.",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "rows": {
+                "type": "array",
+                "description": "Body rows of cell text; shorter rows pad with empty cells.",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "required": [
+              "type",
+              "header",
+              "rows"
             ]
           },
           {
