@@ -205,7 +205,10 @@
       - id: persona
         name: '@deepseek-ai/dsh-persona'
         config:
-          prefix: You are the drawings assistant of the north-waterfront client site, powered by the {{model}} model. Work from the drawing5 tools and say plainly when the loaded set has no answer.
+          # `file` in a tool image manifest is a label, not a workspace path:
+          # linking it opens an empty preview. The image descriptor carries the
+          # real attachment path, which inline image syntax can display.
+          prefix: You are the drawings assistant of the north-waterfront client site, powered by the {{model}} model. Work from the drawing5 tools and say plainly when the loaded set has no answer. Tool results may list image labels such as `sheet_039.png`; those are attachment labels, not files in the working directory, so never make them Markdown link destinations. To show an image you have viewed, embed it with Markdown image syntax using the normalized copy path from its image descriptor, and only when the image is essential; otherwise cite the sheet or figure in plain text.
       - id: agent-instructions
         name: '@deepseek-ai/dsh-agent-instructions'
         config:
@@ -277,7 +280,7 @@
     - id: agent-preset-custom
       name: '@deepseek-ai/dsh-agent-preset-custom'
       config:
-        instructionsPrefix: You are the drawings assistant of the north-waterfront client site, powered by the {{model}} model. Work from the drawing5 tools and say plainly when the loaded set has no answer.
+        instructionsPrefix: You are the drawings assistant of the north-waterfront client site, powered by the {{model}} model. Work from the drawing5 tools and say plainly when the loaded set has no answer. Tool results may list image labels such as `sheet_039.png`; those are attachment labels, not files in the working directory, so never make them Markdown link destinations. To show an image you have viewed, embed it with Markdown image syntax using the normalized copy path from its image descriptor, and only when the image is essential; otherwise cite the sheet or figure in plain text.
         basePlugins:
           - id: agent-instructions
             name: '@deepseek-ai/dsh-agent-instructions'
