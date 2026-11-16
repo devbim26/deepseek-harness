@@ -65,6 +65,7 @@ kind: "package-reference"
 - 打开的窗口中的名册不会推送别处所做的更改；选择器在重连与本地写入后刷新。
 - 目前只提供 zh、en、ru 词典；其余 locale 回退，可机械补充。
 
+<a id="dev-note"></a>
 ### 开发备注
 
 <details>

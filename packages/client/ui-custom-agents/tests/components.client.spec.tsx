@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CreateCustomAgentButton } from '../src/client/CreateCustomAgentButton.tsx'
 import { CustomAgentsOverlay } from '../src/client/CustomAgentsOverlay.tsx'
 import { CustomAgentsController, type CustomAgentsState } from '../src/client/custom-agents-store.ts'
-import type { CustomAgentCatalog, CustomAgentRecord } from '@deepseek-ai/dsh-agent-preset-custom/types'
+import type { CustomAgentCatalog, CustomAgentInput, CustomAgentRecord } from '@deepseek-ai/dsh-agent-preset-custom/types'
 import { en } from '../src/client/locales.ts'
 
 afterEach(() => { document.body.textContent = '' })
@@ -18,7 +18,16 @@ const seededAgent: CustomAgentRecord = { id: 'custom/agent', slug: 'agent', name
 
 const catalog: CustomAgentCatalog = {
   agents: [seededAgent],
-  policy: { allowedTools: [{ key: 'todo', label: 'Задачи' }], maxNameChars: 64, maxDescriptionChars: 200, maxInstructionsChars: 16384, maxAgents: 50 },
+  policy: {
+    allowedTools: [
+      { key: 'drawing5', label: 'Чертежи (drawing5)', description: 'Инструменты чертежей. Отметьте, чтобы агент имел доступ.' },
+      { key: 'smeta', label: 'Сметы (БелЕНиР)' },
+    ],
+    maxNameChars: 64,
+    maxDescriptionChars: 200,
+    maxInstructionsChars: 16384,
+    maxAgents: 50,
+  },
 }
 
 const READY: CustomAgentsState = {
@@ -30,13 +39,16 @@ const unusedHook = (): never => {
   throw new Error('this spec does not read that slot source')
 }
 
-/** The scripted remote context; records emitted cordis events. */
-function fakeCtx(events: string[]): ClientContext {
+/** The scripted remote context; records emitted cordis events and create inputs. */
+function fakeCtx(events: string[], creates: CustomAgentInput[] = []): ClientContext {
   // Member-typed stubs keep every provided face assignable from the real
   // Context, so the final cast stays within comparable types.
   const customAgentPresets: ClientContext['remote']['customAgentPresets'] = {
     list: () => Promise.resolve({ ok: true as const, value: catalog }),
-    create: () => Promise.resolve({ ok: true as const, value: seededAgent }),
+    create: (input: CustomAgentInput) => {
+      creates.push(input)
+      return Promise.resolve({ ok: true as const, value: seededAgent })
+    },
     update: () => Promise.resolve({ ok: true as const, value: seededAgent }),
     delete: () => Promise.resolve({ ok: true as const, value: undefined }),
   }
@@ -50,7 +62,8 @@ function fakeCtx(events: string[]): ClientContext {
 /** The manager surfaces composed with the framework seats a slot entry receives. */
 function view(state: Partial<CustomAgentsState> = {}) {
   const events: string[] = []
-  const controller = new CustomAgentsController(fakeCtx(events))
+  const creates: CustomAgentInput[] = []
+  const controller = new CustomAgentsController(fakeCtx(events, creates))
   // Seed the controller's own store: the overlay subscribes to the same store
   // instance the injected face hands out.
   controller.store.set({ ...READY, ...state })
@@ -77,7 +90,7 @@ function view(state: Partial<CustomAgentsState> = {}) {
       <CustomAgentsOverlay {...shared} controller={controller} />
     </>,
   )
-  return { store: controller.store, load, onDismiss, events, controller }
+  return { store: controller.store, load, onDismiss, events, creates, controller }
 }
 
 function entry(): HTMLElement {
@@ -126,5 +139,29 @@ describe('custom agent picker entry', () => {
     act(() => { view_.controller.openManager() })
     expect(screen.getByRole('dialog')).not.toBeNull()
     expect(screen.getByLabelText(en.name)).toHaveProperty('value', '')
+  })
+
+  it('renders one checkbox per whitelisted plugin with its description, unchecked by default', () => {
+    view()
+    fireEvent.click(entry())
+    const drawing5 = screen.getByRole('checkbox', { name: 'Чертежи (drawing5)' })
+    const smeta = screen.getByRole('checkbox', { name: 'Сметы (БелЕНиР)' })
+    expect(drawing5).not.toBeNull()
+    expect(smeta).not.toBeNull()
+    expect(screen.getByText('Инструменты чертежей. Отметьте, чтобы агент имел доступ.')).not.toBeNull()
+    // Blocking semantics start unchecked: the created agent mounts nothing.
+    expect(drawing5).toHaveProperty('checked', false)
+    expect(smeta).toHaveProperty('checked', false)
+  })
+
+  it('submits only the checked plugin keys with the form', async () => {
+    const view_ = view()
+    fireEvent.click(entry())
+    fireEvent.change(screen.getByLabelText(en.name), { target: { value: 'Чертёжник' } })
+    fireEvent.change(screen.getByLabelText(en.instructions), { target: { value: 'Работай с чертежами.' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Чертежи (drawing5)' }))
+    fireEvent.click(screen.getByRole('button', { name: en.save }))
+    await waitFor(() => expect(view_.events).toContain('custom-agents/changed'))
+    expect(view_.creates).toEqual([{ name: 'Чертёжник', description: '', instructions: 'Работай с чертежами.', tools: ['drawing5'] }])
   })
 })

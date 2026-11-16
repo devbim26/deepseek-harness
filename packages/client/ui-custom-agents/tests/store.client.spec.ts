@@ -8,7 +8,13 @@ const seededAgent: CustomAgentRecord = { id: 'custom/agent', slug: 'agent', name
 
 const catalog: CustomAgentCatalog = {
   agents: [seededAgent],
-  policy: { allowedTools: [{ key: 'todo', label: 'Задачи' }], maxNameChars: 64, maxDescriptionChars: 200, maxInstructionsChars: 16384, maxAgents: 50 },
+  policy: {
+    allowedTools: [{ key: 'drawing5', label: 'Чертежи (drawing5)', description: 'Инструменты чертежей.' }],
+    maxNameChars: 64,
+    maxDescriptionChars: 200,
+    maxInstructionsChars: 16384,
+    maxAgents: 50,
+  },
 }
 
 /** A scripted remote answering fixed outcomes; records emitted events. */
@@ -43,7 +49,7 @@ describe('custom agents store', () => {
     expect(controller.store.getSnapshot()).toMatchObject({
       status: 'ready',
       agents: [expect.objectContaining({ name: 'Сметчик' })],
-      policy: expect.objectContaining({ allowedTools: [{ key: 'todo', label: 'Задачи' }] }),
+      policy: expect.objectContaining({ allowedTools: [{ key: 'drawing5', label: 'Чертежи (drawing5)', description: 'Инструменты чертежей.' }] }),
     })
   })
 
