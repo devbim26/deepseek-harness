@@ -1,9 +1,10 @@
 # Client-facing deployment overlay for north-waterfront.dev-bim.com: the
 # customer site for the "Северный берег" drawings delivery. Keeps the NW
 # (north-waterfront) brand and password gate, hides every team-facing surface
-# (settings, plugin manager, model picker, terminal/files panels,
-# agent-orchestration UI), and narrows the agent's tool set to the drawing5
-# tools. The permission catalog keeps only workspace-write and pins it as the
+# (settings, plugin manager, terminal/files panels, agent-orchestration UI),
+# and narrows the agent's tool set to the drawing5 tools. The model picker
+# stays available but lists only the OpenRouter models named by NW_MODELS.
+# The permission catalog keeps only workspace-write and pins it as the
 # new-session default, so the client user works inside their own workspace
 # folder with no access switch.
 # The preset-picker chip returns with the custom-agent builder: users compose
@@ -42,17 +43,33 @@
 # The client DSH_HOME stages fresh with no stored credentials: the model
 # provider key comes from the launcher env (.env.north-waterfront) and the
 # default model is pinned here, so no sign-in onboarding ever appears.
+#
+# NW_MODELS is the deployment's model allowlist: a comma-separated list of
+# OpenRouter ids (from .env.north-waterfront). The `models` list REPLACES the
+# installed OpenRouter catalog, so the picker and the session model catalog
+# expose exactly these ids. The first entry is also the new-session default.
+# An unset or empty value keeps the three defaults below; never resolve `models`
+# to an empty list, because an empty `models` means the FULL installed catalog.
 - id: llm-pi-ai
   name: '@deepseek-ai/dsh-llm-pi-ai'
   config:
     providers:
       openrouter:
         apiKeyEnv: OPENROUTER_API_KEY
+        models: !!js "(() => { const ids = (process.env.NW_MODELS ?? '').split(',').map((id) => id.trim()).filter(Boolean); return (ids.length > 0 ? ids : ['deepseek/deepseek-v4.1-flash', 'deepseek/deepseek-v4-pro', 'deepseek/deepseek-v4-flash']).map((id) => ({ id })); })()"
 - id: agent-default-model
   name: '@deepseek-ai/dsh-agent-default-model'
   config:
     provider: openrouter
-    model: deepseek/deepseek-v4.1-flash
+    model: !!js (process.env.NW_MODELS ?? 'deepseek/deepseek-v4.1-flash,deepseek/deepseek-v4-pro,deepseek/deepseek-v4-flash').split(',').map((id) => id.trim()).filter(Boolean)[0] ?? 'deepseek/deepseek-v4.1-flash'
+
+# Only the OpenRouter route above is reachable on the client site: the native
+# DeepSeek adapters would add their own unrestricted provider groups to the
+# picker (and the API-key route lists its catalog even without a credential).
+- id: llm-deepseek
+  disabled: true
+- id: llm-deepseek-account
+  disabled: true
 
 # The client tunnel authority joins the /api Host/Origin trust fence (the
 # documented deployment extension of the connection row's expression).
@@ -105,8 +122,9 @@
   disabled: true
 - id: ui-plugin-manager
   disabled: true
-- id: ui-model-selection
-  disabled: true
+# ui-model-selection stays enabled: the picker surfaces the restricted
+# OpenRouter catalog above. ui-settings-models stays disabled, so the client
+# cannot add routes or widen the allowlist.
 - id: ui-schedule
   disabled: true
 - id: ui-jobs
