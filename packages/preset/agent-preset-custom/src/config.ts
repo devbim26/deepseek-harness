@@ -10,6 +10,8 @@ export interface AllowedToolsEntry {
   config?: unknown
   /** Human-readable label the manager form renders; the key when omitted. */
   label?: string
+  /** Optional one-sentence description the form renders under the checkbox. */
+  description?: string
 }
 
 /** Config of the `agent-preset-custom` service row. */
@@ -18,7 +20,7 @@ export interface Config {
   instructionsPrefix: string
   /** Fixed child rows (agent-instructions, time-context, compaction) the deployment copies from its standard preset, minus persona. */
   basePlugins: PresetDefinition['plugins']
-  /** Whitelist: entry key → the plugin row a selecting agent mounts. */
+  /** Whitelist: entry key → the plugin row a selecting agent mounts; an unchecked entry is a hard block. */
   allowedTools: Record<string, AllowedToolsEntry>
   /** Name length cap. */
   maxNameChars: number
@@ -34,7 +36,7 @@ export interface Config {
 export const Config: z<Config> = z.object({
   instructionsPrefix: z.string().default(''),
   basePlugins: z.array(z.any()).default([]),
-  allowedTools: z.dict(z.object({ name: z.string().required(), config: z.any(), label: z.string() })).default({}),
+  allowedTools: z.dict(z.object({ name: z.string().required(), config: z.any(), label: z.string(), description: z.string() })).default({}),
   maxNameChars: z.number().default(64),
   maxDescriptionChars: z.number().default(200),
   maxInstructionsChars: z.number().default(16384),

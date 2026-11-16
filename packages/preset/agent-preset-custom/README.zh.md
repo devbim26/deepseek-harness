@@ -43,13 +43,15 @@ kind: "package-reference"
             name: '@deepseek-ai/dsh-tool-ask-user'
           todo:
             name: '@deepseek-ai/dsh-tool-todo'
+            label: Task list
+            description: Keep a task list during long work.
 ```
 
 | 字段 | 默认值 | 含义 |
 |---|---|---|
 | `instructionsPrefix` | `''` | 前置到每个自定义智能体指令之前的站点人格。 |
 | `basePlugins` | `[]` | 每个自定义智能体固定挂载的子行，由部署从其 standard preset 复制（不含 persona）。 |
-| `allowedTools` | `{}` | 白名单：记录键 → 选中该键的智能体挂载的插件行 `{ name, config? }`；记录只保存键。 |
+| `allowedTools` | `{}` | 白名单：记录键 → 选中该键的智能体挂载的插件行 `{ name, config?, label?, description? }`；表单为每个条目渲染一个复选框，未勾选即硬性阻断——智能体不会挂载该行。记录只保存键。 |
 | `maxNameChars` | `64` | 名称长度上限。 |
 | `maxDescriptionChars` | `200` | 描述长度上限。 |
 | `maxInstructionsChars` | `16384` | 指令长度上限。 |
@@ -96,9 +98,11 @@ kind: "package-reference"
 <a id="known-limitations-and-deferred-work"></a>
 
 - preset 不是安全沙箱；部署拥有白名单及其中的每一行。只有在审查了新增行的沙箱之后才扩展 `allowedTools`。
+- 白名单条目可以挂载 `mcp-client` 行，但部署必须保持任何同 `serverName` 的 host-plane 行处于禁用状态：按智能体挂载就是阻断机制，host-plane 行会把工具泄漏给每个智能体，并与按智能体的命名空间冲突。
 - 目录按 `DSH_HOME` 共享：站点的单一密码门没有身份，因此编辑与删除权限是站点级的。
 - 存储模式不再解析的记录在打开时被跳过（备份 + 日志）；名册中不显示。
 
+<a id="dev-note"></a>
 ### 开发备注
 
 <details>

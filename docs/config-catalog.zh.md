@@ -160,7 +160,7 @@ export type Config = PresetDefinition
 
 - `inject`: `agentPresets` · `storageDomain`
 - `refs`: [`PresetDefinition`](../packages/preset/agent-preset-registry/src/index.ts)
-- `source`: [`packages/preset/agent-preset-custom/src/config.ts:14`](../packages/preset/agent-preset-custom/src/config.ts)
+- `source`: [`packages/preset/agent-preset-custom/src/config.ts:18`](../packages/preset/agent-preset-custom/src/config.ts)
 
 ```ts config-catalog
 /** Config of the `agent-preset-custom` service row. */
@@ -169,7 +169,7 @@ export interface Config {
   instructionsPrefix: string
   /** Fixed child rows (agent-instructions, time-context, compaction) the deployment copies from its standard preset, minus persona. */
   basePlugins: PresetDefinition['plugins']
-  /** Whitelist: entry key → the plugin row a selecting agent mounts. */
+  /** Whitelist: entry key → the plugin row a selecting agent mounts; an unchecked entry is a hard block — the agent never mounts the row. */
   allowedTools: Record<string, AllowedToolsEntry>
   /** Name length cap. */
   maxNameChars: number
@@ -187,6 +187,10 @@ export interface AllowedToolsEntry {
   name: string
   /** Optional row config; the Loader validates it when the agent mounts the row. */
   config?: unknown
+  /** Human-readable label the manager form renders; the key when omitted. */
+  label?: string
+  /** Optional one-sentence description the form renders under the checkbox. */
+  description?: string
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-agent-preset-custom -->

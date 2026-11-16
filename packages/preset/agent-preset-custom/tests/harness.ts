@@ -5,17 +5,21 @@ import * as StorageJson from '@deepseek-ai/dsh-storage-json'
 import { DomainFacility } from '@deepseek-ai/dsh-storage-domain'
 import { harness as presetHarness } from '../../agent-preset-registry/tests/harness.ts'
 import CustomAgentPresets from '../src/index.ts'
+import type { AllowedToolsEntry } from '../src/config.ts'
 import type { PresetDefinition } from '@deepseek-ai/dsh-agent-preset-registry'
 import type { Context } from '@deepseek-ai/cordis'
+
+/** Deployment-authored whitelist defaults the specs assert against; keyed loosely so spec overrides may name any entry. */
+const standardAllowedTools: Record<string, AllowedToolsEntry> = {
+  'ask-user': { name: '@deepseek-ai/dsh-tool-ask-user', label: 'Ask the user' },
+  todo: { name: '@deepseek-ai/dsh-tool-todo', config: { allowParallelInProgress: true }, label: 'Task list', description: 'Keep a task list.' },
+}
 
 /** Deployment-authored defaults the specs assert against. */
 export const standardConfig = {
   instructionsPrefix: 'You are the drawings assistant.',
   basePlugins: [] as PresetDefinition['plugins'],
-  allowedTools: {
-    'ask-user': { name: '@deepseek-ai/dsh-tool-ask-user', label: 'Ask the user' },
-    todo: { name: '@deepseek-ai/dsh-tool-todo', config: { allowParallelInProgress: true }, label: 'Task list' },
-  },
+  allowedTools: standardAllowedTools,
   maxNameChars: 64,
   maxDescriptionChars: 200,
   maxInstructionsChars: 16384,

@@ -43,13 +43,15 @@ Deployment-constrained, user-created agent presets: durable records mounted into
             name: '@deepseek-ai/dsh-tool-ask-user'
           todo:
             name: '@deepseek-ai/dsh-tool-todo'
+            label: Task list
+            description: Keep a task list during long work.
 ```
 
 | Field | Default | Meaning |
 |---|---|---|
 | `instructionsPrefix` | `''` | Site persona prepended to every custom agent's instructions. |
 | `basePlugins` | `[]` | Fixed child rows every custom agent mounts, copied by the deployment from its standard preset, minus persona. |
-| `allowedTools` | `{}` | Whitelist: entry key → the plugin row `{ name, config? }` a selecting agent mounts. Records store keys only. |
+| `allowedTools` | `{}` | Whitelist: entry key → the plugin row `{ name, config?, label?, description? }` a selecting agent mounts; the form renders one checkbox per entry, and an unchecked entry is a hard block — the agent never mounts the row. Records store keys only. |
 | `maxNameChars` | `64` | Name length cap. |
 | `maxDescriptionChars` | `200` | Description length cap. |
 | `maxInstructionsChars` | `16384` | Instructions length cap. |
@@ -96,6 +98,7 @@ Running Agents retain the composition they started with; new sessions build thei
 <a id="known-limitations-and-deferred-work"></a>
 
 - A preset is not a security sandbox; the deployment owns the whitelist and every row inside it. Extend `allowedTools` only with a sandbox review of the added rows.
+- A whitelist entry may mount an `mcp-client` row, but the deployment must keep any host-plane row with the same `serverName` disabled: per-agent mounts are the blocking mechanism, and a host-plane row would leak the tools to every agent and collide with the per-agent namespace.
 - The catalog is shared per `DSH_HOME`: the site's single password gate carries no identity, so edit and delete rights are site-wide.
 - A record whose stored schema no longer parses is skipped at open (backup + log); the roster shows nothing for it.
 

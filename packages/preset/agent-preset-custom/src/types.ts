@@ -36,6 +36,8 @@ export interface CustomAgentToolOption {
   readonly key: string
   /** Human-readable label; the key when the deployment config omits one. */
   readonly label: string
+  /** Deployment-authored description the form renders under the checkbox; omitted when none. */
+  readonly description?: string
 }
 
 /** The deployment-authored limits and whitelist the form renders against. */

@@ -7,11 +7,25 @@ describe('custom agent presets service', () => {
     const catalog = await ctx.customAgentPresets.remoteExportList()
     expect(catalog.agents).toEqual([])
     expect(catalog.policy).toMatchObject({
-      allowedTools: [{ key: 'ask-user', label: 'Ask the user' }, { key: 'todo', label: 'Task list' }],
+      allowedTools: [
+        { key: 'ask-user', label: 'Ask the user' },
+        { key: 'todo', label: 'Task list', description: 'Keep a task list.' },
+      ],
       maxNameChars: 64,
       maxInstructionsChars: 16384,
       maxAgents: 50,
     })
+  })
+
+  it('defaults an omitted label to the key and omits an absent description', async () => {
+    const { ctx } = await harness({
+      allowedTools: { smeta: { name: '@deepseek-ai/dsh-mcp-client' } },
+    })
+    const catalog = await ctx.customAgentPresets.remoteExportList()
+    const [option] = catalog.policy.allowedTools
+    if (option === undefined) throw new Error('the policy lost the whitelisted option')
+    expect(option).toEqual({ key: 'smeta', label: 'smeta' })
+    expect('description' in option).toBe(false)
   })
 
   it('creates a record, mounts it into the registry roster, and derives unique slugs', async () => {
