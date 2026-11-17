@@ -1,34 +1,112 @@
+/* A workspace dialog: the roster, the settings form, and the tool whitelist
+   each own a pane with its own scrollport. */
 .dialog {
-  width: min(520px, calc(100vw - 48px));
+  width: min(1080px, calc(100vw - 48px));
+  height: 720px;
   max-height: 100%;
 }
 
 .content {
+  flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow: hidden;
 }
 
 .layout {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  width: 100%;
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr) 300px;
+  flex: 1;
   min-width: 0;
+  min-height: 0;
+  width: 100%;
 }
 
-.list {
+.agentsPane,
+.toolsPane {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.agentsPane {
+  padding-right: 16px;
+  border-right: 0.5px solid var(--dsw-alias-border-l3);
+}
+
+.toolsPane {
+  padding-left: 16px;
+  border-left: 0.5px solid var(--dsw-alias-border-l3);
+}
+
+.paneHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+}
+
+.paneTitle {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+}
+
+.paneCount {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.paneAction {
+  margin-left: auto;
+}
+
+.agentScroll,
+.toolScroll {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+}
+
+.toolScroll {
+  gap: 14px;
+}
+
+.empty {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+/* Rows reach 8px past the pane's text axis so the active fill reads as a
+   selected row, while names stay on the same axis as the pane title. */
+.row {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
+  margin: 0 -8px;
+  padding: 10px 8px;
+  border-radius: var(--dsw-radius-sm);
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
 }
 
-.row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-width: 0;
+.row:last-child {
+  border-bottom: 0;
+}
+
+.row[data-active='true'] {
+  background: var(--dsw-alias-interactive-bg-hover);
 }
 
 .rowText {
@@ -39,42 +117,59 @@
 }
 
 .rowName {
+  font-size: 13.5px;
+  line-height: 20px;
   font-weight: 500;
+  overflow-wrap: anywhere;
 }
 
 .rowDescription {
-  color: var(--dsw-text-muted, #667085);
+  color: var(--dsw-alias-label-secondary);
   font-size: 12px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
 }
 
 .rowActions,
-.confirm {
+.confirmActions {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-shrink: 0;
 }
 
-.confirmText {
-  font-size: 12px;
-  max-width: 220px;
+.confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
 }
 
-.empty {
-  color: var(--dsw-text-muted, #667085);
-  font-size: 13px;
+.confirmText {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.removeButton {
+  color: var(--dsw-alias-state-error-primary);
+  --dsh-button-outline-color: var(--dsw-alias-state-error-primary);
 }
 
 .form {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 20px;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   min-width: 0;
 }
 
@@ -82,34 +177,47 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
+  gap: 8px;
   font-size: 13px;
+  line-height: 18px;
   font-weight: 500;
 }
 
 .counter {
   font-weight: 400;
   font-size: 11px;
-  color: var(--dsw-text-muted, #667085);
+  line-height: 16px;
+  color: var(--dsw-alias-label-secondary);
 }
 
 .input {
+  box-sizing: border-box;
   width: 100%;
-  padding: 6px 8px;
+  height: 32px;
+  padding: 0 10px;
   font: inherit;
-  font-size: 13px;
-  border: 1px solid var(--dsw-border, #d0d5dd);
-  border-radius: 6px;
-  background: transparent;
-  resize: vertical;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-primary);
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-1);
 }
 
-.tools {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  border: none;
-  padding: 0;
-  margin: 0;
+.input::placeholder {
+  color: var(--dsw-alias-label-dimmed);
+}
+
+.input:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 1px;
+}
+
+.textarea {
+  height: auto;
+  min-height: 128px;
+  padding: 8px 10px;
+  resize: vertical;
 }
 
 .tool {
@@ -120,16 +228,58 @@
 }
 
 .toolDescription {
-  color: var(--dsw-text-muted, #667085);
+  padding-left: 22px;
+  color: var(--dsw-alias-label-secondary);
   font-size: 12px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
 }
 
 .failure {
-  color: var(--dsw-text-danger, #b42318);
+  margin: 0;
+  color: var(--dsw-alias-state-error-primary);
   font-size: 12px;
+  line-height: 18px;
 }
 
-.saved {
-  color: var(--dsw-text-success, #067647);
-  font-size: 12px;
+@media (pointer: coarse) {
+  .input {
+    font-size: 16px;
+  }
+}
+
+/* Narrow windows stack the panes and scroll the workspace as one column;
+   the roster keeps its own bounded scroll above the form. */
+@media (max-width: 960px) {
+  .layout {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+    padding-right: 2px;
+  }
+
+  .agentsPane {
+    flex: none;
+    max-height: 240px;
+    padding-right: 0;
+    border-right: 0;
+  }
+
+  .form {
+    flex: none;
+    overflow: visible;
+    padding: 0;
+  }
+
+  .toolsPane {
+    flex: none;
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .toolScroll {
+    flex: none;
+    overflow: visible;
+  }
 }

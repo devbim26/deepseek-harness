@@ -1,9 +1,11 @@
 /**
- * The custom-agent manager modal: the site's agent list plus the create/edit
- * form. Fields and tool checkboxes are bounded by the deployment policy the
- * service reports; the service re-validates every write.
+ * The custom-agent manager modal: the agent roster, the create/edit form, and
+ * the deployment's tool whitelist in three panes. The roster and tools scroll
+ * on their own so many agents stay reachable; fields and tool checkboxes are
+ * bounded by the deployment policy the service reports, and the service
+ * re-validates every write.
  */
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-ui-slots'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import { Button, Checkbox, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -37,10 +39,20 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
   const [fields, setFields] = useState<CustomAgentInput>(BLANK)
   const [deleting, setDeleting] = useState<CustomAgentRecord | undefined>(undefined)
   const [failure, setFailure] = useState<string | undefined>(undefined)
+  const listTitleId = useId()
+  const settingsTitleId = useId()
+  const toolsTitleId = useId()
 
+  const startCreate = (): void => {
+    setEditing(undefined)
+    setFields(BLANK)
+    setDeleting(undefined)
+    setFailure(undefined)
+  }
   const startEdit = (record: CustomAgentRecord): void => {
     setEditing(record)
     setFields({ name: record.name, description: record.description, instructions: record.instructions, tools: [...record.tools] })
+    setDeleting(undefined)
     setFailure(undefined)
   }
   const outcomeMessage = (outcome: WriteOutcome): string | undefined => {
@@ -74,6 +86,7 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
   }
   const remove = async (record: CustomAgentRecord): Promise<void> => {
     const outcome = await controller.remove(record.id, record.version)
+    if (outcome.ok && editing?.id === record.id) startCreate()
     setFailure(outcomeMessage(outcome))
     setDeleting(undefined)
   }
@@ -89,37 +102,57 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
       contentClassName={css.content ?? ''}
       footer={(
         <>
-          <Button onClick={onClose}>{t('cancel')}</Button>
-          <Button variant="outline" disabled={state.saving} onClick={() => { void submit() }}>{t('save')}</Button>
+          <Button variant="outline" onClick={onClose}>{t('cancel')}</Button>
+          <Button variant="primary" disabled={state.saving} onClick={() => { void submit() }}>{t('save')}</Button>
         </>
       )}
     >
       <div className={css.layout}>
-        <section className={css.list} aria-label={t('open')}>
-          {state.agents.length === 0 && <p className={css.empty}>{t('empty')}</p>}
-          {state.agents.map(agent => (
-            <div key={agent.id} className={css.row}>
-              <span className={css.rowText}>
-                <span className={css.rowName}>{agent.name}</span>
-                {agent.description !== '' && <span className={css.rowDescription}>{agent.description}</span>}
-              </span>
-              {deleting?.id === agent.id ? (
-                <span className={css.confirm}>
-                  <span className={css.confirmText}>{t('removeConfirm')}</span>
-                  <Button size="sm" variant="outline" onClick={() => { void remove(agent) }}>{t('remove')}</Button>
-                  <Button size="sm" onClick={() => { setDeleting(undefined) }}>{t('cancel')}</Button>
+        <aside className={css.agentsPane} aria-labelledby={listTitleId}>
+          <div className={css.paneHead}>
+            <h3 id={listTitleId} className={css.paneTitle}>{t('listTitle')}</h3>
+            <span className={css.paneCount} aria-hidden="true">{state.agents.length}</span>
+            <Button size="sm" variant="outline" className={css.paneAction} onClick={startCreate}>{t('newAgent')}</Button>
+          </div>
+          <div className={css.agentScroll}>
+            {state.agents.length === 0 && <p className={css.empty}>{t('empty')}</p>}
+            {state.agents.map(agent => (
+              <div
+                key={agent.id}
+                className={css.row}
+                data-active={editing?.id === agent.id ? 'true' : undefined}
+              >
+                <span className={css.rowText}>
+                  <span className={css.rowName}>{agent.name}</span>
+                  {agent.description !== '' && <span className={css.rowDescription}>{agent.description}</span>}
                 </span>
-              ) : (
-                <span className={css.rowActions}>
-                  <Button size="sm" onClick={() => { startEdit(agent) }}>{t('edit')}</Button>
-                  <Button size="sm" onClick={() => { setDeleting(agent) }}>{t('remove')}</Button>
-                </span>
-              )}
-            </div>
-          ))}
-        </section>
-        <form className={css.form} aria-label={t('createTitle')} onSubmit={(event) => { event.preventDefault(); void submit() }}>
-          {failure !== undefined && <p className={css.failure}>{failure}</p>}
+                {deleting?.id === agent.id ? (
+                  <span className={css.confirm}>
+                    <span className={css.confirmText}>{t('removeConfirm')}</span>
+                    <span className={css.confirmActions}>
+                      <Button size="sm" variant="outline" className={css.removeButton} onClick={() => { void remove(agent) }}>{t('remove')}</Button>
+                      <Button size="sm" onClick={() => { setDeleting(undefined) }}>{t('cancel')}</Button>
+                    </span>
+                  </span>
+                ) : (
+                  <span className={css.rowActions}>
+                    <Button size="sm" onClick={() => { startEdit(agent) }}>{t('edit')}</Button>
+                    <Button size="sm" className={css.removeButton} onClick={() => { setDeleting(agent) }}>{t('remove')}</Button>
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </aside>
+        <form
+          className={css.form}
+          aria-labelledby={settingsTitleId}
+          onSubmit={(event) => { event.preventDefault(); void submit() }}
+        >
+          <div className={css.paneHead}>
+            <h3 id={settingsTitleId} className={css.paneTitle}>{t('settingsTitle')}</h3>
+          </div>
+          {failure !== undefined && <p className={css.failure} role="alert">{failure}</p>}
           <div className={css.field}>
             <label className={css.fieldLabel} htmlFor="custom-agents-name">{t('name')}</label>
             <input
@@ -147,7 +180,7 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
             <label className={css.fieldLabel} htmlFor="custom-agents-instructions">{t('instructions')}</label>
             <textarea
               id="custom-agents-instructions"
-              className={css.input}
+              className={`${css.input} ${css.textarea}`}
               rows={6}
               value={fields.instructions}
               placeholder={t('instructionsPlaceholder')}
@@ -156,29 +189,37 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
             />
             {policy !== undefined && <span className={css.counter}>{t('charsUsed', { used: fields.instructions.length, limit: policy.maxInstructionsChars })}</span>}
           </div>
-          {policy !== undefined && policy.allowedTools.length > 0 && (
-            <fieldset className={css.tools}>
-              <legend className={css.fieldLabel}>{t('tools')}</legend>
-              {policy.allowedTools.map(tool => (
-                <div key={tool.key} className={css.tool}>
-                  <Checkbox
-                    label={tool.label}
-                    checked={fields.tools.includes(tool.key)}
-                    onChange={(checked) => {
-                      setFields({
-                        ...fields,
-                        tools: checked ? [...fields.tools, tool.key] : fields.tools.filter(entry => entry !== tool.key),
-                      })
-                    }}
-                  />
-                  {tool.description !== undefined && tool.description !== '' && (
-                    <span className={css.toolDescription}>{tool.description}</span>
-                  )}
-                </div>
-              ))}
-            </fieldset>
-          )}
         </form>
+        <section className={css.toolsPane} aria-labelledby={toolsTitleId}>
+          <div className={css.paneHead}>
+            <h3 id={toolsTitleId} className={css.paneTitle}>{t('tools')}</h3>
+          </div>
+          {policy !== undefined && (
+            policy.allowedTools.length > 0 ? (
+              <div className={css.toolScroll}>
+                {policy.allowedTools.map(tool => (
+                  <div key={tool.key} className={css.tool}>
+                    <Checkbox
+                      label={tool.label}
+                      checked={fields.tools.includes(tool.key)}
+                      onChange={(checked) => {
+                        setFields({
+                          ...fields,
+                          tools: checked ? [...fields.tools, tool.key] : fields.tools.filter(entry => entry !== tool.key),
+                        })
+                      }}
+                    />
+                    {tool.description !== undefined && tool.description !== '' && (
+                      <span className={css.toolDescription}>{tool.description}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className={css.empty}>{t('noTools')}</p>
+            )
+          )}
+        </section>
       </div>
     </Modal>
   )

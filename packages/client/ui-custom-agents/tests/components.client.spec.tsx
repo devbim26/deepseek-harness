@@ -141,6 +141,16 @@ describe('custom agent picker entry', () => {
     expect(screen.getByLabelText(en.name)).toHaveProperty('value', '')
   })
 
+  it('switches an agent being edited back to a blank create form from the roster', () => {
+    view()
+    fireEvent.click(entry())
+    fireEvent.click(screen.getByRole('button', { name: en.edit }))
+    expect(screen.getByLabelText(en.name)).toHaveProperty('value', 'Сметчик')
+    fireEvent.click(screen.getByRole('button', { name: en.newAgent }))
+    expect(screen.getByLabelText(en.name)).toHaveProperty('value', '')
+    expect(screen.getByRole('heading', { name: en.createTitle })).not.toBeNull()
+  })
+
   it('renders one checkbox per whitelisted plugin with its description, unchecked by default', () => {
     view()
     fireEvent.click(entry())

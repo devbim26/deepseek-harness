@@ -38,7 +38,7 @@ kind: "package-reference"
 <details>
 <summary>实现内部 — 点击展开</summary>
 
-[custom-agents-store.ts](src/client/custom-agents-store.ts) 保存目录状态与对话框的打开标志；菜单条目与覆盖层读取同一个 store，因此任一表面卸载后状态仍然存活。写入通过类型化的 `customAgentPresets` remote 进行，并发出客户端 `custom-agents/changed` 事件，`ui-agent-preset` 的名册刷新订阅了该事件。[CustomAgentsModal.tsx](src/client/CustomAgentsModal.tsx) 严格根据服务上报的 policy 渲染字段与工具复选框——表单只能提供部署白名单携带的内容。
+[custom-agents-store.ts](src/client/custom-agents-store.ts) 保存目录状态与对话框的打开标志；菜单条目与覆盖层读取同一个 store，因此任一表面卸载后状态仍然存活。写入通过类型化的 `customAgentPresets` remote 进行，并发出客户端 `custom-agents/changed` 事件，`ui-agent-preset` 的名册刷新订阅了该事件。[CustomAgentsModal.tsx](src/client/CustomAgentsModal.tsx) 在左侧可滚动窗格中渲染名册，中间渲染字段，右侧严格根据服务上报的 policy 渲染工具复选框——表单只能提供部署白名单携带的内容。
 
 </details>
 

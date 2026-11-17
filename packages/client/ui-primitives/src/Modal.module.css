@@ -130,10 +130,14 @@
   color: var(--dsw-alias-label-primary);
 }
 
+/* Grows into the content region a caller made fill-height; an auto-height
+   content region keeps the body at its intrinsic size. */
 .body {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
   margin-top: 20px;
   padding: 0 24px;
 }

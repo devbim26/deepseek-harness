@@ -38,7 +38,7 @@ The row mounts two entries over the agent-preset picker's child slots: the `agen
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-[custom-agents-store.ts](src/client/custom-agents-store.ts) holds the catalog state and the dialog's open flag; the menu entry and the overlay both read the one store, so state survives either surface unmounting. Writes go through the typed `customAgentPresets` remote and emit the client-side `custom-agents/changed` event, which `ui-agent-preset`'s roster refresh subscribes to. [CustomAgentsModal.tsx](src/client/CustomAgentsModal.tsx) renders the fields and the tool checkboxes strictly from the service-reported policy — the form can only offer what the deployment whitelist carries.
+[custom-agents-store.ts](src/client/custom-agents-store.ts) holds the catalog state and the dialog's open flag; the menu entry and the overlay both read the one store, so state survives either surface unmounting. Writes go through the typed `customAgentPresets` remote and emit the client-side `custom-agents/changed` event, which `ui-agent-preset`'s roster refresh subscribes to. [CustomAgentsModal.tsx](src/client/CustomAgentsModal.tsx) renders the roster in a scrollable left pane, the fields in the center, and the tool checkboxes in the right pane strictly from the service-reported policy — the form can only offer what the deployment whitelist carries.
 
 </details>
 
