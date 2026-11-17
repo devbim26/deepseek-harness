@@ -11,6 +11,9 @@ export const customAgentRecord = z.object({
   description: z.string(),
   instructions: z.string(),
   tools: z.array(z.string()),
+  isOrchestrator: z.boolean().default(false),
+  delegates: z.array(z.string()).default([]),
+  hidden: z.boolean().default(false),
   version: z.number().int(),
   updatedAt: z.string(),
 })

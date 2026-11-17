@@ -30,10 +30,10 @@ describe('custom agent presets service', () => {
 
   it('creates a record, mounts it into the registry roster, and derives unique slugs', async () => {
     const { ctx } = await harness()
-    const first = await ctx.customAgentPresets.create({ name: 'Сметчик', description: 'Считает объёмы.', instructions: 'Считай объёмы работ.', tools: ['todo'] })
+    const first = await ctx.customAgentPresets.create({ name: 'Сметчик', description: 'Считает объёмы.', instructions: 'Считай объёмы работ.', tools: ['todo'], isOrchestrator: false, delegates: [], hidden: false })
     expect(first.id).toBe('custom/agent')
     expect(first.version).toBe(1)
-    const second = await ctx.customAgentPresets.create({ name: 'Отчётчик', description: '', instructions: 'Собирай отчёт.', tools: [] })
+    const second = await ctx.customAgentPresets.create({ name: 'Отчётчик', description: '', instructions: 'Собирай отчёт.', tools: [], isOrchestrator: false, delegates: [], hidden: false })
     expect(second.id).toBe('custom/agent-2')
     const roster = await ctx.agentPresets.remoteExportList()
     const row = roster.presets.find(preset => preset.id === 'custom/agent')
@@ -42,7 +42,7 @@ describe('custom agent presets service', () => {
 
   it('synthesizes the persona prefix, base rows, and whitelisted tool rows', async () => {
     const { ctx } = await harness()
-    const created = await ctx.customAgentPresets.create({ name: 'Helper', description: '', instructions: 'Be brief.', tools: ['todo'] })
+    const created = await ctx.customAgentPresets.create({ name: 'Helper', description: '', instructions: 'Be brief.', tools: ['todo'], isOrchestrator: false, delegates: [], hidden: false })
     const document = await ctx.agentPresets.readDocument(created.id)
     expect(document.content).toContain('You are the drawings assistant. Be brief.')
     expect(document.content).toContain('dsh-tool-todo')
@@ -50,8 +50,8 @@ describe('custom agent presets service', () => {
 
   it('replaces the definition on update and drops it on delete', async () => {
     const { ctx } = await harness()
-    const created = await ctx.customAgentPresets.create({ name: 'Helper', description: 'v1', instructions: 'v1', tools: [] })
-    const updated = await ctx.customAgentPresets.update(created.id, { name: 'Helper', description: 'v2', instructions: 'v2', tools: ['todo'] }, created.version)
+    const created = await ctx.customAgentPresets.create({ name: 'Helper', description: 'v1', instructions: 'v1', tools: [], isOrchestrator: false, delegates: [], hidden: false })
+    const updated = await ctx.customAgentPresets.update(created.id, { name: 'Helper', description: 'v2', instructions: 'v2', tools: ['todo'], isOrchestrator: false, delegates: [], hidden: false }, created.version)
     expect(updated.version).toBe(2)
     const roster = await ctx.agentPresets.remoteExportList()
     expect(roster.presets.find(preset => preset.id === created.id)).toMatchObject({ description: 'v2' })
@@ -62,12 +62,12 @@ describe('custom agent presets service', () => {
 
   it('rejects stale versions, over-cap creates, and unknown identities with coded errors', async () => {
     const { ctx } = await harness({ maxAgents: 1 })
-    const created = await ctx.customAgentPresets.create({ name: 'Helper', description: '', instructions: 'x', tools: [] })
-    await expect(ctx.customAgentPresets.update(created.id, { name: 'Helper', description: '', instructions: 'y', tools: [] }, created.version - 1))
+    const created = await ctx.customAgentPresets.create({ name: 'Helper', description: '', instructions: 'x', tools: [], isOrchestrator: false, delegates: [], hidden: false })
+    await expect(ctx.customAgentPresets.update(created.id, { name: 'Helper', description: '', instructions: 'y', tools: [], isOrchestrator: false, delegates: [], hidden: false }, created.version - 1))
       .rejects.toMatchObject({ code: 'custom-agent-presets/conflict' })
     await expect(ctx.customAgentPresets.remove('custom/missing', 1))
       .rejects.toMatchObject({ code: 'custom-agent-presets/not-found' })
-    await expect(ctx.customAgentPresets.create({ name: 'Second', description: '', instructions: 'x', tools: [] }))
+    await expect(ctx.customAgentPresets.create({ name: 'Second', description: '', instructions: 'x', tools: [], isOrchestrator: false, delegates: [], hidden: false }))
       .rejects.toMatchObject({ code: 'custom-agent-presets/limit' })
   })
 })

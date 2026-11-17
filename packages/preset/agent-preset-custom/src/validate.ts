@@ -24,7 +24,7 @@ const limit = (reason: string) => new RemoteError('custom-agent-presets/limit', 
  * @param config - the service config carrying the whitelist and limits.
  * @returns the trimmed, deduplicated fields to store.
  */
-export async function validateInput(input: CustomAgentInput, config: Config): Promise<Pick<CustomAgentInput, 'name' | 'description' | 'instructions' | 'tools'>> {
+export async function validateInput(input: CustomAgentInput, config: Config): Promise<Pick<CustomAgentInput, 'name' | 'description' | 'instructions' | 'tools' | 'isOrchestrator' | 'delegates' | 'hidden'>> {
   const name = input.name.trim()
   if (name === '') throw invalid('The name must not be empty')
   if (name.length > config.maxNameChars) throw invalid(`The name exceeds ${config.maxNameChars} characters`)
@@ -36,5 +36,17 @@ export async function validateInput(input: CustomAgentInput, config: Config): Pr
   const allowed = new Set(Object.keys(config.allowedTools))
   const unknown = input.tools.filter(tool => !allowed.has(tool))
   if (unknown.length > 0) throw invalid(`Unknown tools: ${unknown.join(', ')}`)
-  return { name, description, instructions, tools: [...new Set(input.tools)] }
+  if (typeof input.isOrchestrator !== 'boolean' || typeof input.hidden !== 'boolean') {
+    throw invalid('isOrchestrator and hidden must be booleans')
+  }
+  if (!Array.isArray(input.delegates)) throw invalid('Delegates must be a list of agent ids')
+  if (input.delegates.some((id: unknown) => typeof id !== 'string' || id.trim() === '')) {
+    throw invalid('Delegates must be non-empty agent ids')
+  }
+  return {
+    name, description, instructions, tools: [...new Set(input.tools)],
+    isOrchestrator: input.isOrchestrator,
+    delegates: [...new Set(input.delegates.map((id: string) => id.trim()))],
+    hidden: input.hidden,
+  }
 }

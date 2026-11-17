@@ -14,6 +14,14 @@ export interface AllowedToolsEntry {
   description?: string
 }
 
+/** The delegation row template an orchestrator mounts; its presence enables the orchestrator flag. */
+export interface DelegationEntry {
+  /** Package name of the mounted delegation plugin row. */
+  name: string
+  /** Base row config; the service adds `allowedAgentPresets` from the record. */
+  config?: Record<string, unknown>
+}
+
 /** Config of the `agent-preset-custom` service row. */
 export interface Config {
   /** Site persona prepended to every custom agent's instructions. */
@@ -22,6 +30,8 @@ export interface Config {
   basePlugins: PresetDefinition['plugins']
   /** Whitelist: entry key → the plugin row a selecting agent mounts; an unchecked entry is a hard block. */
   allowedTools: Record<string, AllowedToolsEntry>
+  /** Delegation row template for orchestrators; omit to disable the orchestrator flag entirely. */
+  delegation?: DelegationEntry
   /** Name length cap. */
   maxNameChars: number
   /** Description length cap. */
@@ -37,6 +47,7 @@ export const Config: z<Config> = z.object({
   instructionsPrefix: z.string().default(''),
   basePlugins: z.array(z.any()).default([]),
   allowedTools: z.dict(z.object({ name: z.string().required(), config: z.any(), label: z.string(), description: z.string() })).default({}),
+  delegation: (z.object({ name: z.string().required(), config: z.dict(z.any()) }) as z<DelegationEntry | undefined>).default(undefined),
   maxNameChars: z.number().default(64),
   maxDescriptionChars: z.number().default(200),
   maxInstructionsChars: z.number().default(16384),

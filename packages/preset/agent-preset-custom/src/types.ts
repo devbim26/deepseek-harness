@@ -16,6 +16,12 @@ export interface CustomAgentRecord {
   readonly instructions: string
   /** Keys of the deployment whitelist this agent mounts. */
   readonly tools: readonly string[]
+  /** Whether this agent may launch other custom agents as subagents. */
+  readonly isOrchestrator: boolean
+  /** Ids of the custom agents this orchestrator launches; regular agents only. */
+  readonly delegates: readonly string[]
+  /** Whether the preset picker offers this agent; hidden agents stay launchable by orchestrators. */
+  readonly hidden: boolean
   /** Optimistic-concurrency stamp; every write increments it. */
   readonly version: number
   /** Last write time, ISO-8601. */
@@ -28,6 +34,9 @@ export interface CustomAgentInput {
   readonly description: string
   readonly instructions: string
   readonly tools: readonly string[]
+  readonly isOrchestrator: boolean
+  readonly delegates: readonly string[]
+  readonly hidden: boolean
 }
 
 /** One whitelisted tool as the form renders it. */
@@ -43,6 +52,8 @@ export interface CustomAgentToolOption {
 /** The deployment-authored limits and whitelist the form renders against. */
 export interface CustomAgentPolicy {
   readonly allowedTools: readonly CustomAgentToolOption[]
+  /** Whether the deployment carries the delegation row; gates the orchestrator checkbox in the form. */
+  readonly delegationAvailable: boolean
   readonly maxNameChars: number
   readonly maxDescriptionChars: number
   readonly maxInstructionsChars: number

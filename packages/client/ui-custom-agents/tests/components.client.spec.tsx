@@ -14,7 +14,7 @@ afterEach(() => { document.body.textContent = '' })
 
 const translations: ReadonlyMap<string, string> = new Map(Object.entries(en))
 
-const seededAgent: CustomAgentRecord = { id: 'custom/agent', slug: 'agent', name: 'Сметчик', description: 'Считает', instructions: 'i', tools: [], version: 1, updatedAt: '2026-11-15T00:00:00.000Z' }
+const seededAgent: CustomAgentRecord = { id: 'custom/agent', slug: 'agent', name: 'Сметчик', description: 'Считает', instructions: 'i', tools: [], isOrchestrator: false, delegates: [], hidden: false, version: 1, updatedAt: '2026-11-15T00:00:00.000Z' }
 
 const catalog: CustomAgentCatalog = {
   agents: [seededAgent],
@@ -23,6 +23,7 @@ const catalog: CustomAgentCatalog = {
       { key: 'drawing5', label: 'Чертежи (drawing5)', description: 'Инструменты чертежей. Отметьте, чтобы агент имел доступ.' },
       { key: 'smeta', label: 'Сметы (БелЕНиР)' },
     ],
+    delegationAvailable: false,
     maxNameChars: 64,
     maxDescriptionChars: 200,
     maxInstructionsChars: 16384,
