@@ -102,12 +102,13 @@ export async function beginRosterRead<S extends { status: string; error: string 
 }
 
 /**
- * The roster entries as the pickers render them: healthy presets only.
+ * The roster entries as the pickers render them: healthy, visible presets only.
  *
  * The chip exists to choose the NEXT session's composition, and a broken
  * preset cannot compose one — offering it would defer the discovery of that
- * fact to a failed session start. The management section renders the full
- * roster (broken rows included) from its own store instead.
+ * fact to a failed session start. The management section still lists broken
+ * rows from its own store; a hidden preset composes sessions but no roster
+ * surface lists it.
  *
  * The chip, the header label, and the management section all show the same
  * facts, and `exactOptionalPropertyTypes` makes "absent" and "present as
@@ -117,9 +118,9 @@ export async function beginRosterRead<S extends { status: string; error: string 
  * @returns one option per selectable preset, in roster order.
  */
 export function presetOptions(
-  presets: readonly { id: string; name?: string; description?: string; broken?: string }[],
+  presets: readonly { id: string; name?: string; description?: string; broken?: string; hidden?: boolean }[],
 ): AgentPresetOption[] {
-  return presets.filter(preset => preset.broken === undefined).map(preset => ({
+  return presets.filter(preset => preset.broken === undefined && preset.hidden !== true).map(preset => ({
     id: preset.id,
     ...preset.name === undefined ? {} : { name: preset.name },
     ...preset.description === undefined ? {} : { description: preset.description },

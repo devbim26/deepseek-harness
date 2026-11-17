@@ -28,7 +28,7 @@ interface Recorded { ns: string; ops: unknown }
 
 /** A roster Remote answering a fixed set of rows, or refusing. */
 function fakeRoster(
-  presets: { id: string; isDefault: boolean }[],
+  presets: { id: string; isDefault: boolean; hidden?: boolean }[],
   options: {
     failList?: string
     failListCode?: RemoteErrorCode
@@ -58,7 +58,7 @@ function fakeRoster(
 
 /** A context whose roster and settings write outcome the test controls. */
 function fakeApi(
-  presets: { id: string; isDefault: boolean }[],
+  presets: { id: string; isDefault: boolean; hidden?: boolean }[],
   options: {
     writes?: Recorded[]
     failWrite?: string
@@ -112,6 +112,17 @@ describe('the agent-preset roster store', () => {
     // that discovery to a failed session start. The management section shows
     // and edits it from its own store instead.
     expect(controller.store.getSnapshot().options.map(option => option.id)).toEqual(['standard'])
+  })
+
+  it('omits hidden presets: visibility is a picker concern, not a composition concern', async () => {
+    const controller = derivedController(fakeApi([
+      { id: 'standard', isDefault: true },
+      { id: 'ghost', isDefault: false, hidden: true },
+    ]))
+
+    await controller.load()
+
+    expect(controller.store.getSnapshot().options).toEqual([{ id: 'standard' }])
   })
 
   it('carries the display metadata a preset published', async () => {

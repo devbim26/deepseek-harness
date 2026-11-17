@@ -40,6 +40,16 @@ describe('the preset roster', () => {
     expect(state().error).toBe('gone')
   })
 
+  it('drops hidden presets from the management roster', async () => {
+    const { remote, controller, state } = fixture()
+    remote.agentPresets.list.mockResolvedValueOnce({ ok: true, value: { presets: [
+      { id: 'standard', isDefault: true },
+      { id: 'ghost', isDefault: false, hidden: true },
+    ] } } as never)
+    await controller.load()
+    expect(state().rows).toEqual([{ id: 'standard', isDefault: true }])
+  })
+
   it('opens one declared composition for reading and keeps a failed read out of the viewer', async () => {
     const { controller, remote, state } = fixture()
     await controller.view('standard')
