@@ -79,6 +79,9 @@ describe('custom agent presets service', () => {
     const lead = await ctx.customAgentPresets.create({ ...plain, name: 'Lead', tools: [], isOrchestrator: true, delegates: [w1.id], hidden: false })
     await expect(ctx.customAgentPresets.create({ ...plain, name: 'Chain', tools: [], isOrchestrator: true, delegates: [lead.id], hidden: false }))
       .rejects.toMatchObject({ code: 'custom-agent-presets/invalid', details: { reason: 'orchestrator-delegate' } })
+    // w2 naming itself: the self check fires before the delegate table lookup.
+    await expect(ctx.customAgentPresets.update(w2.id, { name: 'W2', description: '', instructions: 'i', tools: [], isOrchestrator: true, delegates: [w2.id], hidden: false }, w2.version))
+      .rejects.toMatchObject({ code: 'custom-agent-presets/invalid', details: { reason: 'self-delegate' } })
     // w1 already launched by lead: it cannot itself become an orchestrator.
     await expect(ctx.customAgentPresets.update(w1.id, { name: 'W1', description: '', instructions: 'i', tools: [], isOrchestrator: true, delegates: [w2.id], hidden: false }, w1.version))
       .rejects.toMatchObject({ code: 'custom-agent-presets/invalid', details: { reason: 'referenced-by-orchestrator' } })
