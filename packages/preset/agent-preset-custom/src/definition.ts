@@ -5,22 +5,34 @@ import type { CustomAgentRecord } from './types.ts'
 
 /**
  * Build the registry definition: the site persona plus the user instructions,
- * the deployment's fixed base rows, and the whitelisted tool rows the record
- * selected. User data enters as plain configuration values only — nothing
- * here parses user text as configuration.
+ * the deployment's fixed base rows, the whitelisted tool rows the record
+ * selected, and — for an orchestrator with delegates — the deployment's
+ * delegation row narrowed to those delegates. User data enters as plain
+ * configuration values only — nothing here parses user text as configuration.
  * @param record - the stored record.
- * @param config - the service config (prefix, base rows, whitelist).
+ * @param config - the service config (prefix, base rows, whitelist, delegation row).
  * @returns the definition handed to `agentPresets.register`.
  */
 export function synthesizeDefinition(record: CustomAgentRecord, config: Config): PresetDefinition {
   const prefix = config.instructionsPrefix === ''
     ? record.instructions
     : `${config.instructionsPrefix} ${record.instructions}`
+  const delegation = record.isOrchestrator && record.delegates.length > 0 && config.delegation !== undefined
+    ? [{
+      id: 'delegation',
+      name: config.delegation.name,
+      config: {
+        ...(config.delegation.config ?? {}),
+        allowedAgentPresets: [...record.delegates],
+      },
+    }]
+    : []
   return {
     id: record.id,
     name: record.name,
     description: record.description,
     order: 50,
+    ...(record.hidden ? { hidden: true } : {}),
     plugins: [
       { id: 'persona', name: '@deepseek-ai/dsh-persona', config: { prefix } },
       ...config.basePlugins,
@@ -31,6 +43,7 @@ export function synthesizeDefinition(record: CustomAgentRecord, config: Config):
         if (row === undefined) throw new Error(`custom-agent-presets: the whitelist no longer carries the '${key}' tool`)
         return { id: `tool-${key}`, name: row.name, config: row.config }
       }),
+      ...delegation,
     ],
   }
 }

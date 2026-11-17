@@ -48,6 +48,26 @@ describe('custom agent presets service', () => {
     expect(document.content).toContain('dsh-tool-todo')
   })
 
+  it('mounts the delegation row with the record delegates for an orchestrator', async () => {
+    const { ctx } = await harness()
+    const worker = await ctx.customAgentPresets.create({ name: 'Worker', description: '', instructions: 'Do the work.', tools: [], isOrchestrator: false, delegates: [], hidden: false })
+    const lead = await ctx.customAgentPresets.create({ name: 'Lead', description: '', instructions: 'Run the workers.', tools: [], isOrchestrator: true, delegates: [worker.id], hidden: false })
+    const document = await ctx.agentPresets.readDocument(lead.id)
+    expect(document.content).toContain('dsh-tool-subagent')
+    expect(document.content).toContain('allowedAgentPresets')
+    expect(document.content).toContain(worker.id)
+    const row = await ctx.agentPresets.resolve(lead.id)
+    expect(row.broken).toBeUndefined()
+  })
+
+  it('marks a hidden agent in the roster but keeps it resolvable', async () => {
+    const { ctx } = await harness()
+    const ghost = await ctx.customAgentPresets.create({ name: 'Ghost', description: '', instructions: 'Work unseen.', tools: [], isOrchestrator: false, delegates: [], hidden: true })
+    const roster = await ctx.agentPresets.remoteExportList()
+    expect(roster.presets.find(preset => preset.id === ghost.id)).toMatchObject({ hidden: true })
+    await expect(ctx.agentPresets.resolve(ghost.id)).resolves.not.toHaveProperty('broken')
+  })
+
   it('replaces the definition on update and drops it on delete', async () => {
     const { ctx } = await harness()
     const created = await ctx.customAgentPresets.create({ name: 'Helper', description: 'v1', instructions: 'v1', tools: [], isOrchestrator: false, delegates: [], hidden: false })

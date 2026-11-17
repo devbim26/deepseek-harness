@@ -1,7 +1,10 @@
 /** Test harness: the real preset registry stack plus a memory-backed storage domain. */
 import { MemoryMediaPool, MemoryStorageBackend } from '../../../storage/storage-domain/tests/helpers/memory-backend.ts'
+import { mountWorkingDirectoryFixture } from '../../../subagent/subagent/tests/working-directory-fixture.ts'
 import Storage from '@deepseek-ai/dsh-storage'
 import * as StorageJson from '@deepseek-ai/dsh-storage-json'
+import Subagents from '@deepseek-ai/dsh-subagent'
+import * as SubagentSpawn from '@deepseek-ai/dsh-subagent-spawn-in-process'
 import { DomainFacility } from '@deepseek-ai/dsh-storage-domain'
 import { harness as presetHarness } from '../../agent-preset-registry/tests/harness.ts'
 import CustomAgentPresets from '../src/index.ts'
@@ -20,6 +23,7 @@ export const standardConfig = {
   instructionsPrefix: 'You are the drawings assistant.',
   basePlugins: [] as PresetDefinition['plugins'],
   allowedTools: standardAllowedTools,
+  delegation: { name: '@deepseek-ai/dsh-tool-subagent', config: { provider: 'spawn', toolName: 'subagent' } },
   maxNameChars: 64,
   maxDescriptionChars: 200,
   maxInstructionsChars: 16384,
@@ -41,6 +45,12 @@ export async function harness(
 ): Promise<{ ctx: Context }> {
   const ctx = await presetHarness()
   await ctx.plugin(Storage)
+  // The delegation row synthesized for orchestrators needs the host-plane
+  // subagent registry and its spawn provider to activate; the registry defers
+  // until its workingDirectory dependency exists.
+  await mountWorkingDirectoryFixture(ctx)
+  await ctx.plugin(Subagents)
+  await ctx.plugin(SubagentSpawn)
   const backendName = storage.jsonRoot !== undefined ? 'json' : 'memory'
   if (storage.jsonRoot !== undefined) {
     await ctx.plugin(StorageJson, { root: storage.jsonRoot })

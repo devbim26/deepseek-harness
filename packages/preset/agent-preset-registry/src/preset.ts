@@ -6,6 +6,8 @@ export interface AgentPreset {
   readonly name?: string
   readonly description?: string
   readonly order?: number
+  /** Whether pickers hide this preset; the definition still composes sessions and resolves as a child. */
+  readonly hidden?: boolean
   readonly broken?: string
 }
 
