@@ -5,6 +5,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { presetDisplayText, type BuiltInPresetCopyKey } from '../src/display.ts'
+import { declare, harness } from './harness.ts'
 
 const t = (key: BuiltInPresetCopyKey): string => `t:${key}`
 
@@ -26,5 +27,13 @@ describe('presetDisplayText', () => {
     // there is no dictionary copy to resolve.
     expect(presetDisplayText({ id: 'future' }, t)).toEqual({ name: 'future' })
     expect(presetDisplayText({ id: 'bare' }, t)).toEqual({ name: 'bare' })
+  })
+
+  it('carries the hidden flag to the roster without breaking the preset', async () => {
+    const ctx = await harness()
+    await declare(ctx, { id: 'stealth', hidden: true, plugins: [] })
+    const roster = await ctx.agentPresets.remoteExportList()
+    expect(roster.presets.find(preset => preset.id === 'stealth')).toMatchObject({ hidden: true })
+    await expect(ctx.agentPresets.resolve('stealth')).resolves.not.toHaveProperty('broken')
   })
 })
