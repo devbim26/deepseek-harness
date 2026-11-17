@@ -7,6 +7,7 @@ export type CustomAgentsKey =
   | 'instructions' | 'instructionsPlaceholder' | 'save' | 'cancel' | 'remove' | 'removeConfirm'
   | 'empty' | 'edit' | 'saved' | 'limitReached' | 'invalidInput' | 'conflict' | 'errorUnavailable' | 'charsUsed'
   | 'nameRequired' | 'instructionsRequired'
+  | 'orchestrator' | 'orchestratorHint' | 'visible' | 'visibleHint' | 'delegatesTitle' | 'noDelegates' | 'orchestratorBadge' | 'hiddenBadge'
 
 /** English copy. */
 export const en: Record<CustomAgentsKey, string> = {
@@ -38,6 +39,14 @@ export const en: Record<CustomAgentsKey, string> = {
   charsUsed: '{used} / {limit} characters',
   nameRequired: 'Enter a name for the agent',
   instructionsRequired: 'Enter the instructions',
+  orchestrator: 'Orchestrator',
+  orchestratorHint: 'The agent launches the checked agents as its subagents.',
+  visible: 'Show in the mode picker',
+  visibleHint: 'Uncheck to keep the agent reachable only to orchestrators.',
+  delegatesTitle: 'Agents to launch',
+  noDelegates: 'No other regular agents yet',
+  orchestratorBadge: 'orchestrator',
+  hiddenBadge: 'hidden',
 }
 
 /** Russian copy. */
@@ -70,6 +79,14 @@ export const ru: Record<CustomAgentsKey, string> = {
   charsUsed: '{used} / {limit} символов',
   nameRequired: 'Введите название агента',
   instructionsRequired: 'Введите инструкцию',
+  orchestrator: 'Оркестратор',
+  orchestratorHint: 'Агент запускает отмеченных агентов как своих субагентов.',
+  visible: 'Показывать в выборе режима',
+  visibleHint: 'Снимите, чтобы агент был доступен только оркестраторам.',
+  delegatesTitle: 'Запуск агентов',
+  noDelegates: 'Других обычных агентов пока нет',
+  orchestratorBadge: 'оркестратор',
+  hiddenBadge: 'скрыт',
 }
 
 /** Chinese copy. */
@@ -102,4 +119,12 @@ export const zh: Record<CustomAgentsKey, string> = {
   charsUsed: '{used} / {limit} 个字符',
   nameRequired: '请输入智能体名称',
   instructionsRequired: '请输入指令',
+  orchestrator: '编排者',
+  orchestratorHint: '该智能体将选中的智能体作为子智能体启动。',
+  visible: '在选择器中显示',
+  visibleHint: '取消勾选后，仅编排者可以启动该智能体。',
+  delegatesTitle: '启动的智能体',
+  noDelegates: '暂无其他普通智能体',
+  orchestratorBadge: '编排者',
+  hiddenBadge: '已隐藏',
 }

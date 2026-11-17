@@ -4,12 +4,13 @@ import { RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
 import { CustomAgentsController } from '../src/client/custom-agents-store.ts'
 import type { CustomAgentCatalog, CustomAgentRecord } from '@deepseek-ai/dsh-agent-preset-custom/types'
 
-const seededAgent: CustomAgentRecord = { id: 'custom/agent', slug: 'agent', name: 'Сметчик', description: 'd', instructions: 'i', tools: [], version: 1, updatedAt: '2026-11-15T00:00:00.000Z' }
+const seededAgent: CustomAgentRecord = { id: 'custom/agent', slug: 'agent', name: 'Сметчик', description: 'd', instructions: 'i', tools: [], isOrchestrator: false, delegates: [], hidden: false, version: 1, updatedAt: '2026-11-15T00:00:00.000Z' }
 
 const catalog: CustomAgentCatalog = {
   agents: [seededAgent],
   policy: {
     allowedTools: [{ key: 'drawing5', label: 'Чертежи (drawing5)', description: 'Инструменты чертежей.' }],
+    delegationAvailable: true,
     maxNameChars: 64,
     maxDescriptionChars: 200,
     maxInstructionsChars: 16384,
@@ -62,14 +63,14 @@ describe('custom agents store', () => {
   it('emits custom-agents/changed after a successful create', async () => {
     const events: string[] = []
     const controller = new CustomAgentsController(fakeCtx({ create: { ok: true }, events }))
-    const outcome = await controller.create({ name: 'x', description: '', instructions: 'y', tools: [] })
+    const outcome = await controller.create({ name: 'x', description: '', instructions: 'y', tools: [], isOrchestrator: false, delegates: [], hidden: false })
     expect(outcome.ok).toBe(true)
     expect(events).toContain('custom-agents/changed')
   })
 
   it('surfaces coded write failures for the form', async () => {
     const controller = new CustomAgentsController(fakeCtx({ create: { ok: false } }))
-    const outcome = await controller.create({ name: 'x', description: '', instructions: 'y', tools: [] })
+    const outcome = await controller.create({ name: 'x', description: '', instructions: 'y', tools: [], isOrchestrator: false, delegates: [], hidden: false })
     expect(outcome).toMatchObject({ ok: false, kind: 'unavailable' })
   })
 })

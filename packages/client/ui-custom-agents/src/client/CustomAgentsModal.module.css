@@ -22,7 +22,8 @@
 }
 
 .agentsPane,
-.toolsPane {
+.toolsPane,
+.delegatesPane {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -282,4 +283,36 @@
     flex: none;
     overflow: visible;
   }
+}
+
+/* The right column stacks the tool whitelist and the delegate checklist;
+   each keeps its own scrollport. */
+.rightPane {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.rightPane > section {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+/* The delegate checklist stays visible but inert until the orchestrator
+   checkbox turns it on. */
+.delegatesDisabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.badge {
+  margin-left: 6px;
+  font-size: 11px;
+  line-height: 16px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  color: var(--dsw-alias-label-secondary);
 }

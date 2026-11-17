@@ -1,9 +1,9 @@
 /**
  * The custom-agent manager modal: the agent roster, the create/edit form, and
- * the deployment's tool whitelist in three panes. The roster and tools scroll
- * on their own so many agents stay reachable; fields and tool checkboxes are
- * bounded by the deployment policy the service reports, and the service
- * re-validates every write.
+ * the deployment's tool whitelist plus delegate checklist in three panes. The
+ * roster and tools scroll on their own so many agents stay reachable; fields
+ * and tool checkboxes are bounded by the deployment policy the service
+ * reports, and the service re-validates every write.
  */
 import { useId, useState } from 'react'
 import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-ui-slots'
@@ -26,7 +26,7 @@ export interface CustomAgentsModalProps {
 }
 
 /** Blank form fields for a create. */
-const BLANK: CustomAgentInput = { name: '', description: '', instructions: '', tools: [] }
+const BLANK: CustomAgentInput = { name: '', description: '', instructions: '', tools: [], isOrchestrator: false, delegates: [], hidden: false }
 
 /**
  * Render the manager over the catalog store.
@@ -42,6 +42,7 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
   const listTitleId = useId()
   const settingsTitleId = useId()
   const toolsTitleId = useId()
+  const delegatesTitleId = useId()
 
   const startCreate = (): void => {
     setEditing(undefined)
@@ -51,7 +52,15 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
   }
   const startEdit = (record: CustomAgentRecord): void => {
     setEditing(record)
-    setFields({ name: record.name, description: record.description, instructions: record.instructions, tools: [...record.tools] })
+    setFields({
+      name: record.name,
+      description: record.description,
+      instructions: record.instructions,
+      tools: [...record.tools],
+      isOrchestrator: record.isOrchestrator,
+      delegates: [...record.delegates],
+      hidden: record.hidden,
+    })
     setDeleting(undefined)
     setFailure(undefined)
   }
@@ -91,6 +100,7 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
     setDeleting(undefined)
   }
   const policy = state.policy
+  const delegateChoices = state.agents.filter(agent => agent.id !== editing?.id && !agent.isOrchestrator)
 
   return (
     <Modal
@@ -123,7 +133,11 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
                 data-active={editing?.id === agent.id ? 'true' : undefined}
               >
                 <span className={css.rowText}>
-                  <span className={css.rowName}>{agent.name}</span>
+                  <span className={css.rowName}>
+                    {agent.name}
+                    {agent.isOrchestrator && <span className={css.badge}>{t('orchestratorBadge')}</span>}
+                    {agent.hidden && <span className={css.badge}>{t('hiddenBadge')}</span>}
+                  </span>
                   {agent.description !== '' && <span className={css.rowDescription}>{agent.description}</span>}
                 </span>
                 {deleting?.id === agent.id ? (
@@ -189,37 +203,82 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
             />
             {policy !== undefined && <span className={css.counter}>{t('charsUsed', { used: fields.instructions.length, limit: policy.maxInstructionsChars })}</span>}
           </div>
-        </form>
-        <section className={css.toolsPane} aria-labelledby={toolsTitleId}>
-          <div className={css.paneHead}>
-            <h3 id={toolsTitleId} className={css.paneTitle}>{t('tools')}</h3>
+          {policy?.delegationAvailable === true && (
+            <div className={css.field}>
+              <Checkbox
+                label={t('orchestrator')}
+                checked={fields.isOrchestrator}
+                onChange={(checked) => { setFields({ ...fields, isOrchestrator: checked, ...(checked ? {} : { delegates: [] }) }) }}
+              />
+              <span className={css.toolDescription}>{t('orchestratorHint')}</span>
+            </div>
+          )}
+          <div className={css.field}>
+            <Checkbox
+              label={t('visible')}
+              checked={!fields.hidden}
+              onChange={(checked) => { setFields({ ...fields, hidden: !checked }) }}
+            />
+            <span className={css.toolDescription}>{t('visibleHint')}</span>
           </div>
-          {policy !== undefined && (
-            policy.allowedTools.length > 0 ? (
-              <div className={css.toolScroll}>
-                {policy.allowedTools.map(tool => (
-                  <div key={tool.key} className={css.tool}>
+        </form>
+        <div className={css.rightPane}>
+          <section className={css.toolsPane} aria-labelledby={toolsTitleId}>
+            <div className={css.paneHead}>
+              <h3 id={toolsTitleId} className={css.paneTitle}>{t('tools')}</h3>
+            </div>
+            {policy !== undefined && (
+              policy.allowedTools.length > 0 ? (
+                <div className={css.toolScroll}>
+                  {policy.allowedTools.map(tool => (
+                    <div key={tool.key} className={css.tool}>
+                      <Checkbox
+                        label={tool.label}
+                        checked={fields.tools.includes(tool.key)}
+                        onChange={(checked) => {
+                          setFields({
+                            ...fields,
+                            tools: checked ? [...fields.tools, tool.key] : fields.tools.filter(entry => entry !== tool.key),
+                          })
+                        }}
+                      />
+                      {tool.description !== undefined && tool.description !== '' && (
+                        <span className={css.toolDescription}>{tool.description}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className={css.empty}>{t('noTools')}</p>
+              )
+            )}
+          </section>
+          <section className={css.delegatesPane} aria-labelledby={delegatesTitleId}>
+            <div className={css.paneHead}>
+              <h3 id={delegatesTitleId} className={css.paneTitle}>{t('delegatesTitle')}</h3>
+            </div>
+            <div className={fields.isOrchestrator ? css.toolScroll : `${css.toolScroll} ${css.delegatesDisabled}`}>
+              {delegateChoices.length === 0
+                ? <p className={css.empty}>{t('noDelegates')}</p>
+                : delegateChoices.map(agent => (
+                  <div key={agent.id} className={css.tool}>
                     <Checkbox
-                      label={tool.label}
-                      checked={fields.tools.includes(tool.key)}
+                      label={agent.name}
+                      checked={fields.delegates.includes(agent.id)}
                       onChange={(checked) => {
                         setFields({
                           ...fields,
-                          tools: checked ? [...fields.tools, tool.key] : fields.tools.filter(entry => entry !== tool.key),
+                          delegates: checked
+                            ? [...fields.delegates, agent.id]
+                            : fields.delegates.filter(entry => entry !== agent.id),
                         })
                       }}
                     />
-                    {tool.description !== undefined && tool.description !== '' && (
-                      <span className={css.toolDescription}>{tool.description}</span>
-                    )}
                   </div>
                 ))}
-              </div>
-            ) : (
-              <p className={css.empty}>{t('noTools')}</p>
-            )
-          )}
-        </section>
+            </div>
+          </section>
+        </div>
       </div>
     </Modal>
   )
