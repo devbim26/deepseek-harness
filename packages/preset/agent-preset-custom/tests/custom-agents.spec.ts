@@ -28,6 +28,13 @@ describe('custom agent presets service', () => {
     expect('description' in option).toBe(false)
   })
 
+  it('reports delegation availability from the deployment config', async () => {
+    const { ctx } = await harness()
+    expect((await ctx.customAgentPresets.remoteExportList()).policy.delegationAvailable).toBe(true)
+    const plain = await harness({ delegation: undefined })
+    expect((await plain.ctx.customAgentPresets.remoteExportList()).policy.delegationAvailable).toBe(false)
+  })
+
   it('creates a record, mounts it into the registry roster, and derives unique slugs', async () => {
     const { ctx } = await harness()
     const first = await ctx.customAgentPresets.create({ name: 'Сметчик', description: 'Считает объёмы.', instructions: 'Считай объёмы работ.', tools: ['todo'], isOrchestrator: false, delegates: [], hidden: false })
@@ -60,6 +67,23 @@ describe('custom agent presets service', () => {
     expect(row.broken).toBeUndefined()
   })
 
+  it('rejects orchestrator writes that break the delegates invariants', async () => {
+    const { ctx } = await harness()
+    const plain = { name: 'X', description: '', instructions: 'i' }
+    await expect(ctx.customAgentPresets.create({ ...plain, tools: [], isOrchestrator: true, delegates: [], hidden: false }))
+      .rejects.toMatchObject({ code: 'custom-agent-presets/invalid', details: { reason: 'empty-delegates' } })
+    await expect(ctx.customAgentPresets.create({ ...plain, tools: [], isOrchestrator: true, delegates: ['custom/missing'], hidden: false }))
+      .rejects.toMatchObject({ code: 'custom-agent-presets/invalid', details: { reason: 'unknown-delegate' } })
+    const w1 = await ctx.customAgentPresets.create({ ...plain, name: 'W1', tools: [], isOrchestrator: false, delegates: [], hidden: false })
+    const w2 = await ctx.customAgentPresets.create({ ...plain, name: 'W2', tools: [], isOrchestrator: false, delegates: [], hidden: false })
+    const lead = await ctx.customAgentPresets.create({ ...plain, name: 'Lead', tools: [], isOrchestrator: true, delegates: [w1.id], hidden: false })
+    await expect(ctx.customAgentPresets.create({ ...plain, name: 'Chain', tools: [], isOrchestrator: true, delegates: [lead.id], hidden: false }))
+      .rejects.toMatchObject({ code: 'custom-agent-presets/invalid', details: { reason: 'orchestrator-delegate' } })
+    // w1 already launched by lead: it cannot itself become an orchestrator.
+    await expect(ctx.customAgentPresets.update(w1.id, { name: 'W1', description: '', instructions: 'i', tools: [], isOrchestrator: true, delegates: [w2.id], hidden: false }, w1.version))
+      .rejects.toMatchObject({ code: 'custom-agent-presets/invalid', details: { reason: 'referenced-by-orchestrator' } })
+  })
+
   it('marks a hidden agent in the roster but keeps it resolvable', async () => {
     const { ctx } = await harness()
     const ghost = await ctx.customAgentPresets.create({ name: 'Ghost', description: '', instructions: 'Work unseen.', tools: [], isOrchestrator: false, delegates: [], hidden: true })
@@ -78,6 +102,17 @@ describe('custom agent presets service', () => {
     await ctx.customAgentPresets.remove(created.id, updated.version)
     const after = await ctx.agentPresets.remoteExportList()
     expect(after.presets.find(preset => preset.id === created.id)).toBeUndefined()
+  })
+
+  it('cascades a deleted agent out of delegates and unmounts the tool when the list empties', async () => {
+    const { ctx } = await harness()
+    const worker = await ctx.customAgentPresets.create({ name: 'Worker', description: '', instructions: 'Do the work.', tools: [], isOrchestrator: false, delegates: [], hidden: false })
+    const lead = await ctx.customAgentPresets.create({ name: 'Lead', description: '', instructions: 'Run the workers.', tools: [], isOrchestrator: true, delegates: [worker.id], hidden: false })
+    await ctx.customAgentPresets.remove(worker.id, worker.version)
+    const catalog = await ctx.customAgentPresets.remoteExportList()
+    expect(catalog.agents.find(agent => agent.id === lead.id)).toMatchObject({ isOrchestrator: true, delegates: [], version: 2 })
+    const document = await ctx.agentPresets.readDocument(lead.id)
+    expect(document.content).not.toContain('dsh-tool-subagent')
   })
 
   it('rejects stale versions, over-cap creates, and unknown identities with coded errors', async () => {

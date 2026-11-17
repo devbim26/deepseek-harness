@@ -8,7 +8,7 @@ import * as SubagentSpawn from '@deepseek-ai/dsh-subagent-spawn-in-process'
 import { DomainFacility } from '@deepseek-ai/dsh-storage-domain'
 import { harness as presetHarness } from '../../agent-preset-registry/tests/harness.ts'
 import CustomAgentPresets from '../src/index.ts'
-import type { AllowedToolsEntry } from '../src/config.ts'
+import type { AllowedToolsEntry, DelegationEntry } from '../src/config.ts'
 import type { PresetDefinition } from '@deepseek-ai/dsh-agent-preset-registry'
 import type { Context } from '@deepseek-ai/cordis'
 
@@ -30,7 +30,8 @@ export const standardConfig = {
   maxAgents: 50,
 }
 
-export type HarnessConfig = typeof standardConfig
+/** Config overrides a spec may pass to {@link harness}; `delegation: undefined` drops the delegation row. */
+export type HarnessConfig = Omit<typeof standardConfig, 'delegation'> & { delegation?: DelegationEntry | undefined }
 
 /**
  * Boot the preset-registry test stack, add a storage domain facility over the

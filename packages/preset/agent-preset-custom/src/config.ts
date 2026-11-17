@@ -30,8 +30,8 @@ export interface Config {
   basePlugins: PresetDefinition['plugins']
   /** Whitelist: entry key → the plugin row a selecting agent mounts; an unchecked entry is a hard block. */
   allowedTools: Record<string, AllowedToolsEntry>
-  /** Delegation row template for orchestrators; omit to disable the orchestrator flag entirely. */
-  delegation?: DelegationEntry
+  /** Delegation row template for orchestrators; omit or pass `undefined` to disable the orchestrator flag entirely. */
+  delegation?: DelegationEntry | undefined
   /** Name length cap. */
   maxNameChars: number
   /** Description length cap. */

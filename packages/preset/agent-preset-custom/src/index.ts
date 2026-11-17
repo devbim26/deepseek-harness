@@ -61,6 +61,7 @@ export class CustomAgentPresets extends TypertRemoteService {
           label: entry.label ?? key,
           ...(entry.description === undefined ? {} : { description: entry.description }),
         })),
+      delegationAvailable: this.config.delegation !== undefined,
       maxNameChars: this.config.maxNameChars,
       maxDescriptionChars: this.config.maxDescriptionChars,
       maxInstructionsChars: this.config.maxInstructionsChars,
@@ -92,6 +93,36 @@ export class CustomAgentPresets extends TypertRemoteService {
     }
   }
 
+  /** Cross-record invariants: an orchestrator launches existing regular agents, never itself. */
+  private validateDelegates(delegates: readonly string[], selfId: string): void {
+    const table = this.requireTable()
+    for (const id of delegates) {
+      if (id === selfId) throw new RemoteError('custom-agent-presets/invalid', 'An agent cannot launch itself', { reason: 'self-delegate' })
+      const target = table.get(id)
+      if (target === undefined) throw new RemoteError('custom-agent-presets/invalid', `Unknown delegate: ${id}`, { reason: 'unknown-delegate' })
+      if (target.isOrchestrator) throw new RemoteError('custom-agent-presets/invalid', `Delegates must not be orchestrators: ${id}`, { reason: 'orchestrator-delegate' })
+    }
+  }
+
+  /** An agent another orchestrator launches cannot become an orchestrator itself. */
+  private assertNotLaunched(id: string): void {
+    for (const [otherId, record] of this.requireTable().entries()) {
+      if (otherId !== id && record.delegates.includes(id)) {
+        throw new RemoteError('custom-agent-presets/invalid', `Another orchestrator launches this agent: ${otherId}`, { reason: 'referenced-by-orchestrator' })
+      }
+    }
+  }
+
+  /** Validate the orchestrator shape shared by create and update. */
+  private assertOrchestratorFields(fields: Pick<CustomAgentInput, 'isOrchestrator' | 'delegates'>, selfId: string): void {
+    if (!fields.isOrchestrator) return
+    if (fields.delegates.length === 0) {
+      throw new RemoteError('custom-agent-presets/invalid', 'An orchestrator must launch at least one agent', { reason: 'empty-delegates' })
+    }
+    this.assertNotLaunched(selfId)
+    this.validateDelegates(fields.delegates, selfId)
+  }
+
   /**
    * Validate, persist, and mount one new agent; the id derives from the name.
    * @param input - the client-submitted fields.
@@ -109,6 +140,7 @@ export class CustomAgentPresets extends TypertRemoteService {
     }
     const fields = await validateInput(input, this.config)
     const id = this.unusedId(fields.name)
+    this.assertOrchestratorFields(fields, id)
     const record: CustomAgentRecord = {
       id,
       slug: id.slice('custom/'.length),
@@ -140,6 +172,7 @@ export class CustomAgentPresets extends TypertRemoteService {
       throw new RemoteError('custom-agent-presets/conflict', 'The record changed elsewhere; reload and retry', { expectedVersion: stored.version })
     }
     const fields = await validateInput(input, this.config)
+    this.assertOrchestratorFields(fields, id)
     const previous = this.registrations.get(id)
     if (previous !== undefined) await previous()
     this.registrations.delete(id)
@@ -168,6 +201,22 @@ export class CustomAgentPresets extends TypertRemoteService {
     if (previous !== undefined) await previous()
     this.registrations.delete(id)
     await table.delete(id)
+    // Cascade: drop the deleted agent from every orchestrator's delegates and
+    // remount the trimmed records; an emptied list unmounts the tool row.
+    for (const [otherId, record] of table.entries()) {
+      if (!record.delegates.includes(id)) continue
+      const next: CustomAgentRecord = {
+        ...record,
+        delegates: record.delegates.filter(entry => entry !== id),
+        version: record.version + 1,
+        updatedAt: new Date().toISOString(),
+      }
+      await table.put(otherId, next)
+      const previousRegistration = this.registrations.get(otherId)
+      if (previousRegistration !== undefined) await previousRegistration()
+      this.registrations.delete(otherId)
+      await this.mount(next)
+    }
   }
 }
 
