@@ -18,8 +18,10 @@ const seededAgent: CustomAgentRecord = { id: 'custom/agent', slug: 'agent', name
 
 const seededLead: CustomAgentRecord = { id: 'custom/lead', slug: 'lead', name: 'Ведущий', description: '', instructions: 'i', tools: [], isOrchestrator: true, delegates: [seededAgent.id], hidden: true, version: 1, updatedAt: '2026-11-15T00:00:00.000Z' }
 
+const seededGhost: CustomAgentRecord = { id: 'custom/ghost', slug: 'ghost', name: 'Призрак', description: '', instructions: 'i', tools: [], isOrchestrator: false, delegates: [], hidden: true, version: 1, updatedAt: '2026-11-15T00:00:00.000Z' }
+
 const catalog: CustomAgentCatalog = {
-  agents: [seededAgent, seededLead],
+  agents: [seededAgent, seededLead, seededGhost],
   policy: {
     allowedTools: [
       { key: 'drawing5', label: 'Чертежи (drawing5)', description: 'Инструменты чертежей. Отметьте, чтобы агент имел доступ.' },
@@ -196,16 +198,20 @@ describe('custom agent picker entry', () => {
     fireEvent.click(entry())
     const orchestrator = screen.getByRole('checkbox', { name: en.orchestrator })
     expect(orchestrator).toHaveProperty('checked', false)
-    // The roster marks the seeded orchestrator and the agent it keeps out of the picker.
+    // The roster marks the seeded orchestrator and the agents kept out of the picker.
     expect(screen.getByText(en.orchestratorBadge)).not.toBeNull()
-    expect(screen.getByText(en.hiddenBadge)).not.toBeNull()
-    // The delegate checklist renders inert until the orchestrator checkbox turns it on.
+    expect(screen.getAllByText(en.hiddenBadge).length).toBeGreaterThan(0)
+    // The delegate checklist renders inert until the orchestrator checkbox turns it on:
+    // hidden agents stay launchable choices, but the controls refuse keyboard and AT toggles too.
     const delegate = screen.getByRole('checkbox', { name: 'Сметчик' })
     expect(delegate.closest('[class*="delegatesDisabled"]')).not.toBeNull()
+    expect(delegate).toHaveProperty('disabled', true)
+    expect(screen.getByRole('checkbox', { name: 'Призрак' })).toHaveProperty('disabled', true)
     // The visibility checkbox mirrors `hidden` inverted.
     expect(screen.getByRole('checkbox', { name: en.visible })).toHaveProperty('checked', true)
     fireEvent.click(orchestrator)
     expect(screen.getByRole('checkbox', { name: 'Сметчик' }).closest('[class*="delegatesDisabled"]')).toBeNull()
+    expect(screen.getByRole('checkbox', { name: 'Сметчик' })).toHaveProperty('disabled', false)
     fireEvent.click(screen.getByRole('checkbox', { name: 'Сметчик' }))
     expect(screen.getByRole('checkbox', { name: 'Сметчик' })).toHaveProperty('checked', true)
     fireEvent.change(screen.getByLabelText(en.name), { target: { value: 'Диспетчер' } })

@@ -265,6 +265,7 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
                     <Checkbox
                       label={agent.name}
                       checked={fields.delegates.includes(agent.id)}
+                      disabled={!fields.isOrchestrator}
                       onChange={(checked) => {
                         setFields({
                           ...fields,
