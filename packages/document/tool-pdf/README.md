@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Use `pdf_report` to write a PDF report file into the Session working directory. The model passes ordered text blocks, table blocks, and image blocks that reference earlier tool calls; the tool reads those calls' images from the Session log through the durable attachment store and embeds them. Table blocks render tabular data as styled tables with a filled header row, zebra rows, and column widths fitted to the content. The tool needs no shell, no Python, and no filesystem tools, which fits restricted deployments such as client-facing sites: the model assembles a report from what it already produced and delivers the file with `present`.
+Use `pdf_report` to write a PDF report file into the Session working directory. The model passes ordered text blocks, table blocks, and image blocks that reference earlier tool calls; the tool reads those calls' images from the Session log through the durable attachment store and embeds them. Table blocks render tabular data as styled tables with a filled header row, zebra rows, and content-fitted column widths. The tool needs no shell, no Python, and no filesystem tools, which fits restricted client-facing deployments: the model assembles a report from what it already produced and delivers the file with `present`.
 
 ## Table of Contents
 
