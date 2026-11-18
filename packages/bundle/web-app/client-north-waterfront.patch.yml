@@ -2,7 +2,8 @@
 # customer site for the "Северный берег" drawings delivery. Keeps the NW
 # (north-waterfront) brand and password gate, hides every team-facing surface
 # (settings, plugin manager, terminal/files panels, agent-orchestration UI),
-# and narrows the agent's tool set to the drawing5 tools. The model picker
+# and narrows the agent's tool set to the drawing5 tools plus read-only
+# workspace access (`read`, `grep`). The model picker
 # stays available but lists only the OpenRouter models named by NW_MODELS.
 # The permission catalog keeps only workspace-write and pins it as the
 # new-session default, so the client user works inside their own workspace
@@ -50,12 +51,20 @@
 # expose exactly these ids. The first entry is also the new-session default.
 # An unset or empty value keeps the three defaults below; never resolve `models`
 # to an empty list, because an empty `models` means the FULL installed catalog.
+# Each id must appear exactly once: a duplicate invalidates every copy of the
+# id. The route pins `api: openai-completions` because NW_MODELS may name ids
+# the installed pi-ai catalog has not caught up with, and the OpenRouter
+# catalog is not protocol-uniform (most models speak openai-completions, the
+# Anthropic ones anthropic-messages), so an unlisted id has no api to inherit.
+# OpenRouter serves every model through its OpenAI-compatible completions API,
+# which also becomes the wire protocol of the two catalog Anthropic models.
 - id: llm-pi-ai
   name: '@deepseek-ai/dsh-llm-pi-ai'
   config:
     providers:
       openrouter:
         apiKeyEnv: OPENROUTER_API_KEY
+        api: openai-completions
         models: !!js "(() => { const ids = (process.env.NW_MODELS ?? '').split(',').map((id) => id.trim()).filter(Boolean); return (ids.length > 0 ? ids : ['deepseek/deepseek-v4.1-flash', 'deepseek/deepseek-v4-pro', 'deepseek/deepseek-v4-flash']).map((id) => ({ id })); })()"
 - id: agent-default-model
   name: '@deepseek-ai/dsh-agent-default-model'
@@ -180,22 +189,28 @@
   disabled: true
 - id: preset-cordis
   disabled: true
-# The plugin bundles insert the drawing5/smeta MCP rows at the host plane by
-# default. Here they are disabled and mounted per-agent instead (in the
+# The plugin bundles insert the drawing5/smeta/doc6 MCP rows at the host plane
+# by default. Here they are disabled and mounted per-agent instead (in the
 # standard preset below and, for custom agents, by the manager's checkbox):
 # a per-agent mount is the only way an unchecked plugin row is a hard block —
-# the agent never mounts the row, so its mcp__drawing5__* / mcp__smeta__*
-# tools never exist for that agent. A host-plane row would leak the tools to
-# every agent and collide with the per-agent serverName.
+# the agent never mounts the row, so its mcp__drawing5__* / mcp__smeta__* /
+# mcp__doc6__* tools never exist for that agent. A host-plane row would leak
+# the tools to every agent and collide with the per-agent serverName.
+# The doc6-skill row (the norms skill-catalog entry and the «Нормы» window)
+# stays enabled: the presets below drop the skills tool, so agents cannot
+# invoke it.
 - id: drawing5-mcp
   disabled: true
 - id: smeta-mcp
   disabled: true
+- id: doc6-mcp
+  disabled: true
 # Same-id override of the standard preset's whole config (a patch replaces
 # the targeted row's config, so every key is restated). Kept: persona,
 # instructions context, time context, the compaction group, ask-user, todo,
-# the drawing5/smeta MCP rows (now per-agent), PDF reports, present.
-# Dropped: shell, filesystem, search, jobs, schedule, skills, goal, plan,
+# read-only file access (`read`, `grep`), the drawing5/smeta MCP rows (now
+# per-agent), PDF reports, present.
+# Dropped: shell, write/edit, jobs, schedule, skills, goal, plan,
 # delegation/subagents, web, office, plugin tools.
 - id: preset-standard
   config:
@@ -238,10 +253,30 @@
         name: '@deepseek-ai/dsh-tool-todo'
         config:
           allowParallelInProgress: true
-      # Per-agent drawing5/smeta MCP mounts (host-plane rows disabled above):
-      # same addresses and env as the plugin defaults, so .env.north-waterfront
-      # keeps driving them. Agent-scoped mounts may share the serverName across
-      # agents; each session opens its own connection.
+      # Read-only workspace access: `read` covers workspace files and spilled
+      # tool results, `grep` searches them with its `path` confined to the
+      # session working directory. Write, edit, and shell stay off. The spill
+      # notice points the model at `read`/`grep`, so both exist here.
+      - id: tool-fs
+        name: '@deepseek-ai/dsh-tool-fs'
+        config:
+          read: true
+          readImage: false
+          write: false
+          edit: false
+          applyPatch: false
+      - id: tool-fs-search
+        name: '@deepseek-ai/dsh-tool-fs-search'
+        config:
+          sampleOverCapGlobResults: false
+          confineToWorkdir: true
+      # Per-agent drawing5/smeta/doc6 MCP mounts (host-plane rows disabled
+      # above): same addresses and env as the plugin rows, so
+      # .env.north-waterfront keeps driving them. doc6 falls back to the public
+      # norms server (the plugin default is a local dev address) and keeps the
+      # plugin's longer call timeout: the first corpus query loads the index.
+      # Agent-scoped mounts may share the serverName across agents; each
+      # session opens its own connection.
       - id: drawing5-mcp
         name: '@deepseek-ai/dsh-mcp-client'
         config:
@@ -258,6 +293,15 @@
           transport: streamable-http
           url: !!js (process.env.SMETA_SERVER_URL ?? "https://smeta.dev-bim.com") + "/mcp"
           toolCallTimeoutMs: 120000
+      - id: doc6-mcp
+        name: '@deepseek-ai/dsh-mcp-client'
+        config:
+          serverName: doc6
+          transport: streamable-http
+          url: !!js (process.env.DOC6_SERVER_URL ?? "https://doc6-mcp.dev-bim.com") + "/mcp"
+          headers:
+            Authorization: !!js '`Bearer ${process.env.DOC6_API_KEY ?? ""}`'
+          toolCallTimeoutMs: 300000
       # PDF reports without shell or Python: the tool embeds images from the
       # Session's durable attachments (drawing5 sheet results) and writes the
       # file into the client workspace; present shows the delivery card.
@@ -272,8 +316,9 @@
 # re-validates against this config: a user agent is the site persona prefix
 # plus the user's instructions, the fixed base rows copied from the kept
 # preset-standard list above (minus persona), and any whitelisted tool rows
-# the user checked. The whitelist carries the system tool rows and the domain
-# MCP rows (host-plane disabled above): a checked checkbox mounts the row into
+# the user checked. The whitelist carries the system tool rows, PDF report
+# generation, and the domain MCP rows (host-plane disabled above): a checked
+# checkbox mounts the row into
 # that agent; an unchecked one is a hard block — the mcp__*__* tools never
 # exist for it. Raise allowedTools only with a sandbox review of the added rows.
 - insert:
@@ -305,11 +350,29 @@
                   thresholdChars: 8192
                   headChars: 4096
                   tailChars: 1024
+          # Read-only workspace access for every custom agent: `read` and
+          # `grep` cover spilled tool results and workspace files without
+          # write, edit, or shell capability; `grep`'s `path` is confined to
+          # the session working directory. `read_image` stays off because
+          # sheet images arrive as drawing5 attachments.
+          - id: tool-fs
+            name: '@deepseek-ai/dsh-tool-fs'
+            config:
+              read: true
+              readImage: false
+              write: false
+              edit: false
+              applyPatch: false
+          - id: tool-fs-search
+            name: '@deepseek-ai/dsh-tool-fs-search'
+            config:
+              sampleOverCapGlobResults: false
+              confineToWorkdir: true
           # File delivery for every custom agent: present only declares
           # existing files as turn-tail delivery cards — it creates nothing
           # and reads no contents, so it stays out of the checkbox whitelist.
-          # Pair it with a file-producing path (today tool-pdf in the standard
-          # preset; the smeta MCP server can write exports into the workspace).
+          # Pair it with a file-producing path (the whitelisted PDF row below;
+          # the smeta MCP server can write exports into the workspace).
           - id: present
             name: '@deepseek-ai/dsh-tool-present'
         allowedTools:
@@ -323,6 +386,10 @@
             description: Агент ведёт список задач по текущей работе. Отметьте, чтобы инструмент был доступен.
             config:
               allowParallelInProgress: true
+          pdf:
+            name: '@deepseek-ai/dsh-tool-pdf'
+            label: Отчёт PDF
+            description: Агент собирает PDF-отчёт из текста, таблиц и изображений и отдаёт готовый файл после ответа. Отметьте, чтобы инструмент был доступен.
           drawing5:
             name: '@deepseek-ai/dsh-mcp-client'
             label: Чертежи (drawing5)
@@ -343,6 +410,17 @@
               transport: streamable-http
               url: !!js (process.env.SMETA_SERVER_URL ?? "https://smeta.dev-bim.com") + "/mcp"
               toolCallTimeoutMs: 120000
+          doc6:
+            name: '@deepseek-ai/dsh-mcp-client'
+            label: Нормы (doc6)
+            description: Инструменты mcp__doc6__* — поиск по строительным нормам и ТНПА, оглавления и точные пункты. Отметьте, чтобы агент имел доступ; без отметки доступ заблокирован.
+            config:
+              serverName: doc6
+              transport: streamable-http
+              url: !!js (process.env.DOC6_SERVER_URL ?? "https://doc6-mcp.dev-bim.com") + "/mcp"
+              headers:
+                Authorization: !!js '`Bearer ${process.env.DOC6_API_KEY ?? ""}`'
+              toolCallTimeoutMs: 300000
         # Оркестраторы: поле включает флаг «оркестратор» в менеджере; сервис
         # подставляет в allowedAgentPresets id выбранных агентом записей.
         # Реестр subagent'ов и spawn-бэкенд уже host-plane (dsh-base), отдельных

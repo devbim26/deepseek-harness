@@ -101,6 +101,14 @@ if not exist "%NODEDIR%\node.exe" (
     echo ОШИБКА: не найден портативный Node: "%NODEDIR%\node.exe"
     goto :eof
 )
+rem dsh-sandbox-windows-acl leaves a standing Low integrity label on the
+rem workspace tree; node.exe inherits it, and a Low-integrity node cannot
+rem write DSH_HOME (profile boot dies with EPERM). Idempotent reset; lost
+rem again only when node.exe is replaced inside the workspace.
+icacls "%NODEDIR%\node.exe" /setintegritylevel M >nul 2>&1
+if errorlevel 1 (
+    echo ВНИМАНИЕ: не удалось снять Low-метку целостности с node.exe - старт может упасть с EPERM.
+)
 cd /d "%ROOT%"
 rem Isolated client state: sessions, credentials, and settings for this site
 rem live under DSH_HOME, never mixed with the internal deployment.
