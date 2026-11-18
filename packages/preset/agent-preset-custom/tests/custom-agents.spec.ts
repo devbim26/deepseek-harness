@@ -135,6 +135,24 @@ describe('custom agent presets service', () => {
     expect(after.presets.find(preset => preset.id === created.id)).toBeUndefined()
   })
 
+  it('remounts referencing orchestrators when a delegate is updated', async () => {
+    const { ctx } = await harness({
+      delegation: {
+        name: '@deepseek-ai/dsh-tool-subagent',
+        config: { provider: 'spawn', toolName: 'subagent' },
+        rosterTemplate: 'Your agents:',
+      },
+    })
+    const worker = await ctx.customAgentPresets.create({ name: 'Worker', description: 'v1', instructions: 'i', tools: [], isOrchestrator: false, delegates: [], hidden: false })
+    const lead = await ctx.customAgentPresets.create({ name: 'Lead', description: '', instructions: 'Run the workers.', tools: [], isOrchestrator: true, delegates: [worker.id], hidden: false })
+    await ctx.customAgentPresets.update(worker.id, { name: 'Worker', description: 'v2', instructions: 'i', tools: [], isOrchestrator: false, delegates: [], hidden: false }, worker.version)
+    // The lead's stored record keeps its version; only its mounted definition moves.
+    const catalog = await ctx.customAgentPresets.remoteExportList()
+    expect(catalog.agents.find(agent => agent.id === lead.id)).toMatchObject({ version: 1, delegates: [worker.id] })
+    const document = await ctx.agentPresets.readDocument(lead.id)
+    expect(document.content).toContain(`- ${worker.id} «Worker» — v2`)
+  })
+
   it('cascades a deleted agent out of delegates and unmounts the tool when the list empties', async () => {
     const { ctx } = await harness()
     const worker = await ctx.customAgentPresets.create({ name: 'Worker', description: '', instructions: 'Do the work.', tools: [], isOrchestrator: false, delegates: [], hidden: false })

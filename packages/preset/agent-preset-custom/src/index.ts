@@ -162,7 +162,9 @@ export class CustomAgentPresets extends TypertRemoteService {
 
   /**
    * Validate, persist, and remount one agent as a new revision; running
-   * sessions keep their composition.
+   * sessions keep their composition. Referencing orchestrators remount too —
+   * the synthesized roster mirrors the delegate's current name and
+   * description — while their stored records keep their versions.
    * @param id - the record id.
    * @param input - the client-submitted fields.
    * @param version - the caller's version stamp.
@@ -186,6 +188,13 @@ export class CustomAgentPresets extends TypertRemoteService {
     const record: CustomAgentRecord = { ...stored, ...fields, version: stored.version + 1, updatedAt: new Date().toISOString() }
     await table.put(id, record)
     await this.mount(record)
+    for (const [otherId, other] of table.entries()) {
+      if (!other.delegates.includes(id)) continue
+      const previousRegistration = this.registrations.get(otherId)
+      if (previousRegistration !== undefined) await previousRegistration()
+      this.registrations.delete(otherId)
+      await this.mount(other)
+    }
     return record
   }
 
