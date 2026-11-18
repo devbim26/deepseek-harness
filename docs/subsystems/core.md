@@ -865,7 +865,9 @@ Registry-backed CRUD for deployment-constrained, user-created agent presets.
 
 /**
  * Validate, persist, and remount one agent as a new revision; running
- * sessions keep their composition.
+ * sessions keep their composition. Referencing orchestrators remount too —
+ * the synthesized roster mirrors the delegate's current name and
+ * description — while their stored records keep their versions.
  * @param id - the record id.
  * @param input - the client-submitted fields.
  * @param version - the caller's version stamp.

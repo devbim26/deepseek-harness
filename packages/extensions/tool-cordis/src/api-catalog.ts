@@ -977,6 +977,36 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'customAgentPresets',
+    summary: 'Registry-backed CRUD for deployment-constrained, user-created agent presets.',
+    description: 'Registry-backed CRUD for deployment-constrained, user-created agent presets.',
+    methods: [
+      {
+        signature: '@Remote(\'list\') async remoteExportList(): Promise<CustomAgentCatalog>',
+        description: 'Serve the current catalog and the deployment policy.',
+        parameters: [],
+        returns: 'every stored record plus the whitelist and limits the form renders against.',
+      },
+      {
+        signature: '@Remote(\'create\') async create(input: CustomAgentInput): Promise<CustomAgentRecord>',
+        description: 'Validate, persist, and mount one new agent; the id derives from the name.',
+        parameters: [{ name: 'input', description: 'the client-submitted fields.' }],
+        returns: 'the stored record at version 1.',
+      },
+      {
+        signature: '@Remote(\'update\') async update(id: string, input: CustomAgentInput, version: number): Promise<CustomAgentRecord>',
+        description: 'Validate, persist, and remount one agent as a new revision; running sessions keep their composition. Referencing orchestrators remount too — the synthesized roster mirrors the delegate\'s current name and description — while their stored records keep their versions.',
+        parameters: [{ name: 'id', description: 'the record id.' }, { name: 'input', description: 'the client-submitted fields.' }, { name: 'version', description: 'the caller\'s version stamp.' }],
+        returns: 'the stored record at `version + 1`.',
+      },
+      {
+        signature: '@Remote(\'delete\') async remove(id: string, version: number): Promise<void>',
+        description: 'Unmount and delete one agent under optimistic concurrency.',
+        parameters: [{ name: 'id', description: 'the record id.' }, { name: 'version', description: 'the caller\'s version stamp.' }],
+      },
+    ],
+  },
+  {
     key: 'deepseekAccount',
     summary: 'Account login, credentials, and client-safe Remote operations.',
     description: 'Account login, credentials, and client-safe Remote operations.',
@@ -5867,7 +5897,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'AgentPresetRow',
-    declaration: 'export interface AgentPresetRow {\n    readonly id: string;\n    readonly isDefault: boolean;\n    readonly name?: string;\n    readonly description?: string;\n    readonly broken?: string;\n}',
+    declaration: 'export interface AgentPresetRow {\n    readonly id: string;\n    readonly isDefault: boolean;\n    readonly name?: string;\n    readonly description?: string;\n    readonly hidden?: boolean;\n    readonly broken?: string;\n}',
   },
   {
     name: 'AgentResolver',
@@ -6536,6 +6566,26 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'CuaSystemPermissionState',
     declaration: 'export type CuaSystemPermissionState = {\n    platform: \'darwin\';\n    accessibility: boolean;\n    screenRecording: boolean;\n    helper: CuaPermissionProcess;\n    parent: CuaPermissionProcess;\n    launchApplication?: {\n        name: string;\n        path: string;\n        icon?: string | undefined;\n    } | undefined;\n} | {\n    platform: \'windows\';\n    sessionLocked: boolean | null;\n    captureAvailable: boolean;\n    elevated: boolean;\n    helper: Omit<CuaPermissionProcess, \'pid\'>;\n};',
+  },
+  {
+    name: 'CustomAgentCatalog',
+    declaration: 'export interface CustomAgentCatalog {\n    readonly agents: readonly CustomAgentRecord[];\n    readonly policy: CustomAgentPolicy;\n}',
+  },
+  {
+    name: 'CustomAgentInput',
+    declaration: 'export interface CustomAgentInput {\n    readonly name: string;\n    readonly description: string;\n    readonly instructions: string;\n    readonly tools: readonly string[];\n    readonly isOrchestrator: boolean;\n    readonly delegates: readonly string[];\n    readonly hidden: boolean;\n}',
+  },
+  {
+    name: 'CustomAgentPolicy',
+    declaration: 'export interface CustomAgentPolicy {\n    readonly allowedTools: readonly CustomAgentToolOption[];\n    readonly delegationAvailable: boolean;\n    readonly maxNameChars: number;\n    readonly maxDescriptionChars: number;\n    readonly maxInstructionsChars: number;\n    readonly maxAgents: number;\n}',
+  },
+  {
+    name: 'CustomAgentRecord',
+    declaration: 'export interface CustomAgentRecord {\n    readonly id: string;\n    readonly slug: string;\n    readonly name: string;\n    readonly description: string;\n    readonly instructions: string;\n    readonly tools: readonly string[];\n    readonly isOrchestrator: boolean;\n    readonly delegates: readonly string[];\n    readonly hidden: boolean;\n    readonly version: number;\n    readonly updatedAt: string;\n}',
+  },
+  {
+    name: 'CustomAgentToolOption',
+    declaration: 'export interface CustomAgentToolOption {\n    readonly key: string;\n    readonly label: string;\n    readonly description?: string;\n}',
   },
   {
     name: 'DailyInput',
@@ -8147,7 +8197,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'PresetDefinition',
-    declaration: 'export interface PresetDefinition {\n    readonly id: string;\n    readonly name?: string;\n    readonly description?: string;\n    readonly order?: number;\n    readonly plugins: readonly (Omit<EntryOptions, \'id\' | \'disabled\'> & {\n        id?: string;\n        disabled?: EntryOptions[\'disabled\'] | JsExpr;\n    })[];\n}',
+    declaration: 'export interface PresetDefinition {\n    readonly id: string;\n    readonly name?: string;\n    readonly description?: string;\n    readonly order?: number;\n    readonly hidden?: boolean;\n    readonly plugins: readonly (Omit<EntryOptions, \'id\' | \'disabled\'> & {\n        id?: string;\n        disabled?: EntryOptions[\'disabled\'] | JsExpr;\n    })[];\n}',
   },
   {
     name: 'PresetOption',

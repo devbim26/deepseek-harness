@@ -158,7 +158,7 @@ export type Config = PresetDefinition
 
 - `inject`: `agentPresets` · `storageDomain`
 - `refs`: [`PresetDefinition`](../packages/preset/agent-preset-registry/src/index.ts)
-- `source`: [`packages/preset/agent-preset-custom/src/config.ts:26`](../packages/preset/agent-preset-custom/src/config.ts)
+- `source`: [`packages/preset/agent-preset-custom/src/config.ts:32`](../packages/preset/agent-preset-custom/src/config.ts)
 
 ```ts config-catalog
 /** Config of the `agent-preset-custom` service row. */
@@ -199,6 +199,12 @@ export interface DelegationEntry {
   name: string
   /** Base row config; the service adds `allowedAgentPresets` from the record. */
   config?: Record<string, unknown>
+  /**
+   * Lead-in text appended to an orchestrator's persona ahead of the rendered
+   * delegate roster (`- <id> «<name>» — <description>` per delegate). Omission
+   * or an empty string keeps the persona free of roster text.
+   */
+  rosterTemplate?: string | undefined
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-agent-preset-custom -->
@@ -4538,7 +4544,7 @@ export interface Config {
 ## `@deepseek-ai/dsh-tool-pdf`
 
 - `inject`: `tools` · `fs` · `workingDirectory` · `attachments` · `agents`
-- `source`: [`packages/document/tool-pdf/src/index.ts:22`](../packages/document/tool-pdf/src/index.ts)
+- `source`: [`packages/document/tool-pdf/src/index.ts:23`](../packages/document/tool-pdf/src/index.ts)
 
 ```ts config-catalog
 /** Per-call assembly limits. */

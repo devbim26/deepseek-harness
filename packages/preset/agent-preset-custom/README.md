@@ -52,13 +52,13 @@ Deployment-constrained, user-created agent presets: durable records mounted into
 | `instructionsPrefix` | `''` | Site persona prepended to every custom agent's instructions. |
 | `basePlugins` | `[]` | Fixed child rows every custom agent mounts, copied by the deployment from its standard preset, minus persona. |
 | `allowedTools` | `{}` | Whitelist: entry key → the plugin row `{ name, config?, label?, description? }` a selecting agent mounts; the form renders one checkbox per entry, and an unchecked entry is a hard block — the agent never mounts the row. Records store keys only. |
-| `delegation` | — | Delegation row for orchestrators (`name` + base `config`); the field's absence disables the manager's orchestrator flag. The service adds `allowedAgentPresets` from the record. |
+| `delegation` | — | Delegation row for orchestrators (`name` + base `config` + optional `rosterTemplate`); the field's absence disables the manager's orchestrator flag. The service adds `allowedAgentPresets` from the record and appends a delegate roster (`rosterTemplate` lead-in + one `- <id> «<name>» — <description>` line per delegate) to the orchestrator's persona; an omitted or empty `rosterTemplate` leaves the persona without roster text. |
 | `maxNameChars` | `64` | Name length cap. |
 | `maxDescriptionChars` | `200` | Description length cap. |
 | `maxInstructionsChars` | `16384` | Instructions length cap. |
 | `maxAgents` | `50` | Deployment-wide record cap. |
 
-An orchestrator is a record with `isOrchestrator: true` and a non-empty `delegates` list (ids of existing ordinary agents, never the agent itself). Synthesis mounts the `delegation` row with `allowedAgentPresets: delegates`; a list emptied by the deletion cascade leaves the row unmounted while the flag survives. An agent referenced by another record's `delegates` cannot become an orchestrator; deleting an agent cascades the reference cleanup. `hidden` removes the preset from pickers (`agentPresets/list` carries the flag) while the definition stays mounted and launchable by orchestrators.
+An orchestrator is a record with `isOrchestrator: true` and a non-empty `delegates` list (ids of existing ordinary agents, never the agent itself). Synthesis mounts the `delegation` row with `allowedAgentPresets: delegates` and, when `rosterTemplate` is set, appends the delegate roster to the persona — the model learns whom it can launch without the instructions naming them. A list emptied by the deletion cascade leaves the row unmounted while the flag survives. An agent referenced by another record's `delegates` cannot become an orchestrator; deleting an agent cascades the reference cleanup, and updating one remounts referencing orchestrators so their roster mirrors the current name and description (their stored records keep their versions). `hidden` removes the preset from pickers (`agentPresets/list` carries the flag) while the definition stays mounted and launchable by orchestrators.
 
 The client manager (`@deepseek-ai/dsh-client-ui-custom-agents`) calls the Remote surface `list | create | update | delete`. Every write re-validates the fields and the whitelist keys and fails loud with a coded `RemoteError` (`custom-agent-presets/invalid`, `/not-found`, `/limit`, `/conflict`). Updates carry the record's `version` for optimistic concurrency.
 
@@ -68,7 +68,7 @@ The client manager (`@deepseek-ai/dsh-client-ui-custom-agents`) calls the Remote
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-[index.ts](src/index.ts) opens the `custom_agent_presets` storage domain (json backend, one unit under the site `DSH_HOME`), re-registers every stored record at boot, and keeps each `agentPresets.register()` disposer. [definition.ts](src/definition.ts) synthesizes the registry definition: the persona row (site prefix + user instructions), the deployment's `basePlugins`, and the selected whitelisted rows. Updating disposes the previous registration first and registers the new revision; the registry retires the old revision while running Agents keep their composition. `invalidRecords: 'backup-and-skip'` quarantines a stored record that no longer parses: it is backed up, logged, and skipped, and the site stays up.
+[index.ts](src/index.ts) opens the `custom_agent_presets` storage domain (json backend, one unit under the site `DSH_HOME`), re-registers every stored record at boot, and keeps each `agentPresets.register()` disposer. [definition.ts](src/definition.ts) synthesizes the registry definition: the persona row (site prefix + user instructions + the delegate roster for orchestrators), the deployment's `basePlugins`, and the selected whitelisted rows. Mounting resolves the delegate records from the same table and fails loud on a missing one. Updating disposes the previous registration first and registers the new revision, then remounts referencing orchestrators; the registry retires the old revision while running Agents keep their composition. `invalidRecords: 'backup-and-skip'` quarantines a stored record that no longer parses: it is backed up, logged, and skipped, and the site stays up.
 
 </details>
 
@@ -86,7 +86,7 @@ The client manager (`@deepseek-ai/dsh-client-ui-custom-agents`) calls the Remote
 
 #### What the model sees
 
-The synthesized preset's `plugins` own the tools and prompt sections: the `persona` prefix — a `{{model}}` template plus the user's instructions — opens the prompt, and the whitelisted rows contribute their tools.
+The synthesized preset's `plugins` own the tools and prompt sections: the `persona` prefix — a `{{model}}` template plus the user's instructions — opens the prompt, and the whitelisted rows contribute their tools. An orchestrator's prefix additionally carries the delegate roster: the deployment's `rosterTemplate` lead-in followed by one `- <id> «<name>» — <description>` line per delegate, so the `subagent` tool's `agent_preset` enum reads as named roles rather than bare ids.
 
 #### Token effect
 
