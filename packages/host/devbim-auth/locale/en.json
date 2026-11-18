@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "devBIM password gate",
+    "description": "Redirects unauthenticated index visits to a password page and exchanges the correct password for the persistent browser-session cookie."
+  }
+}

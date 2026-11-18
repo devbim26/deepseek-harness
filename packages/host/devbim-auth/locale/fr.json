@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Portail par mot de passe devBIM",
+    "description": "Redirige les visites non authentifiées de l'index vers une page de mot de passe et échange le mot de passe correct contre le cookie persistant de session du navigateur."
+  }
+}

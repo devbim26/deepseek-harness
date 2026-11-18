@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Predefinições de agente personalizadas",
+    "description": "Armazena registros de agentes criados pelo usuário com restrições de implantação e os monta no registro de predefinições."
+  }
+}

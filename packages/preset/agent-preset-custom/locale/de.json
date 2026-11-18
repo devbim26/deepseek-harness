@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Benutzerdefinierte Agent-Voreinstellungen",
+    "description": "Speichert unter Deployment-Beschränkungen erstellte Agent-Einträge des Benutzers und bindet sie in die Voreinstellungs-Registry ein."
+  }
+}

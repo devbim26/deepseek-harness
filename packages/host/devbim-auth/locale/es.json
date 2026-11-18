@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Puerta de contraseña de devBIM",
+    "description": "Redirige las visitas al índice sin autenticar a una página de contraseña y cambia la contraseña correcta por la cookie persistente de la sesión del navegador."
+  }
+}

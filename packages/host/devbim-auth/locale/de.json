@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "devBIM-Passwortschranke",
+    "description": "Leitet unauthentifizierte Indexbesuche auf eine Passwortseite um und tauscht das richtige Passwort gegen das persistente Browser-Sitzungscookie."
+  }
+}

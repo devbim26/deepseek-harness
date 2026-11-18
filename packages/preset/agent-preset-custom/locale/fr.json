@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Préréglages d’agent personnalisés",
+    "description": "Stocke les enregistrements d’agents créés par l’utilisateur sous contraintes de déploiement et les monte dans le registre de préréglages."
+  }
+}

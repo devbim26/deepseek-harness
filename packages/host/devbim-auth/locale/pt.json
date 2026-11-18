@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Porta de senha da devBIM",
+    "description": "Redireciona visitas não autenticadas ao índice para uma página de senha e troca a senha correta pelo cookie persistente da sessão do navegador."
+  }
+}

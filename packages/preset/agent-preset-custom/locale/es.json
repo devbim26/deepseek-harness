@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Preajustes de agente personalizados",
+    "description": "Almacena registros de agentes creados por el usuario con restricciones de despliegue y los monta en el registro de preajustes."
+  }
+}

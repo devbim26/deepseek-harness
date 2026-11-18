@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Custom agent presets",
+    "description": "Stores deployment-constrained user-created agent records and mounts them into the preset registry."
+  }
+}
