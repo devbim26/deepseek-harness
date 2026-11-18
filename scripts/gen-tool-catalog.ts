@@ -57,6 +57,7 @@ import * as ToolPwshPersistent from '@deepseek-ai/dsh-tool-pwsh-persistent'
 import CordisHostRunner from '@deepseek-ai/dsh-cordis-host-runner'
 import * as ToolCordis from '@deepseek-ai/dsh-tool-cordis'
 import * as ToolPresent from '@deepseek-ai/dsh-tool-present'
+import * as ToolDocument from '@deepseek-ai/dsh-tool-document'
 import * as ToolOffice from '@deepseek-ai/dsh-tool-office'
 import * as ToolPdf from '@deepseek-ai/dsh-tool-pdf'
 import LocalAttachmentStore from '@deepseek-ai/dsh-attachment-local'
@@ -333,6 +334,19 @@ const TOOL_PACKAGES: ToolPackage[] = [
     },
     note:
       'The bash tool is the model-facing consumer of the bash executor seam. With a job registry composed every call registers with the generic `ctx.jobs` runtime as it starts, collected/stopped through the `job_*` tools from `@deepseek-ai/dsh-tool-jobs`; without one, or with `enableRunInBackground: false`, the tool registers a foreground-only schema without the `run_in_background` parameter.',
+  },
+  {
+    pkg: '@deepseek-ai/dsh-tool-document',
+    dir: 'tool-document',
+    source: 'packages/document/tool-document/src/index.ts',
+    requires: ['ctx.tools', 'ctx.fs', 'ctx.attachments', 'a calling agent Session at execution time'],
+    writes: ['tool/call', 'tool/result'],
+    async mount(ctx) {
+      // Schema harvest never reads a document; the store only satisfies inject.
+      await ctx.plugin(LocalAttachmentStore, { dshHome: mkdtempSync('dsh-tool-catalog-attachments-') })
+      await ctx.plugin(ToolDocument)
+    },
+    note: 'document_read reads only files attached to the calling Session, so confined deployments can grant document reading without filesystem tools; TXT and CSV extract today, and the announced PDF, Word, and workbook extractors land as their own implementation tasks.',
   },
   {
     pkg: '@deepseek-ai/dsh-tool-office',

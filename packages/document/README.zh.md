@@ -28,6 +28,7 @@ kind: "package-group"
 | 包 | 职责 | ctx 键 |
 |---|---|---|
 | [office-kit](office-kit/README.zh.md) | 将已授权 Office 字节转换为完整 PDF、PNG 图片、转换后的文件和重算后的工作簿，并提供有界队列和缓存；提供方自行解析 Kit 入口、引擎清单和 ASAR 解包后的引擎路径 | `ctx.officeKit` |
+| [tool-document](tool-document/README.zh.md) | `document_read` 读取附加到会话的文档文本，每次调用一个经授权的有界窗口 | — |
 | [tool-office](tool-office/README.zh.md) | 加载 Office 技能后声明的 `office_render`、`office_convert` 和 `office_recalculate`：在工具结果中把页面渲染为图片、转换文档、重算工作簿 | — |
 | [tool-pdf](tool-pdf/README.zh.md) | `pdf_report` 用有序的文本、表格和工具结果图片块组装 PDF 报告，并写入 Session 工作目录 | — |
 
@@ -40,6 +41,7 @@ kind: "package-group"
 
 - **PDF 报告：** `pdf_report` 接收有序的文本、表格和图片块，把 PDF 写入 Session 工作目录。表格数据请用带 `header` 和 `rows` 的 `table` 块传递；工具会绘制带样式的表格，包括填充的表头行、斑马纹行，以及换页后重复的表头，而不是纯文本行。它不需要 shell、Python 和文件系统工具，适合受限部署。用它把模型已生成的文本和数据组装成新报告；对于已有的 Office 文件，请使用下文的 Office 工具。
 - **已有的 Office 文档：** 加载 [Office 技能](../skill/skill-office/README.zh.md) 后，[Office 工具](tool-office/README.zh.md)才会激活。`office_convert` 接受 Word、Excel 和 PowerPoint 文档，Word 可导出 pdf、docx、odt 或 txt，Excel 可导出 pdf、xlsx、ods 或 csv，PowerPoint 可导出 pdf、pptx 或 odp。`office_recalculate` 重算 xls、xlsx、ods 工作簿的公式，`office_render` 把页面、幻灯片和工作表区域作为图片返回。转换后的文件落在 Harness home 下 Office kit 的私有输出目录，模型用 shell 把它复制到目标位置。
+- **用户附加的文档：** `document_read` 回答关于会话附件文件的问题。它只读取本次 Session 的附件，返回带续读游标的一个有界窗口，因此受限部署无需 shell 和文件系统工具即可授予文档读取；目前支持 TXT 和 CSV，其余已公告的格式作为各自的实现任务落地。
 - **模型自己撰写的文档或工作簿：** 本系列不根据文本或数据写出这类文件。文件来自模型运行的脚本，或来自向工作区写入的外部服务。
 
 -----

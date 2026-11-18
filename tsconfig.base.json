@@ -604,6 +604,7 @@
       "@deepseek-ai/dsh-tool-goal": ["./packages/goal/tool-goal/src"],
       "@deepseek-ai/dsh-tool-jobs": ["./packages/jobs/tool-jobs/src"],
       "@deepseek-ai/dsh-tool-lsp": ["./packages/lsp/tool-lsp/src"],
+      "@deepseek-ai/dsh-tool-document": ["./packages/document/tool-document/src"],
       "@deepseek-ai/dsh-tool-office": ["./packages/document/tool-office/src"],
       "@deepseek-ai/dsh-tool-pdf": ["./packages/document/tool-pdf/src"],
       "@deepseek-ai/dsh-tool-present": ["./packages/deliverables/tool-present/src"],

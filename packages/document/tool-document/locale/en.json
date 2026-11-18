@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Document reading tool",
+    "description": "Lets the agent read the text of documents attached to the conversation, one bounded window per call."
+  }
+}

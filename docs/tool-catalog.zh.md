@@ -28,6 +28,7 @@
 | `@deepseek-ai/dsh-tool-executor-ptc` | `run_code` | `ctx.workingDirectory (Agent executions)`、`ctx.tools`、`ctx.ptcRuntime`、`ctx.systemPrompt` | `tool/call`、`one tool/ptc-dispatch-start + tool/ptc-dispatch pair per bridged sub-call`、`tool/result` | - | PTC 执行器只向模型公开 run_code，并在运行时语言生成的 SDK 中声明其他可见能力。程序绑定按提交顺序进入共享的受守卫工具流水线；并行安全的函数体最多重叠 maxParallelSubCalls 个，嵌套结果保持与外层程序关联。最终超时时间与 maxSubCallsPerMinute 决定调用总额度；超限会终止程序。 |
 | `@deepseek-ai/dsh-plan-mode` | `exit_plan_mode` | `ctx.tools`、`ctx.systemPrompt`、`ctx.agents`、`ctx.userQuestions (execution time, opportunistic)` | `tool/call`、`plan/mode inactive on an approved review`、`tool/result` | - | 规划未激活时，exit_plan_mode 仍保留在面向模型的 schema 中，这样状态转换不会在规划策略变更之外额外造成工具目录变动。其执行路径会拒绝规划模式之外的调用；在规划模式下，它通过用户交互 seam 提交计划（批准／根据反馈继续规划），批准后会在步骤边界记录规划模式已停用。 |
 | `@deepseek-ai/dsh-tool-bash` | `bash` | `ctx.workingDirectory`、`ctx.tools`、`ctx.shell`、`ctx.systemPrompt`、`ctx.shellEnv`、`ctx.jobs for run_in_background and the job-backed foreground path` | `tool/call`、`tool/result` | - | bash 工具是 bash 执行器 seam 面向模型的消费方。组合中有 job 注册表时，每次调用一启动就注册到通用 `ctx.jobs` 运行时，并通过 `job_*` 工具（来自 `@deepseek-ai/dsh-tool-jobs`）收集／停止；没有注册表或 `enableRunInBackground: false` 时，工具注册不带 `run_in_background` 参数的纯前台 schema。 |
+| `@deepseek-ai/dsh-tool-document` | `document_read` | `ctx.tools`、`ctx.fs`、`ctx.attachments`、`执行时需要调用方的 agent Session` | `tool/call`、`tool/result` | - | document_read 只读取附加到本次 Session 的文件，因此受限部署无需文件系统工具即可授予文档读取；目前支持 TXT 和 CSV 提取，已公告的 PDF、Word 和工作簿提取器作为各自的实现任务落地。 |
 | `@deepseek-ai/dsh-tool-office` | `office_convert`、`office_recalculate`、`office_render` | `ctx.workingDirectory`、`ctx.tools`、`ctx.fs`、`ctx.agents`、`ctx.officeKit`、`ctx.attachments and ctx.llm for office_render` | `tool/call`、`tool/result with rendered image attachments`、`temporary converted files in the Office kit output store` | - | Agent 成功加载 Office 技能后，从下一步起向其声明这些工具；上一次请求头已声明 Office 工具时继续保留。未安装 LibreOffice Kit 时，已声明工具的调用以 Office 服务的 unavailable 错误失败。 |
 | `@deepseek-ai/dsh-tool-pdf` | `pdf_report` | `ctx.workingDirectory`、`ctx.tools`、`ctx.fs`、`ctx.agents`、`ctx.attachments` | `tool/call`、`tool/result 渲染中带文件信封`、`fs/observed 用于写入的报告` | - | 编码后的 PDF 通过宿主文件系统写入解析出的本地路径，因为文件系统服务只建模文本写入。无 shell 的部署把它与 present 一起挂载以获得交付卡片。 |
 | `@deepseek-ai/dsh-tool-present` | `present` | `ctx.workingDirectory`、`ctx.tools`, `ctx.fs`, `ctx.agents` | `tool/call`, `deliverables/presented 在成功的最终结果之后`, `tool/result` | - | 交付归调用方 Session 所有；Web ui-deliverables 提供源文件打开与卡片。 |
@@ -740,6 +741,53 @@ PTC 执行器只向模型公开 run_code，并在运行时语言生成的 SDK �
 来源：[`packages/shell/tool-bash/src/index.ts`](../packages/shell/tool-bash/src/index.ts)
 
 bash 工具是 bash 执行器 seam 面向模型的消费方。组合中有 job 注册表时，每次调用一启动就注册到通用 `ctx.jobs` 运行时，并通过 `job_*` 工具（来自 `@deepseek-ai/dsh-tool-jobs`）收集／停止；没有注册表或 `enableRunInBackground: false` 时，工具注册不带 `run_in_background` 参数的纯前台 schema。
+
+<a id="deepseek-aidsh-tool-document"></a>
+
+## `@deepseek-ai/dsh-tool-document`
+
+### `document_read`
+
+读取用户附加到本次对话的文档文本。支持 PDF、DOCX、DOC、XLSX、XLS、TXT 和 CSV。传入用户消息中附件句柄行给出的绝对路径。PDF：page 选择一页（默认 1）；没有文本层的页面（如扫描件）会报告不存在文本。工作簿：sheet 选择工作表，row 选择首个数据行；单元格以制表符分隔，公式以 (=公式) 形式跟在值后。其他文档：offset 和 limit 选择字符窗口。跟随 nextPage、nextOffset 或 nextRow 继续读取长文档。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": "string",
+      "description": "Absolute saved path of an uploaded document, as shown in its attachment handle."
+    },
+    "page": {
+      "type": "integer",
+      "description": "One-based PDF page; defaults to 1."
+    },
+    "sheet": {
+      "type": "string",
+      "description": "Workbook worksheet name; defaults to the first sheet."
+    },
+    "row": {
+      "type": "integer",
+      "description": "Zero-based first data row of the selected worksheet."
+    },
+    "offset": {
+      "type": "integer",
+      "description": "Character offset inside the selected page or document text."
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Maximum characters to return; capped by configuration."
+    }
+  },
+  "required": [
+    "path"
+  ]
+}
+```
+
+来源： [`packages/document/tool-document/src/index.ts`](../packages/document/tool-document/src/index.ts)
+
+document_read 只读取附加到本次 Session 的文件，因此受限部署无需文件系统工具即可授予文档读取；目前支持 TXT 和 CSV 提取，已公告的 PDF、Word 和工作簿提取器作为各自的实现任务落地。
 
 <a id="deepseek-aidsh-tool-office"></a>
 

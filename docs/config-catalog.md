@@ -4308,6 +4308,29 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-tool-bash-persistent -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-tool-document -->
+<a id="deepseek-aidsh-tool-document"></a>
+
+## `@deepseek-ai/dsh-tool-document`
+
+- `inject`: `tools` · `fs` · `attachments`
+- `source`: [`packages/document/tool-document/src/index.ts:22`](../packages/document/tool-document/src/index.ts)
+
+```ts config-catalog
+/** Extraction bounds; every value is deployment-configurable. */
+export interface Config {
+  /** Maximum accepted source bytes. */
+  maxInputBytes: number
+  /** Maximum characters in one returned window. */
+  maxChars: number
+  /** Maximum workbook rows in one returned window. */
+  maxRows: number
+  /** Extraction deadline in milliseconds. */
+  timeoutMs: number
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-tool-document -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-tool-executor-ptc -->
 <a id="deepseek-aidsh-tool-executor-ptc"></a>
 

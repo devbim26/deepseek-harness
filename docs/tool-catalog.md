@@ -24,6 +24,7 @@ This table connects model-visible tool names to the plugin package and service s
 | `@deepseek-ai/dsh-tool-executor-ptc` | `run_code` | `ctx.workingDirectory (Agent executions)`, `ctx.tools`, `ctx.ptcRuntime`, `ctx.systemPrompt` | `tool/call`, `one tool/ptc-dispatch-start + tool/ptc-dispatch pair per bridged sub-call`, `tool/result` | - | The PTC executor exposes only run_code to the model and declares other visible capabilities in a generated SDK in the runtime’s language. Program bindings enter the shared guarded tool pipeline in submission order; concurrency-safe bodies overlap up to maxParallelSubCalls, and nested results remain linked to the outer program. The resolved timeout and maxSubCallsPerMinute set the total call allowance; exceeding it terminates the program. |
 | `@deepseek-ai/dsh-plan-mode` | `exit_plan_mode` | `ctx.tools`, `ctx.systemPrompt`, `ctx.agents`, `ctx.userQuestions (execution time, opportunistic)` | `tool/call`, `plan/mode inactive on an approved review`, `tool/result` | - | exit_plan_mode stays in the model-facing schema while planning is inactive so transitions add no tool-catalog churn on top of the plan-policy change. Its execute path rejects calls outside plan mode; in plan mode it presents the plan over the user-questions seam (approve / keep planning with feedback), and approval logs plan mode inactive at the step boundary. |
 | `@deepseek-ai/dsh-tool-bash` | `bash` | `ctx.workingDirectory`, `ctx.tools`, `ctx.shell`, `ctx.systemPrompt`, `ctx.shellEnv`, `ctx.jobs for run_in_background and the job-backed foreground path` | `tool/call`, `tool/result` | - | The bash tool is the model-facing consumer of the bash executor seam. With a job registry composed every call registers with the generic `ctx.jobs` runtime as it starts, collected/stopped through the `job_*` tools from `@deepseek-ai/dsh-tool-jobs`; without one, or with `enableRunInBackground: false`, the tool registers a foreground-only schema without the `run_in_background` parameter. |
+| `@deepseek-ai/dsh-tool-document` | `document_read` | `ctx.tools`, `ctx.fs`, `ctx.attachments`, `a calling agent Session at execution time` | `tool/call`, `tool/result` | - | document_read reads only files attached to the calling Session, so confined deployments can grant document reading without filesystem tools; TXT and CSV extract today, and the announced PDF, Word, and workbook extractors land as their own implementation tasks. |
 | `@deepseek-ai/dsh-tool-office` | `office_convert`, `office_recalculate`, `office_render` | `ctx.workingDirectory`, `ctx.tools`, `ctx.fs`, `ctx.agents`, `ctx.officeKit`, `ctx.attachments and ctx.llm for office_render` | `tool/call`, `tool/result with rendered image attachments`, `temporary converted files in the Office kit output store` | - | Declared to an Agent from the step after it successfully loads an Office skill, and kept while the previous request header declares an Office tool. Admitted calls fail with the Office service's unavailable error when LibreOffice Kit is not installed. |
 | `@deepseek-ai/dsh-tool-pdf` | `pdf_report` | `ctx.workingDirectory`, `ctx.tools`, `ctx.fs`, `ctx.agents`, `ctx.attachments` | `tool/call`, `tool/result with a rendered file envelope`, `fs/observed for the written report` | - | Writes the encoded PDF through the host filesystem at the resolved local target, because the filesystem service models text writes only. Shell-free deployments mount it beside present for the delivery card. |
 | `@deepseek-ai/dsh-tool-present` | `present` | `ctx.workingDirectory`, `ctx.tools`, `ctx.fs`, `ctx.agents` | `tool/call`, `deliverables/presented after a successful final result`, `tool/result` | - | Deliveries belong to the calling Session; Web ui-deliverables supplies source-file opening and cards. |
@@ -736,6 +737,53 @@ Execute a bash command (`bash -c`) and return its stdout/stderr. Each call runs 
 Source: [`packages/shell/tool-bash/src/index.ts`](../packages/shell/tool-bash/src/index.ts)
 
 The bash tool is the model-facing consumer of the bash executor seam. With a job registry composed every call registers with the generic `ctx.jobs` runtime as it starts, collected/stopped through the `job_*` tools from `@deepseek-ai/dsh-tool-jobs`; without one, or with `enableRunInBackground: false`, the tool registers a foreground-only schema without the `run_in_background` parameter.
+
+<a id="deepseek-aidsh-tool-document"></a>
+
+## `@deepseek-ai/dsh-tool-document`
+
+### `document_read`
+
+Read text from a document the user attached to this conversation. Supports PDF, DOCX, DOC, XLSX, XLS, TXT, and CSV. Pass the absolute path from the attachment handle line in the user message. PDF: page selects one page (default 1); a page without a text layer, such as a scan, reports that no text exists. Workbook: sheet selects a worksheet and row selects the first data row; cells are tab-separated, and formulas follow values as (=formula). Other documents: offset and limit select a character window. Follow nextPage, nextOffset, or nextRow to continue a long document.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": "string",
+      "description": "Absolute saved path of an uploaded document, as shown in its attachment handle."
+    },
+    "page": {
+      "type": "integer",
+      "description": "One-based PDF page; defaults to 1."
+    },
+    "sheet": {
+      "type": "string",
+      "description": "Workbook worksheet name; defaults to the first sheet."
+    },
+    "row": {
+      "type": "integer",
+      "description": "Zero-based first data row of the selected worksheet."
+    },
+    "offset": {
+      "type": "integer",
+      "description": "Character offset inside the selected page or document text."
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Maximum characters to return; capped by configuration."
+    }
+  },
+  "required": [
+    "path"
+  ]
+}
+```
+
+Source: [`packages/document/tool-document/src/index.ts`](../packages/document/tool-document/src/index.ts)
+
+document_read reads only files attached to the calling Session, so confined deployments can grant document reading without filesystem tools; TXT and CSV extract today, and the announced PDF, Word, and workbook extractors land as their own implementation tasks.
 
 <a id="deepseek-aidsh-tool-office"></a>
 
