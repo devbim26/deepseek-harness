@@ -158,6 +158,52 @@ describe('pdf_report', () => {
     })
   })
 
+  it('lists available image calls when a requested id carries no image', async () => {
+    const { ctx, owner, execute } = await compose()
+    const attachments = ctx.get('attachments')
+    if (attachments === undefined) throw new Error('attachment store missing')
+    const ref: ImageAttachmentRef = await attachments.saveImage({
+      data: PNG_1X1, mediaType: 'image/png', name: 'sheet.png',
+    })
+    owner.session.append('tool/result', {
+      turn: 1, step: 1, message: createToolResultMessage({
+        callId: ToolCallId('call-text'),
+        content: [{ type: 'text', text: 'no images here' }] satisfies ContentBlock[],
+        isError: false,
+      }),
+    }, { surfaceOp: 'append' })
+    owner.session.append('tool/result', {
+      turn: 1, step: 1, message: createToolResultMessage({
+        callId: ToolCallId('call-sheets'),
+        content: [{ type: 'image', attachment: ref }, { type: 'image', attachment: ref }] satisfies ContentBlock[],
+        isError: false,
+      }),
+    }, { surfaceOp: 'append' })
+    const result = await execute({
+      file_path: 'report.pdf',
+      blocks: [{ type: 'image', call_id: 'call-missing' }],
+    })
+    expect(result.isError).toBe(false)
+    if (result.isError) throw new Error('pdf_report failed')
+    expect(result.value).toMatchObject({
+      imagesEmbedded: 0,
+      imagesSkipped: [{ callId: 'call-missing', reason: 'no tool result carries this call id' }],
+      availableImageCalls: [{ callId: 'call-sheets', images: 2 }],
+    })
+  })
+
+  it('creates nested output folders before writing', async () => {
+    const { root, execute } = await compose()
+    const result = await execute({
+      file_path: 'reports/nested/отчёт.pdf',
+      blocks: [{ type: 'text', text: 'Текст отчёта.' }],
+    })
+    expect(result.isError).toBe(false)
+    if (result.isError) throw new Error('pdf_report failed')
+    const written = await readFile(join(root, 'reports', 'nested', 'отчёт.pdf'))
+    expect(written.subarray(0, 4).toString('latin1')).toBe('%PDF')
+  })
+
   it('fails the call for a non-pdf output path, an empty block list, and blank text', async () => {
     const { execute } = await compose()
     expect((await execute({ file_path: 'report.docx', blocks: [{ type: 'text', text: 'x' }] })).isError).toBe(true)

@@ -20,6 +20,14 @@ export interface SkippedImage {
   reason: string
 }
 
+/** One session tool call whose latest result carries images. */
+export interface AvailableImageCall {
+  /** Tool call id the model can pass in an image block. */
+  callId: string
+  /** Image blocks in that result. */
+  images: number
+}
+
 /** One ordered report block; the document renders blocks in array order. */
 export type ReportBlock =
   | { type: 'text'; heading?: string; text: string }
@@ -38,4 +46,6 @@ export interface PdfReportResult {
   imagesEmbedded: number
   /** Requested images absent from the document, with reasons. */
   imagesSkipped: SkippedImage[]
+  /** Session calls whose results carry images, so the model can retry a wrong id. */
+  availableImageCalls: AvailableImageCall[]
 }

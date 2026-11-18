@@ -34,7 +34,7 @@ kind: "package-reference"
     maxImageBytes: 20971520
 ```
 
-`file_path` 通过 Session 工作目录解析，且必须以 `.pdf` 结尾。工具在解析出的本地路径上通过宿主文件系统写入编码后的文档，因此需要本地文件系统后端；受限部署通过 `write` 工具使用的同一个 `fs/write-intent` 策略槽位授予写入。`blocks` 按顺序渲染：`text` 块打印可选标题和正文，`table` 块根据 `header` 和 `rows` 绘制带样式的表格（短行补空单元格，换页后重复表头），`image` 块嵌入其 `call_id` 结果携带的每一张图片（按结果顺序），并在每张图片下方打印可选说明。图片来自附件存储，因此产生图片的调用可以是 MCP 工具、其他代理工具或上传；不支持的媒体类型、超大图片和未知 call id 会在 `imagesSkipped` 中逐图报告，而不会导致整个调用失败。写入完成后调用 `present`，宿主才会显示交付卡片。
+`file_path` 通过 Session 工作目录解析，且必须以 `.pdf` 结尾；`reports/` 等嵌套文件夹会在写入时创建。工具在解析出的本地路径上通过宿主文件系统写入编码后的文档，因此需要本地文件系统后端；受限部署通过 `write` 工具使用的同一个 `fs/write-intent` 策略槽位授予写入。`blocks` 按顺序渲染：`text` 块打印可选标题和正文，`table` 块根据 `header` 和 `rows` 绘制带样式的表格（短行补空单元格，换页后重复表头），`image` 块嵌入其 `call_id` 结果携带的每一张图片（按结果顺序），并在每张图片下方打印可选说明。图片来自附件存储，因此产生图片的调用可以是 MCP 工具、其他代理工具或上传；不支持的媒体类型、超大图片和未知 call id 会在 `imagesSkipped` 中逐图报告，而不会导致整个调用失败，同时 `availableImageCalls` 会列出结果携带图片的每一个会话调用，模型据此重试错误的 id 而无需猜测。写入完成后调用 `present`，宿主才会显示交付卡片。
 
 内置的 Noto Sans 字体（SIL Open Font License，见 `assets/fonts/LICENSE`）覆盖拉丁、希腊和西里尔文字。`maxImages` 限制嵌入数量，`maxImageBytes` 限制单张存储图片大小；两者不是正整数时在加载时明确报错。
 

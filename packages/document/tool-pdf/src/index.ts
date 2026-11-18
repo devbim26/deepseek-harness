@@ -4,14 +4,15 @@
  * shell or Python. @module @deepseek-ai/dsh-tool-pdf
  */
 
-import { writeFile } from 'node:fs/promises'
+import { mkdir, writeFile } from 'node:fs/promises'
+import { dirname } from 'node:path'
 import type {} from '@deepseek-ai/dsh-working-directory'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { FsError } from '@deepseek-ai/dsh-fs'
 import { ToolArgsError, ToolContextUnavailableError, defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-agent'
-import type { ReportBlock, SkippedImage } from './types.ts'
+import type { AvailableImageCall, ReportBlock, SkippedImage } from './types.ts'
 import { buildPdfReport } from './pdf.ts'
 import { collectReportImages, type RequestedImage } from './session-images.ts'
 
@@ -98,12 +99,14 @@ export function apply(ctx: Context, config: Config): void {
   ctx.tools.register(defineTool({
     name: 'pdf_report',
     description: 'Assemble a PDF report file in the working directory from text sections, tables, and images '
-      + 'that earlier tool calls returned, such as drawing sheet images. Blocks render in order; '
-      + 'pass the tool call id of each image result. Pass tabular data as table blocks: they render as '
-      + 'styled tables with a header row, zebra rows, and column widths fitted to the content, '
-      + 'never as plain text. After the file is written, declare it to the user '
-      + 'with the present tool. Use it when the user asks for a PDF document; prefer your final response '
-      + 'when plain text suffices.',
+      + 'that earlier tool calls returned, such as drawing sheet images. Blocks render in order. '
+      + 'Every image block carries the call id of your own earlier tool call whose result showed the image: '
+      + 'the id attached to that tool call entry in this conversation, for example a drawing get_crop call. '
+      + 'If you no longer see which call carried an image, request the crop again and pass the fresh call id. '
+      + 'Pass tabular data as table blocks: they render as styled tables with a header row, zebra rows, '
+      + 'and column widths fitted to the content, never as plain text. After the file is written, declare it '
+      + 'to the user with the present tool. Use it when the user asks for a PDF document; prefer your final '
+      + 'response when plain text suffices.',
     parameters: {
       file_path: {
         type: 'string', required: true,
@@ -145,7 +148,8 @@ export function apply(ctx: Context, config: Config): void {
                 type: { type: 'string', required: true, description: 'Discriminant: an image block.' },
                 call_id: {
                   type: 'string', required: true,
-                  description: 'Tool call id whose result carried the images; every image of that result embeds.',
+                  description: 'The call id of your earlier tool call in this conversation whose result carried '
+                    + 'the images; every image of that result embeds.',
                 },
                 caption: { type: 'string', description: 'Caption printed under each embedded image of the call.' },
               },
@@ -172,15 +176,32 @@ export function apply(ctx: Context, config: Config): void {
               },
             },
           },
+          availableImageCalls: {
+            type: 'array', required: true,
+            items: {
+              type: 'object', additionalProperties: false,
+              properties: {
+                callId: { type: 'string', required: true },
+                images: { type: 'integer', required: true },
+              },
+            },
+          },
         },
       },
-      render: (_args, value) => [{
-        type: 'text',
-        text: `<path>${value.path}</path>\n<type>file</type>\n<content>\n`
-          + `Assembled PDF report: ${value.pages} page(s), ${value.imagesEmbedded} image(s) embedded, ${value.bytes} bytes.\n`
-          + value.imagesSkipped.map(skip => `${skip.callId}: ${skip.reason}`).join('\n')
-          + `${value.imagesSkipped.length === 0 ? '' : '\n'}</content>`,
-      }],
+      render: (_args, value) => {
+        const lines = [
+          `Assembled PDF report: ${value.pages} page(s), ${value.imagesEmbedded} image(s) embedded, ${value.bytes} bytes.`,
+          ...value.imagesSkipped.map(skip => `${skip.callId}: ${skip.reason}`),
+        ]
+        if (value.imagesSkipped.length > 0 && value.availableImageCalls.length > 0) {
+          lines.push(`Available image calls: ${
+            value.availableImageCalls.map(call => `${call.callId} (${call.images} image${call.images === 1 ? '' : 's'})`).join(', ')}`)
+        }
+        return [{
+          type: 'text',
+          text: `<path>${value.path}</path>\n<type>file</type>\n<content>\n${lines.join('\n')}\n</content>`,
+        }]
+      },
     },
     presentCall: args => ({
       card: 'generic' as const,
@@ -208,14 +229,18 @@ export function apply(ctx: Context, config: Config): void {
       if (intent?.kind === 'createIfAbsent' && before !== undefined) {
         throw new FsError(`Cannot write ${args.file_path}: the file already exists`, 'FS_ALREADY_EXISTS')
       }
-      const { images, skipped } = await collectReportImages(
+      const { images, skipped, available } = await collectReportImages(
         ctx, exec.agent.session, requested, config.maxImages, config.maxImageBytes, exec.signal,
       )
       const document = await buildPdfReport(args.title, blocks, images)
       exec.signal.throwIfAborted()
       // The filesystem service models text writes only; the resolved local target
       // receives the encoded PDF bytes directly through the host filesystem.
-      await writeFile(ctx.fs.processPath(target), document.bytes)
+      // A nested output folder such as reports/ is part of the contract: create
+      // it instead of failing the write with a missing parent directory.
+      const outPath = ctx.fs.processPath(target)
+      await mkdir(dirname(outPath), { recursive: true })
+      await writeFile(outPath, document.bytes)
       const after = await ctx.fs.stat(target, exec.signal)
       if (after === undefined || after.type !== 'file') {
         throw new FsError(`The written report ${args.file_path} is not readable as a regular file`, 'FS_NOT_FOUND')
@@ -227,6 +252,7 @@ export function apply(ctx: Context, config: Config): void {
         pages: document.pages,
         imagesEmbedded: images.length,
         imagesSkipped: skipped as SkippedImage[],
+        availableImageCalls: available as AvailableImageCall[],
       }
     },
   }))

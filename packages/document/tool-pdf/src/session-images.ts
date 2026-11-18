@@ -7,7 +7,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { ImageBlock, ToolResultMessage } from '@deepseek-ai/dsh-llm'
 import type { Session } from '@deepseek-ai/dsh-session'
-import type { ReportImage, SkippedImage } from './types.ts'
+import type { AvailableImageCall, ReportImage, SkippedImage } from './types.ts'
 
 /** An ordered image request from the calling tool: one call id and its caption. */
 export interface RequestedImage {
@@ -23,6 +23,8 @@ export interface CollectedImages {
   images: ReportImage[]
   /** Requested images absent from the document, with reasons. */
   skipped: SkippedImage[]
+  /** Session calls whose results carry images, for skip feedback. */
+  available: AvailableImageCall[]
 }
 
 /**
@@ -49,6 +51,23 @@ export function latestImageBlocks(
 }
 
 /**
+ * Index every tool call whose latest result carries images, so a skip can name
+ * the ids the model can actually pass.
+ * @param session - the calling agent's Session.
+ * @returns image-bearing call ids with image counts, in log order.
+ */
+export function imageCallIndex(session: Session): AvailableImageCall[] {
+  const found = new Map<string, number>()
+  for (const event of session.snapshotEvents()) {
+    if (event.type !== 'tool/result') continue
+    const message: ToolResultMessage = event.data.message
+    const count = message.content.filter((block): block is ImageBlock => block.type === 'image').length
+    if (count > 0) found.set(message.toolCallId, count)
+  }
+  return [...found].map(([callId, images]) => ({ callId, images }))
+}
+
+/**
  * Resolve the requested call ids into decoded images through the attachment
  * store, keeping every failure as a per-image skip instead of failing the call.
  * @param ctx - context owning the attachment store.
@@ -57,7 +76,8 @@ export function latestImageBlocks(
  * @param maxImages - ceiling on embedded images; extras are skipped.
  * @param maxImageBytes - per-image byte ceiling; larger images are skipped.
  * @param signal - cancellation for attachment reads.
- * @returns the embedded images and every skip with its reason.
+ * @returns the embedded images, every skip with its reason, and the available
+ *   image calls for retry feedback.
  */
 export async function collectReportImages(
   ctx: Context,
@@ -72,6 +92,7 @@ export async function collectReportImages(
     return {
       images: [],
       skipped: requested.map(({ callId }) => ({ callId, reason: 'no attachment service is mounted' })),
+      available: [],
     }
   }
   const blocks = latestImageBlocks(session, requested.map(({ callId }) => callId))
@@ -109,5 +130,5 @@ export async function collectReportImages(
       })
     }
   }
-  return { images, skipped }
+  return { images, skipped, available: imageCallIndex(session) }
 }
