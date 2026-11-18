@@ -43,7 +43,14 @@ export class CustomAgentPresets extends TypertRemoteService {
 
   /** Mount one record as a registry definition and remember its disposer. */
   private async mount(record: CustomAgentRecord): Promise<void> {
-    const dispose = await this.ctx.agentPresets.register(synthesizeDefinition(record, this.config))
+    // Delegate records feed the synthesized orchestrator roster; a record
+    // referencing a delegate missing from this table fails loud here.
+    const delegateRecords = record.delegates.map((id) => {
+      const delegate = this.requireTable().get(id)
+      if (delegate === undefined) throw new Error(`custom-agent-presets: the table no longer carries the '${id}' delegate`)
+      return delegate
+    })
+    const dispose = await this.ctx.agentPresets.register(synthesizeDefinition(record, this.config, delegateRecords))
     this.registrations.set(record.id, dispose)
   }
 

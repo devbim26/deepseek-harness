@@ -67,6 +67,34 @@ describe('custom agent presets service', () => {
     expect(row.broken).toBeUndefined()
   })
 
+  it('appends the delegate roster to the orchestrator persona from the configured template', async () => {
+    const { ctx } = await harness({
+      delegation: {
+        name: '@deepseek-ai/dsh-tool-subagent',
+        config: { provider: 'spawn', toolName: 'subagent' },
+        rosterTemplate: 'Your agents for subagent launches:',
+      },
+    })
+    const worker = await ctx.customAgentPresets.create({ name: 'Worker', description: 'Does the work.', instructions: 'Do the work.', tools: [], isOrchestrator: false, delegates: [], hidden: false })
+    const lead = await ctx.customAgentPresets.create({ name: 'Lead', description: '', instructions: 'Run the workers.', tools: [], isOrchestrator: true, delegates: [worker.id], hidden: false })
+    const document = await ctx.agentPresets.readDocument(lead.id)
+    expect(document.content).toContain('Your agents for subagent launches:')
+    expect(document.content).toContain(`- ${worker.id} «Worker» — Does the work.`)
+    // The template feeds the persona text, not the delegation tool row.
+    expect(document.content).not.toContain('rosterTemplate')
+    const row = await ctx.agentPresets.resolve(lead.id)
+    expect(row.broken).toBeUndefined()
+  })
+
+  it('leaves the persona prefix unchanged when no roster template is configured', async () => {
+    const { ctx } = await harness()
+    const worker = await ctx.customAgentPresets.create({ name: 'Worker', description: 'Does the work.', instructions: 'Do the work.', tools: [], isOrchestrator: false, delegates: [], hidden: false })
+    const lead = await ctx.customAgentPresets.create({ name: 'Lead', description: '', instructions: 'Run the workers.', tools: [], isOrchestrator: true, delegates: [worker.id], hidden: false })
+    const document = await ctx.agentPresets.readDocument(lead.id)
+    expect(document.content).toContain('You are the drawings assistant. Run the workers.')
+    expect(document.content).not.toContain('«Worker»')
+  })
+
   it('rejects orchestrator writes that break the delegates invariants', async () => {
     const { ctx } = await harness()
     const plain = { name: 'X', description: '', instructions: 'i' }

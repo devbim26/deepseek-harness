@@ -20,6 +20,12 @@ export interface DelegationEntry {
   name: string
   /** Base row config; the service adds `allowedAgentPresets` from the record. */
   config?: Record<string, unknown>
+  /**
+   * Lead-in text appended to an orchestrator's persona ahead of the rendered
+   * delegate roster (`- <id> «<name>» — <description>` per delegate). Omission
+   * or an empty string keeps the persona free of roster text.
+   */
+  rosterTemplate?: string | undefined
 }
 
 /** Config of the `agent-preset-custom` service row. */
@@ -47,7 +53,11 @@ export const Config: z<Config> = z.object({
   instructionsPrefix: z.string().default(''),
   basePlugins: z.array(z.any()).default([]),
   allowedTools: z.dict(z.object({ name: z.string().required(), config: z.any(), label: z.string(), description: z.string() })).default({}),
-  delegation: (z.object({ name: z.string().required(), config: z.dict(z.any()) }) as z<DelegationEntry | undefined>).default(undefined),
+  delegation: (z.object({
+    name: z.string().required(),
+    config: z.dict(z.any()),
+    rosterTemplate: z.string(),
+  }) as z<DelegationEntry | undefined>).default(undefined),
   maxNameChars: z.number().default(64),
   maxDescriptionChars: z.number().default(200),
   maxInstructionsChars: z.number().default(16384),

@@ -22,6 +22,32 @@ describe('custom agent persistence', () => {
     expect(roster.presets.find(preset => preset.id === created.id)).toMatchObject({ name: 'Helper' })
   })
 
+  it('fails loud at boot when a stored orchestrator references a missing delegate', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'dsh-custom-agents-'))
+    roots.push(root)
+    const first = await harness({}, { jsonRoot: root })
+    const worker = await first.ctx.customAgentPresets.create({ name: 'Worker', description: '', instructions: 'i', tools: [], isOrchestrator: false, delegates: [], hidden: false })
+    await first.ctx.customAgentPresets.create({ name: 'Lead', description: '', instructions: 'i', tools: [], isOrchestrator: true, delegates: [worker.id], hidden: false })
+    await first.ctx.fiber.dispose()
+
+    // Drop the delegate record from the stored unit, simulating out-of-band removal.
+    const { readdir, readFile, writeFile } = await import('node:fs/promises')
+    for (const rel of await readdir(root, { recursive: true })) {
+      const path = join(root, String(rel))
+      if (!path.endsWith('.json')) continue
+      const raw = await readFile(path, 'utf8')
+      if (!raw.includes(worker.id)) continue
+      const unit = JSON.parse(raw) as { tables?: { agents?: Record<string, unknown> } }
+      if (unit.tables?.agents !== undefined) {
+        const { [worker.id]: _removed, ...agents } = unit.tables.agents
+        unit.tables.agents = agents
+      }
+      await writeFile(path, `${JSON.stringify(unit, null, 2)}\n`, 'utf8')
+    }
+
+    await expect(harness({}, { jsonRoot: root })).rejects.toThrow(/delegate/)
+  }, 20000)
+
   it('defaults the delegation fields for a record written by an older build', async () => {
     const root = await mkdtemp(join(tmpdir(), 'dsh-custom-agents-'))
     roots.push(root)

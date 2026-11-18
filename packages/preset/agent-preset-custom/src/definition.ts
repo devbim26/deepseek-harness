@@ -3,20 +3,35 @@ import type { PresetDefinition } from '@deepseek-ai/dsh-agent-preset-registry'
 import type { Config } from './config.ts'
 import type { CustomAgentRecord } from './types.ts'
 
+/** One rendered roster line naming a delegate agent. */
+function rosterLine(delegate: CustomAgentRecord): string {
+  return `- ${delegate.id} «${delegate.name}» — ${delegate.description}`
+}
+
 /**
  * Build the registry definition: the site persona plus the user instructions,
  * the deployment's fixed base rows, the whitelisted tool rows the record
  * selected, and — for an orchestrator with delegates — the deployment's
- * delegation row narrowed to those delegates. User data enters as plain
- * configuration values only — nothing here parses user text as configuration.
+ * delegation row narrowed to those delegates plus a roster of them appended
+ * to the persona. User data enters as plain configuration values only —
+ * nothing here parses user text as configuration.
  * @param record - the stored record.
  * @param config - the service config (prefix, base rows, whitelist, delegation row).
+ * @param delegateRecords - the stored records behind `record.delegates`, in order; empty for a non-orchestrator.
  * @returns the definition handed to `agentPresets.register`.
  */
-export function synthesizeDefinition(record: CustomAgentRecord, config: Config): PresetDefinition {
-  const prefix = config.instructionsPrefix === ''
+export function synthesizeDefinition(
+  record: CustomAgentRecord,
+  config: Config,
+  delegateRecords: readonly CustomAgentRecord[],
+): PresetDefinition {
+  const base = config.instructionsPrefix === ''
     ? record.instructions
     : `${config.instructionsPrefix} ${record.instructions}`
+  const roster = record.isOrchestrator && record.delegates.length > 0 && config.delegation?.rosterTemplate
+    ? `\n\n${config.delegation.rosterTemplate}\n${delegateRecords.map(rosterLine).join('\n')}`
+    : ''
+  const prefix = `${base}${roster}`
   const delegation = record.isOrchestrator && record.delegates.length > 0 && config.delegation !== undefined
     ? [{
       id: 'delegation',
