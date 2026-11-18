@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Herramienta de informes PDF",
+    "description": "Ensambla archivos de informe PDF en el directorio de trabajo a partir de secciones de texto e imágenes capturadas por llamadas de herramientas anteriores."
+  }
+}

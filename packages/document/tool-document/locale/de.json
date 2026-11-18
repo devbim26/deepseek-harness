@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Werkzeug zum Lesen von Dokumenten",
+    "description": "Lässt den Agenten den Text von Dokumenten im Gesprächsanhang lesen, ein begrenztes Fenster pro Aufruf."
+  }
+}

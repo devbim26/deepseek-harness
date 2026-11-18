@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Ferramenta de leitura de documentos",
+    "description": "Permite ao agente ler o texto dos documentos anexados à conversa, uma janela limitada por chamada."
+  }
+}

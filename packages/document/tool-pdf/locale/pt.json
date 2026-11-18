@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Ferramenta de relatórios PDF",
+    "description": "Monta arquivos de relatório PDF no diretório de trabalho a partir de seções de texto e imagens capturadas por chamadas de ferramentas anteriores."
+  }
+}
