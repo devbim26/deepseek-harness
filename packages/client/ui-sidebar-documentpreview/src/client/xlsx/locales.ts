@@ -7,6 +7,8 @@ export const zh = {
   empty: '工作簿中没有可显示的工作表。',
   rowsTruncated: '仅显示前 {count} 行。',
   sheetLabel: '工作表',
+  booleanTrue: 'TRUE',
+  booleanFalse: 'FALSE',
 } satisfies Record<string, string>
 
 /** XLSX renderer dictionary keys. */
@@ -21,6 +23,8 @@ export const en = {
   empty: 'The workbook has no displayable worksheets.',
   rowsTruncated: 'Showing the first {count} rows only.',
   sheetLabel: 'Sheet',
+  booleanTrue: 'TRUE',
+  booleanFalse: 'FALSE',
 } satisfies Record<XlsxPreviewKey, string>
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {

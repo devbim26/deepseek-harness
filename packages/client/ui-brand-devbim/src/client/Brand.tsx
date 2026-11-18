@@ -4,9 +4,13 @@ import type {
 } from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import { DEVBIM_MARK_DARK, DEVBIM_MARK_LIGHT, DEVBIM_MARK_VIEWBOX } from './artwork.ts'
 import css from './Brand.module.css'
+import type { BrandLocale } from './locales.ts'
 
 /** Props of the monogram: the size every brand seat requests plus the hero's layout class. */
 export type DevBimMarkProps = SidebarBrandMarkOwnerProps & Pick<HeroBrandMarkOwnerProps, 'className'>
+
+/** Props of the sidebar wordmark occupant. */
+export type DevBimNameProps = SidebarBrandNameOwnerProps & BrandLocale
 
 /**
  * Render the dB monogram in the theme-appropriate variant.
@@ -26,10 +30,11 @@ export function DevBimBrandMark({ size, className }: DevBimMarkProps) {
 
 /**
  * Render the devBIM wordmark without its independently slotted mark.
+ * @param props.t - brand-copy seat.
  * @returns the wordmark text element.
  */
-export function DevBimBrandName({}: SidebarBrandNameOwnerProps) {
-  return <span className={css.name}>dev<span className={css.accent}>BIM</span></span>
+export function DevBimBrandName({ t }: DevBimNameProps) {
+  return <span className={css.name}>{t('name.lead')}<span className={css.accent}>{t('name.accent')}</span></span>
 }
 
 /**

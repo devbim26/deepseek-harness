@@ -2,6 +2,8 @@
 import { Context } from '@deepseek-ai/cordis'
 import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, render } from '@testing-library/react'
+import { stubConfigForm } from '@deepseek-ai/dsh-client-test-runtime'
+import { apply as applyLocale, inject as localeInject } from '@deepseek-ai/dsh-client-locale/client'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { apply, inject } from '../src/client/index.ts'
 import { DevBimBrandMark, DevBimBrandName, DevBimHeroMark } from '../src/client/Brand.tsx'
@@ -31,6 +33,11 @@ const settle = (): Promise<void> => new Promise(resolve => setTimeout(resolve, 0
 async function bench(initial: readonly string[] = [...SIDEBAR_HOLES, HERO_HOLE]) {
   const ctx = new Context()
   await ctx.plugin(SlotRegistry).await()
+  // LocaleRuntime's inject requires the settings transport; the brand plugin
+  // only exercises dictionary registration and slot occupancy here.
+  ctx.provide('remote', {} as never)
+  ctx.provide('configForms', { get: () => stubConfigForm().scope } as never)
+  await ctx.plugin({ inject: localeInject, apply: applyLocale }).await()
   const slots = ctx.get('slots') as SlotRegistry
   const registerWith = (holes: readonly string[]) => slots.register({
     name: 'root',
@@ -46,8 +53,16 @@ describe('devBIM browser-brand plugin', () => {
     expect(hostApply).not.toThrow()
   })
 
-  it('declares only the slot service it uses', () => {
-    expect(inject).toEqual(['slots'])
+  it('declares exactly the services it uses', () => {
+    expect(inject).toEqual(['slots', 'locale'])
+  })
+
+  it('registers the brand dictionaries under the shared namespace', async () => {
+    const subject = await bench([])
+    await subject.ctx.plugin({ inject: [...inject], apply }).await()
+    const t = subject.ctx.locale.bind('ui-brand-devbim')
+    expect(t('name.lead')).toBe('dev')
+    expect(t('name.accent')).toBe('BIM')
   })
 
   it('fills every brand seat once declared and removes every occupant on teardown', async () => {
@@ -58,6 +73,7 @@ describe('devBIM browser-brand plugin', () => {
 
     before.disposeHoles?.()
     for (const hole of BRAND_HOLES) expect(before.slots.entries(hole)).toHaveLength(0)
+
     before.declareHoles()
     await settle()
     for (const hole of BRAND_HOLES) expect(before.slots.entries(hole)).toHaveLength(1)
@@ -100,8 +116,11 @@ describe('devBIM browser-brand plugin', () => {
     expect(hero.container.querySelectorAll('img')).toHaveLength(2)
   })
 
-  it('renders the wordmark with the accented BIM half', () => {
-    const name = render(<DevBimBrandName />)
+  it('renders the wordmark with the accented BIM half', async () => {
+    const subject = await bench()
+    await subject.ctx.plugin({ inject: [...inject], apply }).await()
+    const t = subject.ctx.locale.bind('ui-brand-devbim')
+    const name = render(<DevBimBrandName t={t} />)
     expect(name.container.textContent).toBe('devBIM')
     expect(name.container.querySelector('span > span')?.textContent).toBe('BIM')
   })

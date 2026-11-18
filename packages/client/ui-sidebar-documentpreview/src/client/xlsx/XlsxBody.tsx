@@ -36,6 +36,9 @@ interface WorkbookPreview {
 /** Standard document inputs plus this renderer's dictionary. */
 export type XlsxBodyProps = DocumentPreviewProps & PropsLocale<'sidebarXlsx'>
 
+/** The renderer's translate seat, threaded into parsing for locale-owned cell labels. */
+type XlsxTranslate = PropsLocale<'sidebarXlsx'>['t']
+
 function u16(data: Uint8Array, offset: number): number {
   return (data[offset] ?? 0) | ((data[offset + 1] ?? 0) << 8)
 }
@@ -167,16 +170,16 @@ function columnName(index: number): string {
   return name
 }
 
-function cellValue(cell: Element, sharedStrings: readonly string[]): string {
+function cellValue(cell: Element, sharedStrings: readonly string[], t: XlsxTranslate): string {
   const type = cell.getAttribute('t')
   if (type === 'inlineStr') return [...cell.getElementsByTagName('t')].map(textOf).join('')
   const raw = textOf(cell.getElementsByTagName('v')[0])
   if (type === 's') return sharedStrings[Number.parseInt(raw, 10)] ?? raw
-  if (type === 'b') return raw === '1' ? 'TRUE' : 'FALSE'
+  if (type === 'b') return t(raw === '1' ? 'booleanTrue' : 'booleanFalse')
   return raw
 }
 
-function parseWorksheet(xml: string, name: string, sharedStrings: readonly string[]): WorksheetPreview {
+function parseWorksheet(xml: string, name: string, sharedStrings: readonly string[], t: XlsxTranslate): WorksheetPreview {
   const doc = parseXml(xml)
   const rows: string[][] = []
   let maxCol = 0
@@ -188,14 +191,14 @@ function parseWorksheet(xml: string, name: string, sharedStrings: readonly strin
     const col = columnIndex(ref)
     if (col >= MAX_COLS) continue
     const rowCells = rows[row] ?? (rows[row] = [])
-    rowCells[col] = cellValue(cell, sharedStrings)
+    rowCells[col] = cellValue(cell, sharedStrings, t)
     maxCol = Math.max(maxCol, col + 1)
   }
   const dense = rows.map(row => Array.from({ length: maxCol }, (_, index) => row[index] ?? ''))
   return { name, rows: dense, truncated }
 }
 
-async function parseWorkbook(data: Uint8Array): Promise<WorkbookPreview> {
+async function parseWorkbook(data: Uint8Array, t: XlsxTranslate): Promise<WorkbookPreview> {
   const entries = readZipEntries(data)
   const workbookXml = await readZipText(data, entries, 'xl/workbook.xml')
   if (workbookXml === undefined) throw new Error('xlsx: workbook.xml is missing')
@@ -206,7 +209,7 @@ async function parseWorkbook(data: Uint8Array): Promise<WorkbookPreview> {
     const target = relationships.get(sheet.relId)
     if (target === undefined) continue
     const sheetXml = await readZipText(data, entries, target)
-    if (sheetXml !== undefined) sheets.push(parseWorksheet(sheetXml, sheet.name, sharedStrings))
+    if (sheetXml !== undefined) sheets.push(parseWorksheet(sheetXml, sheet.name, sharedStrings, t))
   }
   return { sheets }
 }
@@ -220,11 +223,11 @@ export function XlsxBody({ content, t }: XlsxBodyProps): ReactNode {
   useEffect(() => {
     if (data === undefined) return
     let disposed = false
-    void parseWorkbook(data)
+    void parseWorkbook(data, t)
       .then((workbook) => { if (!disposed) { setState({ data, workbook }); setActive(0) } })
       .catch(() => { if (!disposed) setState({ data, failed: true }) })
     return () => { disposed = true }
-  }, [data])
+  }, [data, t])
 
   const sheet = useMemo(() => state?.workbook?.sheets[active], [state?.workbook, active])
   if (data === undefined) return <p className={css.status} role="alert">{t('unsupported')}</p>
