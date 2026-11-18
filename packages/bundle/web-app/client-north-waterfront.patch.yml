@@ -343,5 +343,14 @@
               transport: streamable-http
               url: !!js (process.env.SMETA_SERVER_URL ?? "https://smeta.dev-bim.com") + "/mcp"
               toolCallTimeoutMs: 120000
+        # Оркестраторы: поле включает флаг «оркестратор» в менеджере; сервис
+        # подставляет в allowedAgentPresets id выбранных агентом записей.
+        # Реестр subagent'ов и spawn-бэкенд уже host-plane (dsh-base), отдельных
+        # строк не нужно. У подчинённых этой строки нет — цепочек не возникает.
+        delegation:
+          name: '@deepseek-ai/dsh-tool-subagent'
+          config:
+            provider: spawn
+            toolName: subagent
     - id: ui-custom-agents
       name: '@deepseek-ai/dsh-client-ui-custom-agents'

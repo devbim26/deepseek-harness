@@ -107,8 +107,9 @@ export async function beginRosterRead<S extends { status: string; error: string 
  * The chip exists to choose the NEXT session's composition, and a broken
  * preset cannot compose one — offering it would defer the discovery of that
  * fact to a failed session start. The management section still lists broken
- * rows from its own store; a hidden preset composes sessions but no roster
- * surface lists it.
+ * rows from its own store; a hidden preset composes sessions but no
+ * agent-preset roster surface lists it (the custom-agent manager is a
+ * separate catalog).
  *
  * The chip, the header label, and the management section all show the same
  * facts, and `exactOptionalPropertyTypes` makes "absent" and "present as

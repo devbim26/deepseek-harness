@@ -3,14 +3,14 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-custom-agents/README.md
 /:
-  en: f33da1dfa72640d4
-  zh: 667cfa0574572cd9
+  en: bdb3af075c800f71
+  zh: f19a8c9a9b34986f
 /deepseek-ai-dsh-client-ui-custom-agents:
   en: 6e619ae4b2cfdd6a
   zh: aeffb6f37d97ac63
 /deepseek-ai-dsh-client-ui-custom-agents/summary:
-  en: 8d2ea8aa2a04514d
-  zh: db29a7850c94a196
+  en: baa48d67342fb541
+  zh: b8fa6b2089ad2eb1
 /deepseek-ai-dsh-client-ui-custom-agents/table-of-contents:
   en: d152484eb41ac6b4
   zh: 47dff0227d8e568f
@@ -18,8 +18,8 @@
   en: aa9cc880a30234b6
   zh: c0519ac2ce63c583
 /deepseek-ai-dsh-client-ui-custom-agents/understand-the-implementation:
-  en: 8ad7e684584b0b16
-  zh: b4780303a227a326
+  en: 83f3649d01d0be8b
+  zh: 1137677ed5604477
 /deepseek-ai-dsh-client-ui-custom-agents/further-exploration:
   en: 3291063b9213fc20
   zh: 7002c8700efb96a6

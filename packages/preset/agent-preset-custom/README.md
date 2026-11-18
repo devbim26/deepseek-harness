@@ -52,10 +52,13 @@ Deployment-constrained, user-created agent presets: durable records mounted into
 | `instructionsPrefix` | `''` | Site persona prepended to every custom agent's instructions. |
 | `basePlugins` | `[]` | Fixed child rows every custom agent mounts, copied by the deployment from its standard preset, minus persona. |
 | `allowedTools` | `{}` | Whitelist: entry key → the plugin row `{ name, config?, label?, description? }` a selecting agent mounts; the form renders one checkbox per entry, and an unchecked entry is a hard block — the agent never mounts the row. Records store keys only. |
+| `delegation` | — | Delegation row for orchestrators (`name` + base `config`); the field's absence disables the manager's orchestrator flag. The service adds `allowedAgentPresets` from the record. |
 | `maxNameChars` | `64` | Name length cap. |
 | `maxDescriptionChars` | `200` | Description length cap. |
 | `maxInstructionsChars` | `16384` | Instructions length cap. |
 | `maxAgents` | `50` | Deployment-wide record cap. |
+
+An orchestrator is a record with `isOrchestrator: true` and a non-empty `delegates` list (ids of existing ordinary agents, never the agent itself). Synthesis mounts the `delegation` row with `allowedAgentPresets: delegates`; a list emptied by the deletion cascade leaves the row unmounted while the flag survives. An agent referenced by another record's `delegates` cannot become an orchestrator; deleting an agent cascades the reference cleanup. `hidden` removes the preset from pickers (`agentPresets/list` carries the flag) while the definition stays mounted and launchable by orchestrators.
 
 The client manager (`@deepseek-ai/dsh-client-ui-custom-agents`) calls the Remote surface `list | create | update | delete`. Every write re-validates the fields and the whitelist keys and fails loud with a coded `RemoteError` (`custom-agent-presets/invalid`, `/not-found`, `/limit`, `/conflict`). Updates carry the record's `version` for optimistic concurrency.
 

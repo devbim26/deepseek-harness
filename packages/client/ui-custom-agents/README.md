@@ -1,5 +1,5 @@
 ---
-description: "Custom-agent manager: create, edit, and remove user-defined agent presets from the preset picker. The dialog lives outside the menu tree so it survives the menu closing."
+description: "Custom-agent manager: create, edit, and remove user-defined agent presets from the preset picker. The dialog lives outside the menu tree so it survives the menu closing. The form also offers the deployment-gated orchestrator flag with its delegate checklist and the picker-visibility toggle."
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Custom-agent manager: create, edit, and remove user-defined agent presets from the preset picker. The dialog lives outside the menu tree so it survives the menu closing.
+Custom-agent manager: create, edit, and remove user-defined agent presets from the preset picker. The dialog lives outside the menu tree so it survives the menu closing. The form also offers the deployment-gated orchestrator flag with its delegate checklist and the picker-visibility toggle.
 
 ## Table of Contents
 
@@ -38,7 +38,7 @@ The row mounts two entries over the agent-preset picker's child slots: the `agen
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-[custom-agents-store.ts](src/client/custom-agents-store.ts) holds the catalog state and the dialog's open flag; the menu entry and the overlay both read the one store, so state survives either surface unmounting. Writes go through the typed `customAgentPresets` remote and emit the client-side `custom-agents/changed` event, which `ui-agent-preset`'s roster refresh subscribes to. [CustomAgentsModal.tsx](src/client/CustomAgentsModal.tsx) renders the roster in a scrollable left pane, the fields in the center, and the tool checkboxes in the right pane strictly from the service-reported policy — the form can only offer what the deployment whitelist carries.
+[custom-agents-store.ts](src/client/custom-agents-store.ts) holds the catalog state and the dialog's open flag; the menu entry and the overlay both read the one store, so state survives either surface unmounting. Writes go through the typed `customAgentPresets` remote and emit the client-side `custom-agents/changed` event, which `ui-agent-preset`'s roster refresh subscribes to. [CustomAgentsModal.tsx](src/client/CustomAgentsModal.tsx) renders the roster in a scrollable left pane, the fields — including the deployment-gated orchestrator flag and the picker-visibility toggle — in the center, and the tool checkboxes plus the delegate checklist in the right pane strictly from the service-reported policy — the form can only offer what the deployment whitelist carries.
 
 </details>
 
