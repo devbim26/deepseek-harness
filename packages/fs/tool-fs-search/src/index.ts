@@ -74,6 +74,12 @@ export const inject = ['tools', 'systemPrompt', 'subprocess', 'workingDirectory'
 export interface Config {
   /** Whether an over-cap `glob` page is sampled across top-level entries instead of taking the modification-time head. */
   sampleOverCapGlobResults: boolean
+  /**
+   * Reject a `grep`/`glob` `path` that resolves outside the session working
+   * directory; an existing target is also checked by its real path so a
+   * symlink inside the workdir cannot reach outside it. Defaults to false.
+   */
+  confineToWorkdir?: boolean
   /** Max paths one `glob` call retains inline; later paths go to the formatted spill file. */
   globMaxResults?: number
   /** Max flat matches one `grep` call retains inline; later matches go to the formatted spill file. */
@@ -97,6 +103,7 @@ export interface Config {
 
 export const Config: z<Config> = z.object({
   sampleOverCapGlobResults: z.boolean().required(),
+  confineToWorkdir: z.boolean().default(false),
   globMaxResults: z.number().default(GLOB_MAX_RESULTS),
   grepMaxMatches: z.number().default(GREP_MAX_MATCHES),
   grepMaxLineBytes: z.number().default(GREP_MAX_LINE_BYTES),
@@ -142,6 +149,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   assertPositiveInteger('timeoutMs', resolved.timeoutMs)
   applyGlobTool(ctx, {
     sampleOverCapGlobResults: resolved.sampleOverCapGlobResults,
+    confineToWorkdir: resolved.confineToWorkdir,
     maxResults: resolved.globMaxResults,
     maxMetaBytes: resolved.searchMetaMaxBytes,
     rawOutputMaxBytes: resolved.rawOutputMaxBytes,
@@ -150,6 +158,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     timeoutMs: resolved.timeoutMs,
   })
   applyGrepTool(ctx, {
+    confineToWorkdir: resolved.confineToWorkdir,
     maxMatches: resolved.grepMaxMatches,
     maxLineBytes: resolved.grepMaxLineBytes,
     maxMetaBytes: resolved.searchMetaMaxBytes,

@@ -61,6 +61,7 @@ kind: "package-reference"
 | 键 | 默认值 | 含义 |
 |---|---|---|
 | `sampleOverCapGlobResults` | 无（必填） | `true` 在顶层条目之间对超过上限的 `glob` 页面采样；`false` 保留按修改时间排序的前部 |
+| `confineToWorkdir` | `false` | 拒绝解析到会话工作目录之外的 `grep`/`glob` `path`；对已存在的目标还会校验真实路径，因此工作目录内的符号链接无法指向外部 |
 | `globMaxResults` | `100` | 一次 `glob` 调用内联展示的最大路径数 |
 | `grepMaxMatches` | `250` | 一次 `grep` 调用内联保留的最大平铺匹配数；后续匹配写入格式化 spill 产物 |
 | `grepMaxLineBytes` | `2000` | 每条匹配行预览的字节上限，保留 UTF-8 边界 |
@@ -69,6 +70,8 @@ kind: "package-reference"
 | `graceMs` | `3000` | subprocess seam 在 `timeoutMs` 之外授予的终止升级宽限期 |
 | `stderrMaxBytes` | `65536` | `rg` stderr 的诊断尾部预算 |
 | `searchMetaMaxBytes` | `65536` | 一次搜索序列化 `presentationMeta` 的字节上限；超出部分丢弃尾部的组/路径 |
+
+启用 `confineToWorkdir` 时，该检查是这两个工具的参数策略，而不是对 ripgrep 进程的操作系统级限制：通过检查的路径仍以宿主进程的读取权限进行搜索。
 
 生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-tool-fs-search)是每个受支持字段及其 JSDoc 的穷尽式真源。
 

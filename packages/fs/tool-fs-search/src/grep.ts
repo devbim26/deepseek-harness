@@ -17,7 +17,7 @@ import type { GenericCallView, SearchResultView, ToolResult } from '@deepseek-ai
 import type { RetainedItems } from '@deepseek-ai/dsh-output-retention'
 import type { SpillRef } from '@deepseek-ai/dsh-spill'
 import type { GrepMatch } from './search-core.ts'
-import { SearchError, previewLine, retainGrepMatches, runRipgrep, toWorkdirRelative, trySaveFormattedResult } from './search-core.ts'
+import { SearchError, assertSearchPathWithin, previewLine, resolveSearchWorkdir, retainGrepMatches, runRipgrep, toWorkdirRelative, trySaveFormattedResult } from './search-core.ts'
 import { grepSearchMeta, searchViewFromMeta } from './presentation.ts'
 import { acceptedDirectCallValue } from './direct-call.ts'
 
@@ -50,6 +50,8 @@ export interface GrepToolCaps {
   stderrMaxBytes: number
   /** Cooperative tool-call budget (ms) attached as `ToolDefinition.timeoutMs`. */
   timeoutMs: number
+  /** Reject a resolved `path` outside the session working directory. */
+  confineToWorkdir: boolean
 }
 
 /** Validated `grep` arguments. */
@@ -289,7 +291,11 @@ export function applyGrepTool(ctx: Context, caps: GrepToolCaps): void {
       + `Returns up to ${caps.maxMatches} matches; a larger result reports where the complete match list was saved.`,
     parameters: {
       pattern: { type: 'string', required: true, description: 'Regular expression to search for (ripgrep syntax).' },
-      path: { type: 'string', description: 'File or directory to search. Defaults to the session workspace; a relative path resolves against it.' },
+      path: {
+        type: 'string',
+        description: 'File or directory to search. Defaults to the session workspace; a relative path resolves against it.'
+          + (caps.confineToWorkdir ? ' The resolved path must stay inside the session working directory.' : ''),
+      },
       include: { type: 'string', description: 'One glob filter for which files to search (e.g. "*.ts", "*.{js,jsx}"). Not a list; negation is not supported.' },
     },
     timeoutMs: caps.timeoutMs,
@@ -324,7 +330,9 @@ export function applyGrepTool(ctx: Context, caps: GrepToolCaps): void {
     },
     async execute(args, exec) {
       const input = parseGrepArgs(args)
-      const run = await runRipgrep(ctx, exec, 'grep', buildGrepCommand(input), caps.rawOutputMaxBytes, caps.graceMs, caps.stderrMaxBytes)
+      const workdir = await resolveSearchWorkdir(ctx, exec)
+      if (caps.confineToWorkdir && input.path !== undefined) await assertSearchPathWithin(workdir, input.path)
+      const run = await runRipgrep(ctx, exec, 'grep', buildGrepCommand(input), caps.rawOutputMaxBytes, caps.graceMs, caps.stderrMaxBytes, workdir)
       if (run.noMatches) return { matches: [] }
 
       const all: GrepMatch[] = []

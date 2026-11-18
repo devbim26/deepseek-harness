@@ -14,7 +14,7 @@ import { sep } from 'node:path'
 import { ToolArgsError, defineTool } from '@deepseek-ai/dsh-tools'
 import type { GenericCallView, SearchResultView, ToolResult } from '@deepseek-ai/dsh-tools'
 import type { SpillRef } from '@deepseek-ai/dsh-spill'
-import { runRipgrep, toWorkdirRelative, trySaveFormattedResult } from './search-core.ts'
+import { runRipgrep, toWorkdirRelative, trySaveFormattedResult, assertSearchPathWithin, resolveSearchWorkdir } from './search-core.ts'
 import { globSearchMeta, searchViewFromMeta } from './presentation.ts'
 import { acceptedDirectCallValue } from './direct-call.ts'
 
@@ -52,6 +52,8 @@ export interface GlobToolCaps {
   stderrMaxBytes: number
   /** Cooperative tool-call budget (ms) attached as `ToolDefinition.timeoutMs`. */
   timeoutMs: number
+  /** Reject a resolved `path` outside the session working directory. */
+  confineToWorkdir: boolean
 }
 
 /** Validated `glob` arguments. */
@@ -330,7 +332,11 @@ export function applyGlobTool(ctx: Context, caps: GlobToolCaps): void {
         description: 'Glob pattern to match file paths against (e.g. "**/*.ts", "src/**/*.test.js"). '
           + 'A pattern with no "/" matches the basename at any depth, so "*" and "*.ts" both search the whole tree; include a separator to anchor the depth.',
       },
-      path: { type: 'string', description: 'Directory to search in. Defaults to the session workspace; a relative path resolves against it.' },
+      path: {
+        type: 'string',
+        description: 'Directory to search in. Defaults to the session workspace; a relative path resolves against it.'
+          + (caps.confineToWorkdir ? ' The resolved path must stay inside the session working directory.' : ''),
+      },
     },
     timeoutMs: caps.timeoutMs,
     // Path listing records no file observation; over-cap spilling runs in model-ordered post-execute.
@@ -352,7 +358,9 @@ export function applyGlobTool(ctx: Context, caps: GlobToolCaps): void {
     },
     async execute(args, exec) {
       const input = parseGlobArgs(args)
-      const run = await runRipgrep(ctx, exec, 'glob', buildGlobCommand(input), caps.rawOutputMaxBytes, caps.graceMs, caps.stderrMaxBytes)
+      const workdir = await resolveSearchWorkdir(ctx, exec)
+      if (caps.confineToWorkdir && input.path !== undefined) await assertSearchPathWithin(workdir, input.path)
+      const run = await runRipgrep(ctx, exec, 'glob', buildGlobCommand(input), caps.rawOutputMaxBytes, caps.graceMs, caps.stderrMaxBytes, workdir)
       const root = input.path === undefined ? '.' : toWorkdirRelative(input.path, run.workdir)
       if (run.noMatches) return { root, paths: [] }
 

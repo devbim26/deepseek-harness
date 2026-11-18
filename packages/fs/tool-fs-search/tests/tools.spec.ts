@@ -17,6 +17,8 @@ import { describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { createScope, type Scope } from '@deepseek-ai/dsh-scope'
 import { join, sep } from 'node:path'
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import { createUserMessage, ToolCallId } from '@deepseek-ai/dsh-llm'
 import type { ContextFormed } from '@deepseek-ai/dsh-llm'
 import SystemPrompt, { renderPrompt } from '@deepseek-ai/dsh-system-prompt'
@@ -311,6 +313,7 @@ describe('config validation', () => {
     expect(new ToolFsSearch.Config({ sampleOverCapGlobResults: false })).toMatchObject({
       sampleOverCapGlobResults: false,
       globMaxResults: 100,
+      confineToWorkdir: false,
     })
   })
 
@@ -415,6 +418,60 @@ describe('workdir derivation and signal forwarding', () => {
     // A non-agent caller takes the same default.
     await call(ctx, 'grep', { pattern: 'x' })
     expect(subprocess.spawns[1]?.cwd).toBe(process.cwd())
+  })
+
+  it('rejects a grep path outside the session workdir when confinement is enabled', async () => {
+    const { ctx, subprocess } = await setup({ config: { confineToWorkdir: true } })
+    subprocess.handler = () => runResult('')
+    const result = await call(ctx, 'grep', { pattern: 'x', path: w('../outside') }, { agent: agent(w('/w')) })
+    expect(result.isError).toBe(true)
+    expect(text(result)).toContain('path must stay inside the session working directory')
+    expect(subprocess.spawns).toHaveLength(0)
+  })
+
+  it('rejects a glob path outside the session workdir when confinement is enabled', async () => {
+    const { ctx, subprocess } = await setup({ config: { confineToWorkdir: true } })
+    subprocess.handler = () => runResult('')
+    const result = await call(ctx, 'glob', { pattern: '*', path: w('/other') }, { agent: agent(w('/w')) })
+    expect(result.isError).toBe(true)
+    expect(text(result)).toContain('path must stay inside the session working directory')
+    expect(subprocess.spawns).toHaveLength(0)
+  })
+
+  it('allows relative and absolute paths inside the session workdir when confinement is enabled', async () => {
+    const { ctx, subprocess } = await setup({ config: { confineToWorkdir: true } })
+    subprocess.handler = () => runResult(`${matchLine('a.ts', 1, 'hit')}\n`)
+    expect((await call(ctx, 'grep', { pattern: 'x', path: w('sub/dir') }, { agent: agent(w('/w')) })).isError).toBe(false)
+    expect((await call(ctx, 'glob', { pattern: '*', path: w('/w/sub') }, { agent: agent(w('/w')) })).isError).toBe(false)
+    expect(subprocess.spawns).toHaveLength(2)
+  })
+
+  it('keeps unrestricted search paths when confinement is off by default', async () => {
+    const { ctx, subprocess } = await setup()
+    subprocess.handler = () => runResult(`${matchLine('a.ts', 1, 'hit')}\n`)
+    const result = await call(ctx, 'grep', { pattern: 'x', path: w('/other') }, { agent: agent(w('/w')) })
+    expect(result.isError).toBe(false)
+    expect(subprocess.spawns).toHaveLength(1)
+  })
+
+  it('rejects a symlink whose real path escapes the workdir', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'dsh-search-confine-'))
+    const workdir = join(root, 'w')
+    const outside = join(root, 'outside')
+    await mkdir(workdir)
+    await mkdir(outside)
+    await writeFile(join(outside, 'secret.txt'), 'hit')
+    // A junction needs no elevation on Windows; a directory symlink needs none on POSIX.
+    await symlink(outside, join(workdir, 'link'), process.platform === 'win32' ? 'junction' : 'dir')
+    try {
+      const { ctx, subprocess } = await setup({ config: { confineToWorkdir: true } })
+      subprocess.handler = () => runResult(`${matchLine('a.ts', 1, 'hit')}\n`)
+      expect((await call(ctx, 'grep', { pattern: 'x', path: 'link' }, { agent: agent(workdir) })).isError).toBe(true)
+      // The same workdir resolves a real path inside it, so the realpath check passes.
+      expect((await call(ctx, 'grep', { pattern: 'x' }, { agent: agent(workdir) })).isError).toBe(false)
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
   })
 
   it('spawns the packaged ripgrep binary with --no-config, the fixed argv, and budgeted collect streams', async () => {

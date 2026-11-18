@@ -19,7 +19,8 @@
  * @module @deepseek-ai/dsh-tool-fs-search/search-core
  */
 
-import { isAbsolute, relative, sep } from 'node:path'
+import { isAbsolute, relative, resolve, sep } from 'node:path'
+import { realpath } from 'node:fs/promises'
 import type { Context } from '@deepseek-ai/cordis'
 import { spawnRipgrep } from '@deepseek-ai/dsh-util-ripgrep'
 export { resolveRgPath } from '@deepseek-ai/dsh-util-ripgrep'
@@ -28,6 +29,7 @@ import { ItemRetainer, TextRetainer } from '@deepseek-ai/dsh-output-retention'
 import type { RetainedItems } from '@deepseek-ai/dsh-output-retention'
 import type { SubprocessHandle, SubprocessOutcome, SubprocessOutputRead, SubprocessSpawnSpec } from '@deepseek-ai/dsh-subprocess'
 import type { SaveTextSpill, SpillRef } from '@deepseek-ai/dsh-spill'
+import { ToolArgsError } from '@deepseek-ai/dsh-tools'
 import type { ToolExecution } from '@deepseek-ai/dsh-tools'
 
 /**
@@ -156,6 +158,50 @@ function completeStdout(toolName: string, stdout: SubprocessOutputRead, rawOutpu
 }
 
 /**
+ * Resolve the session working directory for one search execution: the owning
+ * agent's session cwd when present, otherwise `process.cwd()`.
+ *
+ * @param ctx - plugin context; `workingDirectory` resolves the agent's cwd.
+ * @param exec - the execution whose agent and signal select the cwd.
+ * @returns the absolute working directory the search runs in.
+ */
+export async function resolveSearchWorkdir(ctx: Context, exec: ToolExecution): Promise<string> {
+  return exec.agent === undefined
+    ? process.cwd()
+    : await ctx.workingDirectory.ensure(exec.agent, exec.signal)
+}
+
+/**
+ * Reject a search `path` that escapes the session working directory. The
+ * lexical check runs before the spawn; an existing target is checked again by
+ * real path so a symlink inside the workdir cannot reach outside it.
+ *
+ * @param workdir - the session working directory.
+ * @param requested - the model-supplied `path` argument.
+ * @throws ToolArgsError when the resolved target lies outside `workdir`.
+ */
+export async function assertSearchPathWithin(workdir: string, requested: string): Promise<void> {
+  const target = resolve(workdir, requested)
+  if (!isWithinWorkdir(workdir, target)) throw outsideWorkdir()
+  const [realRoot, realTarget] = await Promise.all([
+    realpath(workdir).catch(() => undefined),
+    realpath(target).catch(() => undefined),
+  ])
+  if (realRoot !== undefined && realTarget !== undefined && !isWithinWorkdir(realRoot, realTarget)) throw outsideWorkdir()
+}
+
+/** Whether `target` is `root` itself or descends from it on the same path root. */
+function isWithinWorkdir(root: string, target: string): boolean {
+  const rel = relative(root, target)
+  return rel === '' || (rel !== '..' && !rel.startsWith(`..${sep}`) && !isAbsolute(rel))
+}
+
+/** The model-facing rejection for a path outside the session working directory. */
+function outsideWorkdir(): ToolArgsError {
+  return new ToolArgsError(['path must stay inside the session working directory'])
+}
+
+/**
  * Run the packaged ripgrep binary with a plain argv vector and return its
  * complete raw stdout. The working directory is the calling agent's session
  * current directory when available, else
@@ -189,6 +235,7 @@ function completeStdout(toolName: string, stdout: SubprocessOutputRead, rawOutpu
  * @param rawOutputMaxBytes - cap on the complete raw stdout the tool will parse.
  * @param graceMs - the seam's terminate-escalation grace period.
  * @param stderrMaxBytes - cap on the retained stderr diagnostic tail.
+ * @param resolvedWorkdir - pre-resolved session working directory; omitted callers get the agent cwd or `process.cwd()`.
  * @returns the complete stdout, the zero-result flag, and the resolved workdir.
  */
 export async function runRipgrep(
@@ -199,13 +246,14 @@ export async function runRipgrep(
   rawOutputMaxBytes: number,
   graceMs: number,
   stderrMaxBytes: number,
+  resolvedWorkdir?: string,
 ): Promise<RipgrepRun> {
   if (exec.signal.aborted) {
     throw new SearchError(`${toolName} was aborted before completion (tool timeout or caller cancellation)`, 'SEARCH_ABORTED')
   }
-  const workdir = exec.agent === undefined
+  const workdir = resolvedWorkdir ?? (exec.agent === undefined
     ? process.cwd()
-    : await ctx.workingDirectory.ensure(exec.agent, exec.signal)
+    : await ctx.workingDirectory.ensure(exec.agent, exec.signal))
   let handle: SubprocessHandle
   try {
     handle = await spawnRipgrep(ctx.subprocess, {

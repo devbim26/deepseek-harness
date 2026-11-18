@@ -4373,6 +4373,12 @@ export interface Config {
 export interface Config {
   /** Whether an over-cap `glob` page is sampled across top-level entries instead of taking the modification-time head. */
   sampleOverCapGlobResults: boolean
+  /**
+   * Reject a `grep`/`glob` `path` that resolves outside the session working
+   * directory; an existing target is also checked by its real path so a
+   * symlink inside the workdir cannot reach outside it. Defaults to false.
+   */
+  confineToWorkdir?: boolean
   /** Max paths one `glob` call retains inline; later paths go to the formatted spill file. */
   globMaxResults?: number
   /** Max flat matches one `grep` call retains inline; later matches go to the formatted spill file. */

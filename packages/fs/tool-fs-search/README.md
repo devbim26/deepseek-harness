@@ -61,6 +61,7 @@ Both tools opt into concurrent scheduling with sibling parallel-safe calls. A se
 | Key | Default | Meaning |
 |---|---|---|
 | `sampleOverCapGlobResults` | none (required) | `true` samples an over-cap `glob` page across top-level entries; `false` keeps the modification-time-ordered head |
+| `confineToWorkdir` | `false` | Reject a `grep`/`glob` `path` that resolves outside the session working directory; an existing target is also checked by its real path, so a symlink inside the workdir cannot reach outside it |
 | `globMaxResults` | `100` | Max paths one `glob` call shows inline |
 | `grepMaxMatches` | `250` | Max flat matches one `grep` call retains inline; later matches go to the formatted spill artifact |
 | `grepMaxLineBytes` | `2000` | Byte cap per matched-line preview, preserving UTF-8 boundaries |
@@ -69,6 +70,8 @@ Both tools opt into concurrent scheduling with sibling parallel-safe calls. A se
 | `graceMs` | `3000` | Terminate-escalation grace the subprocess seam grants past `timeoutMs` |
 | `stderrMaxBytes` | `65536` | Diagnostic-tail budget for `rg` stderr |
 | `searchMetaMaxBytes` | `65536` | Max bytes of one search's serialized `presentationMeta`; trailing groups/paths drop past it |
+
+With `confineToWorkdir`, the check is an argument policy of these tools, not OS-level confinement of the ripgrep process: an accepted path is still searched with the host process's read authority.
 
 The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-tool-fs-search) is the exhaustive source for every accepted field and its JSDoc.
 
