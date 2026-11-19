@@ -75,6 +75,37 @@ async function harness(options: { systemDocuments?: boolean } = {}) {
   return { controller, ctx, root, storageDomain }
 }
 
+/** Full registry stack under the controller with an explicit first-use policy config. */
+async function projectHarness(config: { projectBase?: string; documentsDirectory?: string }) {
+  const ctx = new Context()
+  roots.push(ctx)
+  await ctx.plugin(SessionStore)
+  await ctx.plugin(Storage)
+  ctx.storage.backend.register('memory', new MemoryStorageBackend())
+  const storageDomain = new DomainFacility(ctx, { backend: 'memory', routes: {} })
+  ctx.storage.mount('domain', storageDomain)
+  ctx.provide('storageDomain', storageDomain)
+  ctx.provide('sessionPersistence', { list: () => Promise.resolve([]) } as never)
+  await ctx.plugin(WorkspaceRegistry)
+  ctx.provide('typert', {
+    lookups: { configure: () => () => {} },
+    contexts: { configureHost: () => () => {} },
+    resources: { register: () => () => {} },
+  } as never)
+  new RemoteAccessService(ctx)
+  return { controller: new WorkspaceController(ctx, config), ctx }
+}
+
+/** Wire error code of a rejected call (RemoteError.code as a string). */
+async function rejectionCode(promise: Promise<unknown>): Promise<string> {
+  try {
+    await promise
+  } catch (error: unknown) {
+    return String((error as { code?: string }).code)
+  }
+  throw new Error('expected a rejection')
+}
+
 declare module '@deepseek-ai/dsh-typert-protocol' {
   interface PrincipalMap {
     /** Test-only non-owner caller shared by the access specs. */
@@ -609,5 +640,29 @@ describe('first-use Remote', () => {
     vi.spyOn(ctx.workspaceRegistry, 'initializeDefault').mockRejectedValueOnce(new Error('permission denied'))
     await expect(controller.initializeDefault(new AbortController().signal))
       .rejects.toThrow('permission denied')
+  })
+})
+
+describe('projectBase configuration', () => {
+  it('rejects documentsDirectory and projectBase together', () => {
+    const ctx = new Context()
+    roots.push(ctx)
+    expect(() => new WorkspaceController(ctx, { documentsDirectory: 'C:\\doc', projectBase: 'C:\\projects' }))
+      .toThrow(/projectBase and documentsDirectory are mutually exclusive/)
+  })
+
+  it('rejects a relative projectBase', () => {
+    const ctx = new Context()
+    roots.push(ctx)
+    expect(() => new WorkspaceController(ctx, { projectBase: 'projects' }))
+      .toThrow(/Project base directory must be fully qualified/)
+  })
+
+  it('anchors first-use default Workspace under projectBase', async () => {
+    const root = realpathSync.native(mkdtempSync(join(tmpdir(), 'dsh-workspace-controller-')))
+    tempDirs.push(root)
+    const { controller } = await projectHarness({ projectBase: root })
+    const value = await controller.initializeDefault(new AbortController().signal)
+    expect(value?.workspace.path).toBe(join(root, DEFAULT_WORKSPACE_DIRECTORY))
   })
 })

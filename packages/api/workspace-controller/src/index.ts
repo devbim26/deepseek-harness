@@ -1,5 +1,6 @@
 /** Host Workspace Remote owner: explicit commands and reconnect-safe state. */
 
+import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
@@ -8,7 +9,8 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { WorkspaceCommands } from './commands.ts'
 import { DirectoryPickerController } from './directory-picker.ts'
 import { WorkspaceFeed, workspaceView } from './feed.ts'
-import { defaultWorkspaceDirectory, validateDocumentsDirectory } from './default-directory.ts'
+import { DEFAULT_WORKSPACE_DIRECTORY } from './default-workspace.ts'
+import { defaultWorkspaceDirectory, validateDocumentsDirectory, validateFullyQualifiedDirectory } from './default-directory.ts'
 import type {
   WorkspaceArchiveSessionRequest,
   WorkspaceArchiveValue,
@@ -37,6 +39,13 @@ export { DirectoryPickerController } from './directory-picker.ts'
 export interface Config {
   /** Override the system Documents directory with a fully qualified path. */
   documentsDirectory?: string
+  /**
+   * Base directory for confined project creation: `createProject` makes one
+   * named child directory per call, and first-use default Workspace anchoring
+   * uses `<projectBase>/default-workspace`. Mutually exclusive with
+   * `documentsDirectory`.
+   */
+  projectBase?: string
   /** Maximum duration of the operating system's Documents lookup. */
   documentsLookupTimeoutMs?: number
 }
@@ -57,6 +66,7 @@ export class WorkspaceController extends TypertRemoteService {
 
   static Config: z<Config, ResolvedConfig> = z.object({
     documentsDirectory: z.string(),
+    projectBase: z.string(),
     documentsLookupTimeoutMs: z.natural().min(1).default(10_000),
   })
 
@@ -70,9 +80,15 @@ export class WorkspaceController extends TypertRemoteService {
    */
   constructor(ctx: Context, config: Config = {}) {
     super(ctx, 'workspaceController', { namespace: 'workspace' })
-    ctx.typert.resources.register('workspace', { field: 'workspaceId' })
     this.config = WorkspaceController.Config(config)
+    if (this.config.documentsDirectory !== undefined && this.config.projectBase !== undefined) {
+      throw new Error('projectBase and documentsDirectory are mutually exclusive; configure one first-use policy')
+    }
     if (this.config.documentsDirectory !== undefined) validateDocumentsDirectory(this.config.documentsDirectory)
+    if (this.config.projectBase !== undefined) {
+      this.config = { ...this.config, projectBase: validateFullyQualifiedDirectory(this.config.projectBase, process.platform, 'Project base directory') }
+    }
+    ctx.typert.resources.register('workspace', { field: 'workspaceId' })
     this.commands = new WorkspaceCommands(ctx)
     this.feed = new WorkspaceFeed(ctx)
     // This package is the Loader entry for both Remote owners it hosts: the
@@ -103,6 +119,9 @@ export class WorkspaceController extends TypertRemoteService {
   @Remote('initializeDefault')
   async initializeDefault(signal: AbortSignal): Promise<WorkspaceValue | undefined> {
     const workspace = await this.ctx.workspaceRegistry.initializeDefault(async () => {
+      if (this.config.projectBase !== undefined) {
+        return join(this.config.projectBase, DEFAULT_WORKSPACE_DIRECTORY)
+      }
       const timeout = AbortSignal.timeout(this.config.documentsLookupTimeoutMs)
       return await defaultWorkspaceDirectory(
         this.config.documentsDirectory, AbortSignal.any([signal, timeout]),
