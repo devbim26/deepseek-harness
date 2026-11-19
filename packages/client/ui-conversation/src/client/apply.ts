@@ -535,8 +535,10 @@ export function apply(ctx: Context, config: Config = Config({})): void {
             if (bridge === undefined && directory) return t('attachment.directoryDesktopOnly')
             const path = bridge?.pathFor(file) ?? ''
             if (directory && path === '') return t('attachment.pathUnavailable')
-            if (!directory && file.size > maxFileBytes) return t('file.tooLarge', { size: fileSizeText(maxFileBytes) })
             if (path === '' || (!directory && isImageMediaType(file.type))) {
+              // Only bytes that upload carry the size gate; a Desktop path
+              // reference chip names an existing file and uploads nothing.
+              if (file.size > maxFileBytes) return t('file.tooLarge', { size: fileSizeText(maxFileBytes) })
               uploads.push(file)
               continue
             }

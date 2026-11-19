@@ -293,4 +293,28 @@ describe('intake size limit', () => {
     expect(controller.fileUploads.getSnapshot()).toEqual({})
     expect(b.upload).not.toHaveBeenCalled()
   })
+
+  it('attaches an over-limit Desktop path file as a reference chip without the size gate', async () => {
+    vi.stubGlobal('__DSH_HOST_PATHS__', {
+      pathFor: (file: File) => file.name === 'big-model.bin' ? '/proj/big-model.bin' : '',
+    })
+    let b: Awaited<ReturnType<typeof intakeBench>> | undefined
+    try {
+      b = await intakeBench()
+      const oversized = Object.defineProperty(
+        new File([], 'big-model.bin', { type: 'application/octet-stream' }),
+        'size',
+        { value: 26214401 },
+      )
+      expect(b.composer.addFiles?.([oversized])).toBeNull()
+      const input = b.runtime.ctx.conversation.input.for(b.runtime.sessions.scope(ROOT)!)
+      // The existing file became an @path reference chip; no bytes upload and no draft attaches.
+      expect(input.state.getSnapshot().draft).toBe('@big-model.bin ')
+      expect(input.state.getSnapshot().attachmentIds).toEqual([])
+      expect(b.upload).not.toHaveBeenCalled()
+    } finally {
+      await b?.runtime.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
 })
