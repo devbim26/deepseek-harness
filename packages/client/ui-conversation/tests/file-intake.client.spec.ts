@@ -10,7 +10,7 @@ import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ComposerFileIntakeTarget } from '../src/client/contract/slots.ts'
 import type { ConversationController } from '../src/client/service.ts'
-import { apply, inject } from '../src/client/apply.ts'
+import { apply, Config, inject } from '../src/client/apply.ts'
 import { createComposerFileIntake } from '../src/client/input/file-intake.ts'
 
 usePinnedBrowserLanguages('zh-CN')
@@ -266,6 +266,15 @@ async function intakeBench() {
 }
 
 describe('intake size limit', () => {
+  it('defaults the client file limits and rejects a zero byte ceiling', () => {
+    expect(Config({})).toEqual({
+      maxConcurrentFileUploads: 2,
+      maxFileBytes: 26214400,
+      maxExtractChars: 50000,
+    })
+    expect(() => Config({ maxFileBytes: 0 })).toThrow()
+  })
+
   it('rejects an over-limit file without creating a draft', async () => {
     const b = await intakeBench()
     onTestFinished(() => b.runtime.dispose())
