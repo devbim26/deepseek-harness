@@ -40,9 +40,15 @@ The [Workspace registry](../../workspace/workspace/README.md#first-use-workspace
 | Configuration | Default | Purpose |
 | --- | --- | --- |
 | `documentsDirectory` | System Documents directory | Fully qualified Host directory override |
+| `projectBase` | — | Fully qualified base directory for `createProject` and first-use default anchoring; mutually exclusive with `documentsDirectory` |
 | `documentsLookupTimeoutMs` | `10000` | Positive maximum duration of OS directory lookup, in milliseconds |
 
 Documents lookup holds the registry mutation queue, so other Workspace mutations, including registration of a picked directory, can wait up to `documentsLookupTimeoutMs`. Cancellation can stop the lookup; after resolution succeeds, it does not roll back creation or registration.
+
+<a id="confined-project-creation"></a>
+### Confined project creation
+
+With `projectBase` configured, `workspace.createProject({ name })` makes exactly one child directory `<projectBase>/<name>` and registers it as a Workspace through the same adoption path as `create`; the name must survive as one safe directory segment (1–64 characters, no path separators, no reserved Windows device names, no edge dots or spaces). The verb refuses with the `workspace/project-unavailable`, `workspace/project-name-invalid`, `workspace/project-exists`, and `workspace/project-create-failed` error codes. The follow baseline carries the configured base as `projectBase` (null when the capability is off), and the `ui-workspace` browser gates its New project button on that field.
 
 -----
 

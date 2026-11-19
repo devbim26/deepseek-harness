@@ -40,9 +40,15 @@ Client 入口提供 `ClientWorkspaceModel` 和 `createWorkspaceStateStream()`。
 | 配置 | 默认值 | 用途 |
 | --- | --- | --- |
 | `documentsDirectory` | 系统 Documents 目录 | 完全限定的 Host 目录覆盖值 |
+| `projectBase` | — | `createProject` 与首次使用默认锚定使用的完全限定基目录；与 `documentsDirectory` 互斥 |
 | `documentsLookupTimeoutMs` | `10000` | 操作系统目录查询的正数最大时长，单位为毫秒 |
 
 Documents 查询占用注册表变更队列，因此其他 Workspace 变更（包括登记已选目录）最多可能等待 `documentsLookupTimeoutMs`。取消可以停止查询；解析成功后，取消不会回滚创建或登记。
+
+<a id="confined-project-creation"></a>
+### 受限项目创建
+
+配置 `projectBase` 后，`workspace.createProject({ name })` 只创建一个子目录 `<projectBase>/<name>`，并经由与 `create` 相同的登记路径将其注册为 Workspace；名称必须是一个安全的目录片段（1–64 个字符，不含路径分隔符，不含 Windows 保留设备名，首尾无点号或空格）。该动词按 `workspace/project-unavailable`、`workspace/project-name-invalid`、`workspace/project-exists`、`workspace/project-create-failed` 错误码拒绝。follow 基线以 `projectBase` 字段携带所配置的基目录（能力关闭时为 null），`ui-workspace` 浏览器据此字段门控「新建项目」按钮。
 
 -----
 
