@@ -17,6 +17,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { SessionId, SessionSeq } from '@deepseek-ai/dsh-session/types'
 import type { WorkspaceId } from '@deepseek-ai/dsh-workspace/types'
 import type { ComposerBlock } from './composer-blocks.ts'
+import type { DocumentExtractNotice } from '../document-extract.ts'
 import type { DraftAttachmentId, InputActions, InputNotice, InputState } from './input.ts'
 import type { ComposerKeyboard, DraftSnapshot, EditSelection } from './draft-editor.ts'
 import type { createConversationStore } from '../stores.ts'
@@ -56,6 +57,8 @@ export interface ComposerFileAttachment {
   kind: 'file'
   id: DraftAttachmentId
   file: File
+  /** Extracted document text, present once extraction finished; `truncated` states clipping. */
+  extraction?: { text: string; truncated: boolean }
 }
 
 /**
@@ -73,6 +76,15 @@ export type DraftFileUpload =
 /** Per-draft upload states keyed by draft attachment id. */
 export type DraftFileUploads = Readonly<Record<string, DraftFileUpload>>
 
+/** Extraction lifecycle of one file draft, parallel to its upload. */
+export type DraftExtraction =
+  | { readonly status: 'extracting' }
+  | { readonly status: 'done' }
+  | { readonly status: 'failed'; readonly notice: DocumentExtractNotice }
+
+/** Per-draft extraction states keyed by draft attachment id. */
+export type DraftExtractions = Readonly<Record<string, DraftExtraction>>
+
 /** Input state handed to the optional attachment presentation plugin. */
 export interface ComposerAttachmentsOwnerProps {
   /** Browser-owned draft attachments in input order. */
@@ -89,6 +101,8 @@ export interface ComposerAttachmentsOwnerProps {
   onRemoveAttachment: (id: DraftAttachmentId) => void
   /** Current per-draft upload states for file-kind attachments. */
   uploads: DraftFileUploads
+  /** Current per-draft extraction states for file-kind attachments. */
+  extractions: DraftExtractions
   /** Restart one failed file upload. */
   onRetryFile: (id: DraftAttachmentId) => void
   /**

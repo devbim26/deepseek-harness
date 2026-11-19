@@ -21,8 +21,12 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { FileAttachmentRef, ImageMediaType } from '@deepseek-ai/dsh-attachment'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
+import {
+  NoTextLayerError, UnsupportedDocumentError, extractDocumentText, extractableText, isLegacyDoc,
+} from './document-extract.ts'
+import type { DocumentExtractNotice } from './document-extract.ts'
 import type {
-  ComposerAttachment, ComposerFileAttachment, ComposerImageAttachment, DraftFileUpload,
+  ComposerAttachment, ComposerFileAttachment, ComposerImageAttachment, DraftExtraction, DraftFileUpload,
 } from './contract/slots.ts'
 import type { QueueAction } from '@deepseek-ai/dsh-api-session-controller/types'
 import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
@@ -157,6 +161,8 @@ export class ConversationController extends Service implements IConversation {
   readonly blocks: ComposerBlocks
   /** Live upload state per draft that uploads when added: every file draft and every uploaded image draft. */
   readonly fileUploads: SnapshotStore<Record<string, DraftFileUpload>> = createSnapshotStore<Record<string, DraftFileUpload>>({})
+  /** Per-draft document-text extraction states, parallel to `fileUploads`. */
+  readonly fileExtractions: SnapshotStore<Record<string, DraftExtraction>> = createSnapshotStore<Record<string, DraftExtraction>>({})
   private readonly draftAttachments = new Map<DraftAttachmentId, ComposerAttachment>()
   private readonly fileUploadOperations = new Map<DraftAttachmentId, {
     readonly controller: AbortController
@@ -169,34 +175,47 @@ export class ConversationController extends Service implements IConversation {
   }> = []
   private activeFileUploads = 0
   private readonly maxConcurrentFileUploads: number
+  private readonly maxFileBytes: number
+  private readonly maxExtractChars: number
+  private readonly documentContentText: (name: string, truncated: boolean) => string
+  private readonly extractionControllers = new Map<DraftAttachmentId, AbortController>()
 
   /**
    * @param ctx - owning root context (the plugin apply context; the service
    * registers itself and follows that fiber's lifetime).
    * @param config - carries the SessionInputResolver and composer-block registry
    * constructed by the plugin apply (the same instances the slot inject
-   * factories close over).
+   * factories close over), plus the extraction limits and header formatter.
    */
   constructor(ctx: Context, config: {
     input: SessionInputResolver
     blocks: ComposerBlocks
     maxConcurrentFileUploads: number
+    maxFileBytes: number
+    maxExtractChars: number
+    documentContentText: (name: string, truncated: boolean) => string
   }) {
     super(ctx, 'conversation')
     this.input = config.input
     this.blocks = config.blocks
     this.maxConcurrentFileUploads = config.maxConcurrentFileUploads
+    this.maxFileBytes = config.maxFileBytes
+    this.maxExtractChars = config.maxExtractChars
+    this.documentContentText = config.documentContentText
     ctx.effect(() => async () => {
       const operations = [...this.fileUploadOperations.values()]
       for (const operation of operations) operation.controller.abort()
       await Promise.allSettled([...this.pendingFileUploads])
       this.fileUploadOperations.clear()
       this.fileUploadQueue.length = 0
+      for (const controller of this.extractionControllers.values()) controller.abort()
+      this.extractionControllers.clear()
       for (const attachment of this.draftAttachments.values()) {
         if (attachment.kind === 'image') revokePreview(attachment.previewUrl)
       }
       this.draftAttachments.clear()
       this.fileUploads.set({})
+      this.fileExtractions.set({})
     }, 'conversation draft attachments')
   }
 
@@ -270,13 +289,21 @@ export class ConversationController extends Service implements IConversation {
       : { type: 'file' as const, value: storedFileOf(attachment) })
     const serializeAttachments = (): Promise<Parameters<SessionFace['prompt']>[0]> => Promise.all(
       attachments.map(async (attachment) => {
-        if (attachment.kind === 'file') return { type: 'file' as const, receiptId: uploadFor(attachment).receiptId }
+        if (attachment.kind === 'file') {
+          const fileBlock = { type: 'file' as const, receiptId: uploadFor(attachment).receiptId }
+          const extraction = attachment.extraction
+          if (extraction === undefined) return [fileBlock]
+          return [fileBlock, {
+            type: 'text' as const,
+            text: `${this.documentContentText(attachment.file.name, extraction.truncated)}\n${extraction.text}`,
+          }]
+        }
         const receiptId = imageReceipts.get(attachment.id)
-        return receiptId === undefined
+        return [receiptId === undefined
           ? { type: 'image' as const, ...await this.encodeImage(attachment.file) }
-          : { type: 'file' as const, receiptId }
+          : { type: 'file' as const, receiptId }]
       }),
-    )
+    ).then(groups => groups.flat())
     // The composer owns the attachments until the Host accepts the prompt.
     const ownership = { accepted: false, retiredUnobserved: false }
     const acceptance = Promise.withResolvers<undefined>()
@@ -343,6 +370,7 @@ export class ConversationController extends Service implements IConversation {
       }
       this.draftAttachments.set(attachment.id, attachment)
       this.beginFileUpload(sessionId, attachment)
+      this.beginExtraction(attachment)
       return attachment
     })
   }
@@ -357,6 +385,53 @@ export class ConversationController extends Service implements IConversation {
     if (attachment === undefined) return
     if (this.fileUploads.getSnapshot()[id]?.status !== 'error') return
     this.beginFileUpload(sessionId, attachment)
+  }
+
+  /**
+   * Start background text extraction for one file draft. Legacy `.doc`
+   * immediately reports `docLegacy`; unsupported types get no entry at all.
+   * @param attachment - the file draft to extract.
+   */
+  private beginExtraction(attachment: ComposerFileAttachment): void {
+    if (isLegacyDoc(attachment.file)) {
+      this.fileExtractions.update((draft) => {
+        draft[attachment.id] = { status: 'failed', notice: 'docLegacy' }
+      })
+      return
+    }
+    if (!extractableText(attachment.file)) return
+    this.fileExtractions.update((draft) => {
+      draft[attachment.id] = { status: 'extracting' }
+    })
+    const controller = new AbortController()
+    this.extractionControllers.set(attachment.id, controller)
+    void extractDocumentText(attachment.file, { maxFileBytes: this.maxFileBytes, maxExtractChars: this.maxExtractChars }, controller.signal)
+      .then((result) => {
+        // A dropped draft may still have this continuation queued; its controller left the map.
+        if (this.extractionControllers.get(attachment.id) !== controller) return
+        attachment.extraction = { text: result.text, truncated: result.truncated }
+        this.fileExtractions.update((draft) => {
+          draft[attachment.id] = { status: 'done' }
+        })
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return
+        const notice: DocumentExtractNotice = error instanceof UnsupportedDocumentError
+          ? 'docLegacy'
+          : error instanceof NoTextLayerError ? 'noTextLayer' : 'parseFailed'
+        this.fileExtractions.update((draft) => {
+          draft[attachment.id] = { status: 'failed', notice }
+        })
+      })
+  }
+
+  /** Abort one in-flight extraction and drop its state entry. */
+  private dropExtraction(id: DraftAttachmentId): void {
+    this.extractionControllers.get(id)?.abort()
+    this.extractionControllers.delete(id)
+    const rest: Record<string, DraftExtraction> = { ...this.fileExtractions.getSnapshot() }
+    delete rest[id]
+    this.fileExtractions.set(rest)
   }
 
   /**
@@ -507,6 +582,7 @@ export class ConversationController extends Service implements IConversation {
     if (attachment.kind === 'image') revokePreview(attachment.previewUrl)
     // The stored Host object stays durable; only the draft's upload state ends.
     this.dropUpload(id)
+    this.dropExtraction(id)
   }
 
   /** Abort one draft's active upload and drop its upload state. */

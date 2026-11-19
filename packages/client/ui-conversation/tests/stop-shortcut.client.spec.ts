@@ -31,6 +31,8 @@ async function bench() {
   const hub = new InputHub(runtime.ctx, makeTranslate(zh, {}))
   const fiber = runtime.ctx.plugin(ConversationController, {
     input: hub, blocks: new ComposerBlockRegistry(), maxConcurrentFileUploads: 2,
+    // Extraction stays inert here: this bench drafts no extractable files.
+    maxFileBytes: 0, maxExtractChars: 20, documentContentText: () => '',
   })
   await fiber.await()
   const conversation = new UiConversation(runtime.ctx, runtime.sessions)

@@ -17,6 +17,7 @@ import { InputHub } from '../src/client/input/hub.ts'
 import { reportMessageSubmission } from '../src/client/input/submission-analytics.ts'
 import { ConversationController } from '../src/client/service.ts'
 import { zh } from '../src/client/locales.ts'
+import { xlsxOf } from './document-fixtures.client.ts'
 
 const IMAGE_REF = {
   attachmentId: 'image-stored-1' as never,
@@ -31,7 +32,21 @@ const UPLOAD_IMAGES = true
 /** `createDrafts` mode of a draft whose images travel inline, as a subagent continuation's do. */
 const INLINE_IMAGES = false
 
-async function bench(maxConcurrentFileUploads = 2) {
+/** Extraction config of the ConversationController bench. */
+interface ExtractionConfig {
+  maxFileBytes: number
+  maxExtractChars: number
+  documentContentText: (name: string, truncated: boolean) => string
+}
+
+/** Zero byte budget: legacy benches run no real extraction, so their prompts stay byte-stable. */
+const EXTRACTION_OFF: ExtractionConfig = {
+  maxFileBytes: 0,
+  maxExtractChars: 20,
+  documentContentText: () => '',
+}
+
+async function bench(maxConcurrentFileUploads = 2, extraction: ExtractionConfig = EXTRACTION_OFF) {
   const runtime = await SlotTestRuntime.create()
   runtime.fileUpload.upload = (sessionId: SessionId, ...args: unknown[]) => {
     const session = runtime.sessions.behavior(sessionId) as {
@@ -66,6 +81,7 @@ async function bench(maxConcurrentFileUploads = 2) {
     input: hub,
     blocks: new ComposerBlockRegistry(),
     maxConcurrentFileUploads,
+    ...extraction,
   })
   await fiber.await()
   const root = runtime.ctx.get('conversation') as ConversationController
@@ -604,9 +620,113 @@ describe('ConversationController', () => {
       input: new InputHub(bare, makeTranslate(zh, {})),
       blocks: new ComposerBlockRegistry(),
       maxConcurrentFileUploads: 2,
+      ...EXTRACTION_OFF,
     }).await()
     const orphan = bare.get('conversation') as ConversationController
     await expect(orphan.send('x')).rejects.toThrow(/sessions service unavailable/)
+  })
+})
+
+describe('draft document extraction', () => {
+  /** Header double from the Task 2 brief: the truncated variant is named explicitly. */
+  const documentContentText = (name: string, truncated: boolean): string =>
+    truncated ? `«${name}» (усечён)` : `«${name}»`
+
+  async function extractBench() {
+    return bench(2, { maxFileBytes: 1024 * 1024, maxExtractChars: 20, documentContentText })
+  }
+
+  /** Upload double storing one receipt per file name. */
+  const uploadByName = () => vi.fn((_file: Blob | Uint8Array, name?: string) =>
+    Promise.resolve({
+      ok: true as const,
+      value: {
+        receiptId: `receipt-${name}` as never,
+        file: { attachmentId: `file-${name}` as never, name: name ?? 'file', bytes: 1 },
+      },
+    }))
+
+  it('extracts a picked xlsx and sends its text after the file block', async () => {
+    const b = await extractBench()
+    const session = b.runtime.sessions.binding('s1')!.session
+    ;(session as { uploadFile?: unknown }).uploadFile = uploadByName()
+    const [draft] = b.root.createDrafts(session.sessionId, [
+      new File([xlsxOf([['Позиция', 'Объем'], ['Стена', '120']])], 'вед.xlsx'),
+    ], UPLOAD_IMAGES)
+    if (draft === undefined || draft.kind !== 'file') throw new Error('file draft missing')
+    await vi.waitFor(() => {
+      expect(b.root.fileUploads.getSnapshot()[draft.id]?.status).toBe('ready')
+      expect(b.root.fileExtractions.getSnapshot()[draft.id]?.status).toBe('done')
+    })
+    await expect(b.root.sendSession(session, '', [draft.id], 'queue')).resolves.toEqual({ kind: 'success' })
+    expect(b.prompt.mock.calls[0]?.[0]).toEqual([
+      { type: 'file', receiptId: 'receipt-вед.xlsx' },
+      { type: 'text', text: expect.stringMatching(/^«вед\.xlsx» \(усечён\)\nПозиция/) },
+    ])
+    await b.runtime.dispose()
+  })
+
+  it('drops the extraction entry with its released draft and sends the remaining file alone', async () => {
+    const b = await extractBench()
+    const session = b.runtime.sessions.binding('s1')!.session
+    ;(session as { uploadFile?: unknown }).uploadFile = uploadByName()
+    const drafts = b.root.createDrafts(session.sessionId, [
+      new File(['заметка'], 'notes.txt', { type: 'text/plain' }),
+      new File([Uint8Array.of(9)], 'data.bin', { type: 'application/octet-stream' }),
+    ], UPLOAD_IMAGES)
+    const [notes, bin] = [drafts[0]!, drafts[1]!]
+    await vi.waitFor(() => {
+      expect(b.root.fileExtractions.getSnapshot()[notes.id]?.status).toBe('done')
+    })
+    expect(b.root.fileExtractions.getSnapshot()[bin.id]).toBeUndefined()
+    b.root.releaseDraftAttachment(notes.id)
+    expect(b.root.fileExtractions.getSnapshot()[notes.id]).toBeUndefined()
+    await vi.waitFor(() => {
+      expect(b.root.fileUploads.getSnapshot()[bin.id]?.status).toBe('ready')
+    })
+    await expect(b.root.sendSession(session, '', [bin.id], 'queue')).resolves.toEqual({ kind: 'success' })
+    expect(b.prompt.mock.calls[0]?.[0]).toEqual([{ type: 'file', receiptId: 'receipt-data.bin' }])
+    await b.runtime.dispose()
+  })
+
+  it('emits the truncated header variant for a clipped extraction', async () => {
+    const b = await extractBench()
+    const session = b.runtime.sessions.binding('s1')!.session
+    ;(session as { uploadFile?: unknown }).uploadFile = uploadByName()
+    const [draft] = b.root.createDrafts(session.sessionId, [
+      new File([Uint8Array.of(1)], 'data.bin', { type: 'application/octet-stream' }),
+    ], UPLOAD_IMAGES)
+    if (draft === undefined || draft.kind !== 'file') throw new Error('file draft missing')
+    draft.extraction = { text: 'x'.repeat(30), truncated: true }
+    await vi.waitFor(() => {
+      expect(b.root.fileUploads.getSnapshot()[draft.id]?.status).toBe('ready')
+    })
+    await expect(b.root.sendSession(session, '', [draft.id], 'queue')).resolves.toEqual({ kind: 'success' })
+    expect(b.prompt.mock.calls[0]?.[0]).toEqual([
+      { type: 'file', receiptId: 'receipt-data.bin' },
+      { type: 'text', text: `«data.bin» (усечён)\n${'x'.repeat(30)}` },
+    ])
+    await b.runtime.dispose()
+  })
+
+  it('sends only the file block when parsing failed', async () => {
+    const b = await extractBench()
+    const session = b.runtime.sessions.binding('s1')!.session
+    ;(session as { uploadFile?: unknown }).uploadFile = uploadByName()
+    const [draft] = b.root.createDrafts(session.sessionId, [
+      new File([Uint8Array.of(1, 2, 3)], 'broken.docx'),
+    ], UPLOAD_IMAGES)
+    if (draft === undefined || draft.kind !== 'file') throw new Error('file draft missing')
+    await vi.waitFor(() => {
+      expect(b.root.fileExtractions.getSnapshot()[draft.id]).toEqual({ status: 'failed', notice: 'parseFailed' })
+    })
+    expect(draft.extraction).toBeUndefined()
+    await vi.waitFor(() => {
+      expect(b.root.fileUploads.getSnapshot()[draft.id]?.status).toBe('ready')
+    })
+    await expect(b.root.sendSession(session, '', [draft.id], 'queue')).resolves.toEqual({ kind: 'success' })
+    expect(b.prompt.mock.calls[0]?.[0]).toEqual([{ type: 'file', receiptId: 'receipt-broken.docx' }])
+    await b.runtime.dispose()
   })
 })
 
