@@ -165,4 +165,17 @@ describe('extractDocumentText', () => {
     controller.abort()
     await expect(extractDocumentText(fileOf('a.txt', 'text'), LIMITS, controller.signal)).rejects.toThrow()
   })
+
+  it('stops when the signal aborts mid-extraction', async () => {
+    const controller = new AbortController()
+    /** Trips the signal inside `text()`, so the abort lands after the parse await and before the final check. */
+    class LateAbortFile extends File {
+      override text(): Promise<string> {
+        controller.abort()
+        return super.text()
+      }
+    }
+    await expect(extractDocumentText(new LateAbortFile(['text'], 'late.txt'), LIMITS, controller.signal))
+      .rejects.toThrow('document-extract: aborted')
+  })
 })
