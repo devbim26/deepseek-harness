@@ -17,6 +17,16 @@ export class WorkspaceCreateError extends Error {
   }
 }
 
+/** createProject wire failure; `rpcError.code` picks the dialog's localized message. */
+export class WorkspaceProjectCreateError extends Error {
+  override readonly name = 'WorkspaceProjectCreateError'
+
+  /** @param rpcError - wire failure from the createProject call. */
+  constructor(readonly rpcError: RemoteFailure) {
+    super(`workspace project create failed: ${rpcError.code}: ${rpcError.message}`)
+  }
+}
+
 /**
  * Archive failed on the Host. `rpcError.code` distinguishes the active-session
  * refusal (`workspace/session-active`, whose details name what still runs)
@@ -53,6 +63,14 @@ export interface IWorkspaces {
    * @returns the created or idempotently resolved Workspace.
    */
   create(input: { path: string }): Promise<WorkspaceView>
+  /**
+   * Create one project Workspace under the Host's project base.
+   * @param input - user-supplied project name.
+   * @returns the created or already-registered Workspace.
+   * @throws {WorkspaceProjectCreateError} when the Host refuses the name, the
+   *   directory exists, or creation fails; `rpcError.code` names which.
+   */
+  createProject(input: { readonly name: string }): Promise<WorkspaceView>
   /**
    * Initialize or reuse the default Workspace.
    * @param signal - caller lifetime.
@@ -130,6 +148,12 @@ export class WorkspaceController extends Service implements IWorkspaces {
   async create(input: { path: string }): Promise<WorkspaceView> {
     const result = await this.model.create(input)
     if (!result.ok) throw new WorkspaceCreateError(result.error)
+    return result.value.workspace
+  }
+
+  async createProject(input: { readonly name: string }): Promise<WorkspaceView> {
+    const result = await this.model.createProject(input)
+    if (!result.ok) throw new WorkspaceProjectCreateError(result.error)
     return result.value.workspace
   }
 

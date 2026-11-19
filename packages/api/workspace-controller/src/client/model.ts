@@ -35,6 +35,8 @@ export interface WorkspaceSnapshot {
   readonly archivedSessionIds: WorkspaceArchiveValue['archivedSessionIds']
   /** Complete registry-global pin set, most recently pinned first. */
   readonly pinnedSessionIds: WorkspacePinValue['pinnedSessionIds']
+  /** Configured project-creation base from the latest baseline; null when off. */
+  readonly projectBase: string | null
   readonly state: 'idle' | 'loading' | 'error'
   readonly phase: WorkspaceListPhase
   readonly error: RemoteFailure | null
@@ -63,6 +65,7 @@ export class ClientWorkspaceModel implements WorkspaceFollowSink {
   private items: readonly WorkspaceView[] = []
   private archivedSessionIds: WorkspaceArchiveValue['archivedSessionIds'] = []
   private pinnedSessionIds: WorkspacePinValue['pinnedSessionIds'] = []
+  private projectBase: string | null = null
   private state: WorkspaceSnapshot['state'] = 'loading'
   private phase: WorkspaceListPhase = 'pending'
   private error: RemoteFailure | null = null
@@ -97,6 +100,18 @@ export class ClientWorkspaceModel implements WorkspaceFollowSink {
    */
   async create(input: WorkspaceCreateRequest): Promise<RemoteResult<WorkspaceCreateValue>> {
     const result = await this.remote.create(input)
+    if (result.ok) this.upsert(result.value.workspace)
+    return result
+  }
+
+  /**
+   * Create one project Workspace under the Host's project base and merge the
+   * unary result immediately.
+   * @param input - user-supplied project name.
+   * @returns generated Remote result.
+   */
+  async createProject(input: { name: string }): Promise<RemoteResult<WorkspaceCreateValue>> {
+    const result = await this.remote.createProject(input)
     if (result.ok) this.upsert(result.value.workspace)
     return result
   }
@@ -268,6 +283,7 @@ export class ClientWorkspaceModel implements WorkspaceFollowSink {
     this.installViews(baseline.items)
     this.installArchived(baseline.archivedSessionIds)
     this.installPinned(baseline.pinnedSessionIds)
+    this.projectBase = baseline.projectBase
     this.state = 'idle'
     this.phase = 'ready'
     this.error = null
@@ -350,6 +366,7 @@ export class ClientWorkspaceModel implements WorkspaceFollowSink {
       items: this.items,
       archivedSessionIds: this.archivedSessionIds,
       pinnedSessionIds: this.pinnedSessionIds,
+      projectBase: this.projectBase,
       state: this.state,
       phase: this.phase,
       error: this.error,

@@ -95,6 +95,9 @@ export const workspaceWorld: RemoteTable = {
     'workspace/create': (request: WorkspaceCreateRequest): RemoteResult<WorkspaceCreateValue> => ok({
       workspace: workspace('created', { path: request.path }), created: true,
     }),
+    'workspace/createProject': (request: { name: string }): RemoteResult<WorkspaceCreateValue> => ok({
+      workspace: workspace('project', { path: `/nw/${request.name}`, title: request.name }), created: true,
+    }),
     'workspace/rename': (request: WorkspaceRenameRequest): RemoteResult<WorkspaceValue> => ok({
       workspace: workspace(String(request.workspaceId), { title: request.title }),
     }),

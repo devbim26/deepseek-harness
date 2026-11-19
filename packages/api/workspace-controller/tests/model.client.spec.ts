@@ -15,6 +15,7 @@ import type {
   WorkspaceOrderValue,
   WorkspacePinSessionRequest,
   WorkspacePinValue,
+  WorkspaceProjectCreateRequest,
   WorkspaceRenameRequest,
   WorkspaceUnarchiveSessionRequest,
   WorkspaceUnpinSessionRequest,
@@ -73,6 +74,8 @@ class FakeWorkspaceRemote implements WorkspaceRemote {
   readonly calls: Array<{ readonly method: string; readonly request: unknown }> = []
   onCreate: (request: WorkspaceCreateRequest) => Promise<RemoteResult<WorkspaceCreateValue>> = request =>
     Promise.resolve(remoteOk({ workspace: workspace(request.path.split('/').pop() ?? 'workspace'), created: true }))
+  onCreateProject: (request: WorkspaceProjectCreateRequest) => Promise<RemoteResult<WorkspaceCreateValue>> = _request =>
+    Promise.resolve(remoteOk({ workspace: workspace('project'), created: true }))
   onRename: (request: WorkspaceRenameRequest) => Promise<RemoteResult<WorkspaceValue>> = request =>
     Promise.resolve(remoteOk({ workspace: { ...workspace(String(request.workspaceId)), title: request.title } }))
   onDelete: (_request: WorkspaceDeleteRequest) => Promise<RemoteResult<WorkspaceDeleteValue>> = () =>
@@ -106,6 +109,11 @@ class FakeWorkspaceRemote implements WorkspaceRemote {
   create(request: WorkspaceCreateRequest): Promise<RemoteResult<WorkspaceCreateValue>> {
     this.record('create', request)
     return this.onCreate(request)
+  }
+
+  createProject(request: WorkspaceProjectCreateRequest): Promise<RemoteResult<WorkspaceCreateValue>> {
+    this.record('createProject', request)
+    return this.onCreateProject(request)
   }
 
   rename(request: WorkspaceRenameRequest): Promise<RemoteResult<WorkspaceValue>> {
@@ -166,8 +174,9 @@ function baseline(
   items: readonly WorkspaceView[] = [],
   archivedSessionIds: readonly SessionId[] = [],
   pinnedSessionIds: readonly SessionId[] = [],
+  projectBase: string | null = null,
 ): void {
-  model.replaceBaseline({ items, archivedSessionIds, pinnedSessionIds })
+  model.replaceBaseline({ items, archivedSessionIds, pinnedSessionIds, projectBase })
 }
 
 describe('ClientWorkspaceModel', () => {
@@ -233,6 +242,27 @@ describe('ClientWorkspaceModel', () => {
     await expect(model.create({ path: '/w/created' })).resolves.toMatchObject({ ok: true })
     expect(remote.calls).toContainEqual({ method: 'create', request: { path: '/w/created' } })
     expect(model.getSnapshot().items[0]?.workspaceId).toBe('created')
+  })
+
+  it('creates a project and merges the returned row', async () => {
+    const remote = new FakeWorkspaceRemote()
+    const model = modelFor(remote)
+    remote.onCreateProject = request => Promise.resolve(remoteOk({
+      workspace: workspace('ЖД-12', [], '2026-02-01T00:00:00.000Z'),
+      created: request.name === 'ЖД-12',
+    }))
+    await expect(model.createProject({ name: 'ЖД-12' })).resolves.toMatchObject({ ok: true })
+    expect(remote.calls).toContainEqual({ method: 'createProject', request: { name: 'ЖД-12' } })
+    expect(model.getSnapshot().items[0]?.title).toBe('ЖД-12')
+  })
+
+  it('keeps projectBase from the stream baseline in the snapshot', async () => {
+    const remote = new FakeWorkspaceRemote()
+    const model = modelFor(remote)
+    model.replaceBaseline({ items: [], archivedSessionIds: [], pinnedSessionIds: [], projectBase: '/nw' })
+    expect(model.getSnapshot().projectBase).toBe('/nw')
+    model.replaceBaseline({ items: [], archivedSessionIds: [], pinnedSessionIds: [], projectBase: null })
+    expect(model.getSnapshot().projectBase).toBeNull()
   })
 
   it('lets newer stream order outrank unary echoes and rolls failures back', async () => {
