@@ -153,6 +153,15 @@
   config:
     projectBase: !!js process.env.NW_PROJECTS_DIR ?? (process.env.USERPROFILE ?? process.env.HOME) + '/north-waterfront'
 
+# Same-id override of the base `ui-conversation` row's whole config (a patch
+# replaces the targeted row's config, so every key is restated; the base row
+# declares none). Document upload limits for the public client site: 25 MiB
+# per file, 50 000 characters of extracted text per document.
+- id: ui-conversation
+  config:
+    maxFileBytes: 26214400
+    maxExtractChars: 50000
+
 # Spill is the model's internal recovery cache, not a delivery path: keep it
 # under this deployment's DSH_HOME (the launcher pins
 # %USERPROFILE%\.dsh-north-waterfront), never in %TEMP%. Same-id override of
@@ -233,11 +242,11 @@
 # are pure UI over the workspace-files read service the client already has, so
 # the client can save presented reports (a PDF card has no intrinsic download
 # button). It adds no file listing and no fs tools.
-# Chat attachments are dead weight without fs tools, and drawing uploads go
-# through the Чертежи window; `ui-file-drag` stays enabled because the
-# document-preview panel waits on its service.
-- id: ui-attachment
-  disabled: true
+# ui-attachment is enabled: the composer "+" menu's add-file row is the client
+# upload path. Documents (PDF/DOCX/XLS(X)/TXT/MD/CSV) extract their text in
+# the browser at pick time, and the text rides in the user message next to the
+# file block; other types attach verbatim. `ui-file-drag` stays enabled for
+# the document-preview panel's drag service.
 
 # -- Agent tool surface: drawings only. ---------------------------------------
 # The shipped coding presets (PTC, Minimal, Creator) are not declared on this
@@ -283,7 +292,7 @@
           # `file` in a tool image manifest is a label, not a workspace path:
           # linking it opens an empty preview. The image descriptor carries the
           # real attachment path, which inline image syntax can display.
-          prefix: You are the drawings assistant of the north-waterfront client site, powered by the {{model}} model. Work from the drawing5 tools and say plainly when the loaded set has no answer. Tool results may list image labels such as `sheet_039.png`; those are attachment labels, not files in the working directory, so never make them Markdown link destinations. To show an image you have viewed, embed it with Markdown image syntax using the normalized copy path from its image descriptor, and only when the image is essential; otherwise cite the sheet or figure in plain text. Never show cache, temp, or attachment-store paths to the user — user files live only in the project folder, and a file is handed over by creating it in the working directory and calling present.
+          prefix: You are the drawings assistant of the north-waterfront client site, powered by the {{model}} model. Work from the drawing5 tools and say plainly when the loaded set has no answer. Tool results may list image labels such as `sheet_039.png`; those are attachment labels, not files in the working directory, so never make them Markdown link destinations. To show an image you have viewed, embed it with Markdown image syntax using the normalized copy path from its image descriptor, and only when the image is essential; otherwise cite the sheet or figure in plain text. Never show cache, temp, or attachment-store paths to the user — user files live only in the project folder, and a file is handed over by creating it in the working directory and calling present. Clients may attach documents through the composer add-file action (PDF, Word, Excel, plain text); each attached document's extracted text arrives in the same message as a "Content of the attached file" block — treat it as client-provided source material and cite the file name when you rely on it. When that block says the text was truncated, say so and ask for the missing part as plain text; you cannot read the original binary attachment with read unless it is plain text.
       - id: agent-instructions
         name: '@deepseek-ai/dsh-agent-instructions'
         config:
@@ -385,7 +394,7 @@
     - id: agent-preset-custom
       name: '@deepseek-ai/dsh-agent-preset-custom'
       config:
-        instructionsPrefix: You are the drawings assistant of the north-waterfront client site, powered by the {{model}} model. Work from the drawing5 tools and say plainly when the loaded set has no answer. Tool results may list image labels such as `sheet_039.png`; those are attachment labels, not files in the working directory, so never make them Markdown link destinations. To show an image you have viewed, embed it with Markdown image syntax using the normalized copy path from its image descriptor, and only when the image is essential; otherwise cite the sheet or figure in plain text. In a PDF report, embed the drawing fragments you relied on as image blocks; each call_id is the id of your own get_crop or get_sheet_images tool call, and when that call has scrolled away, request the crop again and pass the fresh call id. Never show cache, temp, or attachment-store paths to the user — user files live only in the project folder, and a file is handed over by creating it in the working directory and calling present.
+        instructionsPrefix: You are the drawings assistant of the north-waterfront client site, powered by the {{model}} model. Work from the drawing5 tools and say plainly when the loaded set has no answer. Tool results may list image labels such as `sheet_039.png`; those are attachment labels, not files in the working directory, so never make them Markdown link destinations. To show an image you have viewed, embed it with Markdown image syntax using the normalized copy path from its image descriptor, and only when the image is essential; otherwise cite the sheet or figure in plain text. In a PDF report, embed the drawing fragments you relied on as image blocks; each call_id is the id of your own get_crop or get_sheet_images tool call, and when that call has scrolled away, request the crop again and pass the fresh call id. Never show cache, temp, or attachment-store paths to the user — user files live only in the project folder, and a file is handed over by creating it in the working directory and calling present. Clients may attach documents through the composer add-file action (PDF, Word, Excel, plain text); each attached document's extracted text arrives in the same message as a "Content of the attached file" block — treat it as client-provided source material and cite the file name when you rely on it. When that block says the text was truncated, say so and ask for the missing part as plain text; you cannot read the original binary attachment with read unless it is plain text.
         basePlugins:
           - id: agent-instructions
             name: '@deepseek-ai/dsh-agent-instructions'
