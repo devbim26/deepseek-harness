@@ -101,6 +101,25 @@
         approval: ask
     defaultPreset: workspace-write
 
+# -- Projects: client users create named project folders under one base. -----
+# Same-id override of the web-app `workspace-controller` row: projectBase
+# anchors the first-use default Workspace and switches on the New project
+# button (the follow baseline carries the field). NW_PROJECTS_DIR comes from
+# .env.north-waterfront through the launcher; the default matches the folder
+# the launcher prepares. Mutually exclusive with documentsDirectory, which is
+# never set on this deployment.
+- id: workspace-controller
+  config:
+    projectBase: !!js process.env.NW_PROJECTS_DIR ?? (process.env.USERPROFILE ?? process.env.HOME) + '/north-waterfront'
+
+# Spill is the model's internal recovery cache, not a delivery path: keep it
+# under this deployment's DSH_HOME (the launcher pins
+# %USERPROFILE%\.dsh-north-waterfront), never in %TEMP%. Same-id override of
+# the base `spill-local` row; the 30-day cleanup default stands.
+- id: spill-local
+  config:
+    root: !!js dshHomePath('spill')
+
 # -- Client UI surface: chat and the Чертежи window only. --------------------
 # The settings SHELL (`ui-settings`) stays enabled: it provides the
 # configForms and settingsSchema services that locale and the whole client
@@ -223,7 +242,7 @@
           # `file` in a tool image manifest is a label, not a workspace path:
           # linking it opens an empty preview. The image descriptor carries the
           # real attachment path, which inline image syntax can display.
-          prefix: You are the drawings assistant of the north-waterfront client site, powered by the {{model}} model. Work from the drawing5 tools and say plainly when the loaded set has no answer. Tool results may list image labels such as `sheet_039.png`; those are attachment labels, not files in the working directory, so never make them Markdown link destinations. To show an image you have viewed, embed it with Markdown image syntax using the normalized copy path from its image descriptor, and only when the image is essential; otherwise cite the sheet or figure in plain text.
+          prefix: You are the drawings assistant of the north-waterfront client site, powered by the {{model}} model. Work from the drawing5 tools and say plainly when the loaded set has no answer. Tool results may list image labels such as `sheet_039.png`; those are attachment labels, not files in the working directory, so never make them Markdown link destinations. To show an image you have viewed, embed it with Markdown image syntax using the normalized copy path from its image descriptor, and only when the image is essential; otherwise cite the sheet or figure in plain text. Never show cache, temp, or attachment-store paths to the user — user files live only in the project folder, and a file is handed over by creating it in the working directory and calling present.
       - id: agent-instructions
         name: '@deepseek-ai/dsh-agent-instructions'
         config:
@@ -325,7 +344,7 @@
     - id: agent-preset-custom
       name: '@deepseek-ai/dsh-agent-preset-custom'
       config:
-        instructionsPrefix: You are the drawings assistant of the north-waterfront client site, powered by the {{model}} model. Work from the drawing5 tools and say plainly when the loaded set has no answer. Tool results may list image labels such as `sheet_039.png`; those are attachment labels, not files in the working directory, so never make them Markdown link destinations. To show an image you have viewed, embed it with Markdown image syntax using the normalized copy path from its image descriptor, and only when the image is essential; otherwise cite the sheet or figure in plain text. In a PDF report, embed the drawing fragments you relied on as image blocks; each call_id is the id of your own get_crop or get_sheet_images tool call, and when that call has scrolled away, request the crop again and pass the fresh call id.
+        instructionsPrefix: You are the drawings assistant of the north-waterfront client site, powered by the {{model}} model. Work from the drawing5 tools and say plainly when the loaded set has no answer. Tool results may list image labels such as `sheet_039.png`; those are attachment labels, not files in the working directory, so never make them Markdown link destinations. To show an image you have viewed, embed it with Markdown image syntax using the normalized copy path from its image descriptor, and only when the image is essential; otherwise cite the sheet or figure in plain text. In a PDF report, embed the drawing fragments you relied on as image blocks; each call_id is the id of your own get_crop or get_sheet_images tool call, and when that call has scrolled away, request the crop again and pass the fresh call id. Never show cache, temp, or attachment-store paths to the user — user files live only in the project folder, and a file is handed over by creating it in the working directory and calling present.
         basePlugins:
           - id: agent-instructions
             name: '@deepseek-ai/dsh-agent-instructions'
@@ -430,6 +449,13 @@
           config:
             provider: spawn
             toolName: subagent
+          # Общие инструменты управления детьми: список, ожидание, сообщения
+          # и прерывание зависших субагентов (list_agents, wait_agent,
+          # send_message, interrupt_agent).
+          control:
+            name: '@deepseek-ai/dsh-tool-subagent-control'
+            config:
+              interrupt: true
           # Подводка перед ростером делегатов, который сервис добавляет в
           # промпт оркестратора: модель видит id/имя/описание каждого агента
           # и знает, что agent_preset передавать обязательно.

@@ -14,7 +14,8 @@ set "PORT=3081"
 set "ROOT=%~dp0"
 set "NODEDIR=%ROOT%.tools\node"
 set "DSHHOME=%USERPROFILE%\.dsh-north-waterfront"
-set "WORKSPACE=%USERPROFILE%\north-waterfront"
+rem Project base for the client site; .env.north-waterfront may override it.
+set "NW_PROJECTS_DIR=%USERPROFILE%\north-waterfront"
 
 if /i "%~1"=="help" goto :usage
 if /i "%~1"=="/?" goto :usage
@@ -114,7 +115,7 @@ rem Isolated client state: sessions, credentials, and settings for this site
 rem live under DSH_HOME, never mixed with the internal deployment.
 set "DSH_HOME=%DSHHOME%"
 if not exist "%DSHHOME%" mkdir "%DSHHOME%"
-if not exist "%WORKSPACE%" mkdir "%WORKSPACE%"
+if not exist "%NW_PROJECTS_DIR%" mkdir "%NW_PROJECTS_DIR%"
 rem Client secrets (DEVBIM_WEB_PASSWORD, OPENROUTER_API_KEY, DRAWING5_*)
 rem live in .env.north-waterfront, never here.
 set "ENV_FILE=%ROOT%.env.north-waterfront"
