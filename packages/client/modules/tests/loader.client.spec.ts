@@ -543,6 +543,31 @@ describe('require resolution', () => {
     await expect(b.loader.import('a', '', {})).rejects.toThrow('require("ghost") missed the module table')
   })
 
+  it('a sync require of a package-local chunk resolves against the requiring package', async () => {
+    const b = bench([row('a')], {
+      a: req => ({ runtime: req('./client.rolldown-runtime.js') }),
+    }, {
+      pending: [{ id: 'a', chunk: 'client.rolldown-runtime.js', factory: () => ({ interop: true }) }],
+    })
+    const exports = await b.loader.import('a', '', {})
+    expect((exports as { runtime: { interop: boolean } }).runtime).toEqual({ interop: true })
+    expect(b.loader.loadCache.get('a/client.rolldown-runtime.js')).toBeDefined()
+    expect(b.loader.loadCache.get('a')?.edges.has('./client.rolldown-runtime.js')).toBe(true)
+  })
+
+  it('a sync require of a chunk registered under another package is loud', async () => {
+    const b = bench([row('a'), row('b')], {
+      a: () => ({}),
+      b: req => ({ runtime: req('./client.rolldown-runtime.js') }),
+    }, {
+      pending: [{ id: 'a', chunk: 'client.rolldown-runtime.js', factory: () => ({ interop: true }) }],
+    })
+    await expect(b.loader.import('b', '', {})).rejects.toThrow(
+      'require("./client.rolldown-runtime.js") missed the module table',
+    )
+    expect(b.loader.loadCache.has('b')).toBe(false)
+  })
+
   it('a require cycle is fatal', async () => {
     const b = bench([row('a'), row('b')], {
       a: req => ({ dep: req('b') }),
@@ -885,6 +910,24 @@ describe('style claiming', () => {
     })
     await b.loader.import('a', '', {})
     expect(outer.getAttribute('data-plugin')).toBe('a')
+  })
+
+  it('a dependency first materialized inside a requirer keeps its styles under its own id', async () => {
+    const b = bench([row('a'), row('b')], {
+      a: req => ({ dep: req('b') }),
+      b: () => {
+        const style = document.createElement('style')
+        style.textContent = 'b{}'
+        document.head.appendChild(style)
+        return { marker: 'b' }
+      },
+    })
+    await b.loader.import('a', '', {})
+    expect(b.loader.loadCache.get('b')?.styles).toEqual(['b'])
+    const owned = document.querySelector('style[data-plugin="b"]')
+    expect(owned?.textContent).toBe('b{}')
+    removeOwnedStyles('b')
+    expect(document.querySelectorAll('style[data-plugin="b"]')).toHaveLength(0)
   })
 
   it('removes untagged styles inserted by a factory that throws', async () => {

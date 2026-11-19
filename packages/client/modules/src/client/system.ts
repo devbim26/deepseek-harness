@@ -49,17 +49,15 @@ function chunkId(ownerId: string, fileName: string): string {
 }
 
 /**
- * Resolve a factory require specifier to its module-table key: a package-local
- * chunk spec (`./client.<name>.js`) keys against the requiring package, every
- * other specifier strips its `/client` suffix.
- * @param spec - the specifier a factory passed to `require`.
- * @param ownerId - the package whose factory is requiring.
- * @returns the module-table key for the specifier.
+ * The package-local chunk file name a factory require or asynchronous chunk
+ * specifier names, if it is one.
+ * @param spec - the specifier a factory passed to `require` or `require.async`.
+ * @returns the chunk file name, or undefined when the specifier names none.
  */
-function requireId(spec: string, ownerId: string): string {
-  if (!spec.startsWith('./')) return stripClientSuffix(spec)
+function chunkSpecOf(spec: string): string | undefined {
+  if (!spec.startsWith('./')) return undefined
   const fileName = spec.slice(2)
-  return CLIENT_CHUNK.test(fileName) ? chunkId(ownerId, fileName) : stripClientSuffix(spec)
+  return CLIENT_CHUNK.test(fileName) ? fileName : undefined
 }
 
 /** Resolve a sibling chunk against the package's one-resource URL and current revision. */
@@ -342,10 +340,16 @@ export class ClientModuleSystem implements ClientModuleLoader {
     const require = (spec: string): unknown => {
       edges.add(spec)
       if (this.seed.has(spec)) return this.seed.get(spec)
-      const id = requireId(spec, ownerId)
+      // A package-local chunk keys and materializes under its owning package
+      // (its nested chunk requires and injected styles resolve there); every
+      // other module keeps its own id as owner, so styles a dependency
+      // injects while first materialized inside a requirer's factory stay
+      // owned — and die — with the dependency's package.
+      const chunkFile = chunkSpecOf(spec)
+      const id = chunkFile === undefined ? stripClientSuffix(spec) : chunkId(ownerId, chunkFile)
       const record = this.loadCache.get(id)
       if (record !== undefined) return record.exports
-      if (this.factories.has(id)) return this.materialize(id, ownerId).exports
+      if (this.factories.has(id)) return this.materialize(id, chunkFile === undefined ? id : ownerId).exports
       throw new Error(
         `client-modules: require("${spec}") missed the module table — not a platform seed word, not a materialized module, `
         + 'and no registered package factory (a build-time externals drift, or a dynamic dependency that did not arrive)',
@@ -354,12 +358,12 @@ export class ClientModuleSystem implements ClientModuleLoader {
     require.asset = (reference: string): string => this.resolveAsset(reference)
     require.async = async (spec: string): Promise<unknown> => {
       edges.add(spec)
-      if (!spec.startsWith('./')) return await this.import(spec)
-      const fileName = spec.slice(2)
-      if (!CLIENT_CHUNK.test(fileName)) {
+      const chunkFile = chunkSpecOf(spec)
+      if (chunkFile !== undefined) return await this.importChunk(ownerId, chunkFile)
+      if (spec.startsWith('./')) {
         throw new Error(`client-modules: invalid relative chunk request ${JSON.stringify(spec)}`)
       }
-      return await this.importChunk(ownerId, fileName)
+      return await this.import(spec)
     }
     return require
   }
