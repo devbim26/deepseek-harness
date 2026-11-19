@@ -54,8 +54,13 @@ export class WorkspaceFeed {
   private archived: readonly string[]
   private pinned: readonly string[]
 
-  /** @param ctx - Host context containing the authoritative Workspace registry. */
-  constructor(private readonly ctx: Context) {
+  /**
+   * @param ctx - Host context containing the authoritative Workspace registry.
+   * @param projectBase - configured project base; null when project creation
+   *   is off. Static for the process lifetime, so baselines carry it and no
+   *   increment frame exists for it.
+   */
+  constructor(private readonly ctx: Context, private readonly projectBase: string | null) {
     const baseline = ctx.workspaceRegistry.list()
     this.knownIds = new Set(baseline.map(workspace => String(workspace.id)))
     this.order = baseline.map(workspace => String(workspace.id))
@@ -77,6 +82,7 @@ export class WorkspaceFeed {
       items: this.ctx.workspaceRegistry.list().map(workspaceView),
       archivedSessionIds: [...this.ctx.workspaceRegistry.archivedSessionIds],
       pinnedSessionIds: [...this.ctx.workspaceRegistry.pinnedSessionIds],
+      projectBase: this.projectBase,
     }
   }
 

@@ -366,7 +366,7 @@ describe('WorkspaceController follow', () => {
   it('seeds a new feed from existing rows and rejects an inconsistent registry commit', async () => {
     const { ctx, root } = await harness()
     const existing = await ctx.workspaceRegistry.create(stageDir(root, 'existing'))
-    const feed = new WorkspaceFeed(ctx)
+    const feed = new WorkspaceFeed(ctx, null)
     expect(feed.baseline()).toMatchObject({
       items: [{ workspaceId: existing.id }],
     })
@@ -391,7 +391,7 @@ describe('WorkspaceController follow', () => {
     const { controller, ctx, root } = await harness()
     const session = ctx.sessions.create(SessionId('already-pinned'), { meta: { cwd: root } })
     await controller.pinSession({ sessionId: session.id })
-    const feed = new WorkspaceFeed(ctx)
+    const feed = new WorkspaceFeed(ctx, null)
     const abort = new AbortController()
     const iterator = feed.follow(abort.signal)[Symbol.asyncIterator]()
     try {
@@ -412,7 +412,7 @@ describe('WorkspaceController follow', () => {
     const iterator = controller.follow(abort.signal)[Symbol.asyncIterator]()
     await expect(nextFrame(iterator)).resolves.toEqual({
       type: 'baseline',
-      value: { items: [], archivedSessionIds: [], pinnedSessionIds: [] },
+      value: { items: [], archivedSessionIds: [], pinnedSessionIds: [], projectBase: null },
     })
 
     const first = await controller.create({ path: stageDir(root, 'first') })
@@ -508,6 +508,7 @@ describe('WorkspaceController follow', () => {
         items: [expect.objectContaining({ workspaceId: shownId, sessionIds: [shared.id] })],
         archivedSessionIds: [],
         pinnedSessionIds: [shared.id],
+        projectBase: null,
       },
     })
 
@@ -609,6 +610,24 @@ describe('WorkspaceController follow', () => {
     await ctx.fiber.dispose()
     roots.splice(roots.indexOf(ctx), 1)
     await expect(closing).resolves.toEqual({ done: true, value: undefined })
+  })
+
+  it('carries projectBase in the follow baseline', async () => {
+    const root = realpathSync.native(mkdtempSync(join(tmpdir(), 'dsh-workspace-controller-')))
+    tempDirs.push(root)
+    const { controller } = await projectHarness({ projectBase: root })
+    const stream = controller.follow(new AbortController().signal)
+    const first = await stream.next()
+    expect(first.value).toMatchObject({ type: 'baseline', value: { projectBase: root } })
+    await stream.return?.(undefined)
+  })
+
+  it('carries null projectBase without the config', async () => {
+    const { controller } = await projectHarness({})
+    const stream = controller.follow(new AbortController().signal)
+    const first = await stream.next()
+    expect(first.value).toMatchObject({ type: 'baseline', value: { projectBase: null } })
+    await stream.return?.(undefined)
   })
 })
 

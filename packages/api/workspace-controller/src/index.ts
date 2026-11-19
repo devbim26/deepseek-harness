@@ -91,7 +91,7 @@ export class WorkspaceController extends TypertRemoteService {
     }
     ctx.typert.resources.register('workspace', { field: 'workspaceId' })
     this.commands = new WorkspaceCommands(ctx, this.config.projectBase)
-    this.feed = new WorkspaceFeed(ctx)
+    this.feed = new WorkspaceFeed(ctx, this.config.projectBase ?? null)
     // This package is the Loader entry for both Remote owners it hosts: the
     // directory-picking seam is abstract and never an entry itself. The child
     // stays pending until a picking backend is composed, so a host without one
@@ -249,6 +249,7 @@ export class WorkspaceController extends TypertRemoteService {
         items: items.map(item => ({ ...item, sessionIds: sessions(item.sessionIds) })),
         archivedSessionIds: sessions(value.archivedSessionIds),
         pinnedSessionIds: sessions(value.pinnedSessionIds),
+        projectBase: value.projectBase,
       }
     }
     for await (const frame of this.feed.follow(signal)) {

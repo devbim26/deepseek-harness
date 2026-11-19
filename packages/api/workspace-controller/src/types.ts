@@ -168,6 +168,8 @@ export interface WorkspaceBaseline {
   readonly archivedSessionIds: readonly SessionId[]
   /** Registry-global pin set, most recently pinned first. */
   readonly pinnedSessionIds: readonly SessionId[]
+  /** Configured project-creation base; null when the capability is off. */
+  readonly projectBase: string | null
 }
 
 /**
