@@ -9,16 +9,20 @@ export interface FileCardLabels {
   readonly remove: string
   /** Status line while the upload is in flight. */
   readonly uploading: string
+  /** Status line while document text extraction is in flight. */
+  readonly extracting: string
   /** Status line and retry affordance after a failed upload. */
   readonly failed: string
   /** Retry-button label. */
   readonly retry: string
+  /** Extraction-failure notice replacing the ready card's size line. */
+  readonly notice?: string | undefined
 }
 
-/** Upload display state resolved by the owner. */
-export type FileCardState = 'uploading' | 'ready' | 'error'
+/** Upload and extraction display state resolved by the owner. */
+export type FileCardState = 'uploading' | 'ready' | 'error' | 'extracting'
 
-/** One pending file card: type glyph, name, size or upload status, remove, retry. */
+/** One pending file card: type glyph, name, size or upload/extraction status, remove, retry. */
 export function FileCard({
   name, bytes, state, progress, labels, onRemove, onRetry,
 }: {
@@ -33,17 +37,20 @@ export function FileCard({
   const extension = fileExtension(name).toUpperCase().slice(0, 8)
   const meta = state === 'uploading'
     ? labels.uploading
-    : state === 'error'
-      ? labels.failed
-      : [extension, fileSizeText(bytes)].filter(part => part !== '').join(' ')
+    : state === 'extracting'
+      ? labels.extracting
+      : state === 'error'
+        ? labels.failed
+        : labels.notice ?? [extension, fileSizeText(bytes)].filter(part => part !== '').join(' ')
   const retryable = state === 'error'
+  const noticed = labels.notice !== undefined
   return (
     <div
       className={`${css.card}${retryable ? ` ${css.failed}` : ''}`}
       title={name}
     >
       <span className={css.icon} aria-hidden>
-        {state === 'uploading'
+        {(state === 'uploading' || state === 'extracting')
           ? <span className={css.spinner} />
           : <FileTypeIcon path={name} />}
       </span>
@@ -57,7 +64,7 @@ export function FileCard({
         : (
           <span className={css.body} aria-label={labels.label}>
             <span className={css.name}>{name}</span>
-            <span className={css.meta}>{meta}</span>
+            <span className={noticed ? `${css.meta} ${css.metaFailed}` : css.meta}>{meta}</span>
           </span>
         )}
       <button

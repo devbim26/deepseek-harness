@@ -1,4 +1,5 @@
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
+import type { DocumentExtractNotice } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { AttachmentRailLabels } from '../AttachmentRail.tsx'
 import type { DropOverlayLabels } from '../DropOverlay.tsx'
 import type { FileCardLabels } from '../FileCard.tsx'
@@ -53,15 +54,24 @@ export function dropOverlayLabels(
  * Resolve pending-file card strings from the conversation namespace.
  * @param t - conversation namespace translator.
  * @param name - browser file name interpolated into remove/retry labels.
+ * @param notice - why document text extraction failed, or undefined when it did not.
  * @returns translated file-card labels.
  */
-export function fileCardLabels(t: TranslateNS<'conversation'>, name: string): FileCardLabels {
+export function fileCardLabels(
+  t: TranslateNS<'conversation'>,
+  name: string,
+  notice: DocumentExtractNotice | undefined,
+): FileCardLabels {
   return {
     label: t('file.pending'),
     remove: t('file.remove', { name }),
     uploading: t('file.uploading'),
+    extracting: t('file.extracting'),
     failed: t('file.uploadFailed'),
     retry: t('file.retry', { name }),
+    notice: notice === undefined ? undefined
+      : notice === 'docLegacy' ? t('file.unsupportedDoc')
+        : notice === 'noTextLayer' ? t('file.noTextLayer') : t('file.extractFailed'),
   }
 }
 

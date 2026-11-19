@@ -83,7 +83,8 @@ export { ConversationViewRegistry } from './conversation/view-registry.ts'
 export type { ConversationKey } from './locales.ts'
 export type {
   ComposerAttachment, ComposerAttachmentsOwnerProps, ComposerAttachmentsProps,
-  ComposerFileAttachment, ComposerImageAttachment, DraftFileUpload, DraftFileUploads,
+  ComposerFileAttachment, ComposerImageAttachment, DraftExtraction, DraftExtractions,
+  DraftFileUpload, DraftFileUploads,
   ComposerBarInjected, ComposerBarOwnerProps, ComposerBarProps, ComposerChainProps,
   ConversationHeaderActionOwnerProps, ConversationHeaderCornerOwnerProps, ConversationHeaderLineageOwnerProps,
   ConversationContentInputProps, ConversationContentProps,
@@ -97,6 +98,7 @@ export type {
   UserTextInput, UserTextInjected, UserTextNodeOwnerProps, UserTextNodeProps,
   UseConversationViews,
 } from './contract/slots.ts'
+export type { DocumentExtractNotice } from './document-extract.ts'
 export type {
   BeginCommandRequest, CommandClaim, ConsumeTokenRequest, DraftAttachmentId, DraftInitializationOptions,
   DraftInitializationResult, InputActions,

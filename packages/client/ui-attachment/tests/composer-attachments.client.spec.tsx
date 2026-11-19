@@ -28,6 +28,10 @@ const t = ((key: string, params?: Readonly<Record<string, unknown>>): string => 
     'file.pending': '待发送文件',
     'file.uploading': '上传中…',
     'file.uploadFailed': '上传失败，点击重试',
+    'file.extracting': '正在提取文本…',
+    'file.extractFailed': '未能提取文本；文件仍会原样附带',
+    'file.unsupportedDoc': '不支持旧版 .doc；请另存为 .docx 后重新添加',
+    'file.noTextLayer': '没有文本层（扫描件？）；文件仍会原样附带',
     'file.label': '文件',
     'image.pending': '待发送图片',
     'image.original': '原图',
@@ -81,6 +85,7 @@ function props(overrides: Partial<ComposerAttachmentsOwnerProps> = {}): Paramete
     onAddFiles: () => {},
     onRemoveAttachment: () => {},
     uploads: {},
+    extractions: {},
     onRetryFile: () => {},
     uploadFailureText: (reason: string) => `refused:${reason}`,
     t,
@@ -329,6 +334,33 @@ describe('ComposerAttachments file drafts', () => {
     expect(onRetryFile).toHaveBeenCalledWith('bad')
     fireEvent.click(view.getByRole('button', { name: '移除文件 ok.pdf' }))
     expect(onRemoveAttachment).toHaveBeenCalledWith('ok')
+  })
+
+  it('spins while extracting, states a failed extraction notice, and keeps done cards plain', () => {
+    const view = render(<ComposerAttachments {...props({
+      attachments: [fileDraft('busy'), fileDraft('legacy', 'legacy.doc'), fileDraft('done')],
+      uploads: {
+        busy: { status: 'ready', receiptId: 'receipt-busy' as never },
+        legacy: { status: 'ready', receiptId: 'receipt-legacy' as never },
+        done: { status: 'ready', receiptId: 'receipt-done' as never },
+      },
+      extractions: {
+        busy: { status: 'extracting' },
+        legacy: { status: 'failed', notice: 'docLegacy' },
+        done: { status: 'done' },
+      },
+    })} />)
+    const busy = view.getByTitle('busy.pdf')
+    expect(busy.querySelector('[class*="spinner"]')).toBeTruthy()
+    // Extraction is indeterminate: no upload progress track joins the spinner.
+    expect(busy.querySelector('[class*="progressTrack"]')).toBeNull()
+    expect(busy.textContent).toContain('正在提取文本…')
+    // A failed extraction keeps the ready card and explains itself in place of the size line.
+    const legacy = view.getByTitle('legacy.doc')
+    expect(legacy.querySelector('[class*="metaFailed"]')).toBeTruthy()
+    expect(legacy.textContent).toContain('不支持旧版 .doc；请另存为 .docx 后重新添加')
+    expect(view.queryByRole('button', { name: '重试上传 legacy.doc' })).toBeNull()
+    expect(view.getByTitle('done.pdf').textContent).toContain('PDF 3B')
   })
 
   it('treats a draft without upload state as uploading and keeps retry separate from remove', () => {

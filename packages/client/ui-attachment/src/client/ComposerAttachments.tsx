@@ -27,12 +27,13 @@ export interface ComposerAttachmentsInjected {
 
 /** The owner share and locale seat the attachment rail reads from its slot props. */
 type ComposerAttachmentsInput = Pick<ComposerAttachmentsProps,
-  | 'attachments' | 'canAcceptDrop' | 'onAddFiles' | 'onRemoveAttachment' | 'uploads' | 'onRetryFile'
+  | 'attachments' | 'canAcceptDrop' | 'onAddFiles' | 'onRemoveAttachment' | 'uploads' | 'extractions' | 'onRetryFile'
   | 'uploadFailureText' | 'dropLimits' | 't'>
 
 /** Draft image previews, pending-file cards, drop target, and original-image preview. */
 export function ComposerAttachments({
-  attachments, canAcceptDrop, onAddFiles, onRemoveAttachment, uploads, onRetryFile, uploadFailureText, dropLimits, t, readFileDrag,
+  attachments, canAcceptDrop, onAddFiles, onRemoveAttachment, uploads, extractions,
+  onRetryFile, uploadFailureText, dropLimits, t, readFileDrag,
 }: ComposerAttachmentsInput & InjectFace<ComposerAttachmentsInjected>) {
   const [preview, setPreview] = useState<ComposerImageAttachment | null>(null)
   const [dragActive, setDragActive] = useState(false)
@@ -68,17 +69,19 @@ export function ComposerAttachments({
               const attachment = item.attachment
               if (attachment.kind === 'file') {
                 const upload = uploads[attachment.id]
+                const extraction = extractions[attachment.id]
+                const state = upload === undefined || upload.status === 'uploading'
+                  ? 'uploading'
+                  : upload.status === 'error' ? 'error'
+                    : extraction?.status === 'extracting' ? 'extracting' : 'ready'
                 return (
                   <FileCard
                     name={attachment.file.name || t('file.label')}
                     bytes={attachment.file.size}
-                    state={upload === undefined || upload.status === 'uploading'
-                      ? 'uploading'
-                      : upload.status === 'ready' ? 'ready' : 'error'}
+                    state={state}
                     {...upload?.status === 'uploading' && upload.total !== undefined && upload.total > 0
-                      ? { progress: upload.loaded / upload.total }
-                      : {}}
-                    labels={fileCardLabels(t, attachment.file.name)}
+                      ? { progress: upload.loaded / upload.total } : {}}
+                    labels={fileCardLabels(t, attachment.file.name, extraction?.status === 'failed' ? extraction.notice : undefined)}
                     onRemove={() => { onRemoveAttachment(attachment.id) }}
                     onRetry={() => { onRetryFile(attachment.id) }}
                   />
