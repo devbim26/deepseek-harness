@@ -17,10 +17,11 @@
 import { type CSSProperties, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
 import { WorkspaceDialogs } from './WorkspaceDialogs.tsx'
+import { NewProjectDialog } from './NewProjectDialog.tsx'
 import {
   AnimatedRows, HoverCardGroup, IconArchiveCheckOutlineRegular, IconArchiveOffOutlineRegular, IconArchiveOutlineRegular,
   IconChevronsUpDownOutlineRegular, IconClockOutlineRegular, IconCloseFillRegular,
-  IconFlatListOutlineRegular, IconFolderCloseRegular, IconProjectAddOutlineRegular,
+  IconFlatListOutlineRegular, IconFolderCloseRegular, IconPlusOutlineRegular, IconProjectAddOutlineRegular,
   IconQueueOutlineRegular, IconSearchOutlineRegular, IconSlidersTwoOutlineRegular,
   IconWorkspaceTreeOutlineRegular, Menu, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -911,6 +912,7 @@ export function WorkspaceBrowser({
   insertWorkspaceBefore,
   unarchiveSession,
   createWorkspace,
+  createProject,
   searchSessions,
   searchResultLimit,
   useDirectoryFlow,
@@ -949,6 +951,10 @@ export function WorkspaceBrowser({
   // Live occupancy of this surface's directory-flow hole (the same source the
   // flow reads): a composition without a picking affordance can add nothing.
   const directoryFlowAvailable = useDirectoryFlow(occupied => occupied)
+  // The Host advertises confined project creation through the follow baseline;
+  // without a base there is no project to name, so the button never renders.
+  const projectBaseAvailable = useWorkspaces(state => state.projectBase !== null)
+  const [newProjectOpen, setNewProjectOpen] = useState(false)
   const groupBy = useStore(s => s.groupBy)
   const orderBy = useStore(s => s.orderBy)
   // Persisted view blobs written before the archived filter existed rehydrate
@@ -1311,6 +1317,18 @@ export function WorkspaceBrowser({
               </button>
             </Tooltip>
           )}
+          {projectBaseAvailable && (
+            <Tooltip label={t('project.new')} side="bottom" delayMs={500} portal>
+              <button
+                type="button"
+                className={css.iconButton}
+                aria-label={t('project.new')}
+                onClick={() => { setNewProjectOpen(true) }}
+              >
+                <IconPlusOutlineRegular size={wide ? 16 : 18} />
+              </button>
+            </Tooltip>
+          )}
         </div>
         {/* Add flow + its error dialog (same package — direct composition). */}
         <WorkspacePickFlow
@@ -1430,6 +1448,10 @@ export function WorkspaceBrowser({
       {workspaceActionRequest !== null && <WorkspaceDialogs key={`${workspaceActionRequest.action}/${workspaceActionRequest.workspaceId}`}
         request={workspaceActionRequest} workspaces={workspaces} renameWorkspace={renameWorkspace} deleteWorkspace={deleteWorkspace}
         settleWorkspaceAction={settleWorkspaceAction} t={t} />}
+      {newProjectOpen && <NewProjectDialog
+        onClose={() => { setNewProjectOpen(false) }}
+        createProject={createProject} startSession={startSession} t={t}
+      />}
     </div>
   )
 }

@@ -10,6 +10,8 @@ import type { SessionListState, SessionSummary } from '@deepseek-ai/dsh-api-sess
 import type {
   WorkspaceId, WorkspaceSnapshot, WorkspaceView,
 } from '@deepseek-ai/dsh-api-workspace-controller/client'
+import { WorkspaceProjectCreateError } from '@deepseek-ai/dsh-api-workspace-controller/client'
+import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import type {
   SessionPendingInteraction, SessionStatus, SessionStatusSnapshot,
 } from '@deepseek-ai/dsh-client-ui-session/client'
@@ -80,6 +82,7 @@ const workspaceState = (
   items,
   archivedSessionIds,
   pinnedSessionIds,
+  projectBase: null as string | null,
   state: 'idle',
   phase: 'ready',
   error: null,
@@ -150,6 +153,7 @@ function mount(overrides: Partial<WorkspaceBrowserProps> = {}) {
     unarchiveSession: vi.fn(async () => {}),
     insertWorkspaceBefore: vi.fn(async () => {}),
     createWorkspace: vi.fn(async () => workspace('created', [])),
+    createProject: vi.fn(async () => workspace('created', [])),
     useDirectoryFlow: bindSnapshotSelector({ getSnapshot: () => true, subscribe: () => () => {} }),
     useHostInfo: selector => selector({ home: undefined, isLoopback: true }),
     renderSlot: renderDirectoryFlowOnly,
@@ -2082,6 +2086,33 @@ describe('WorkspaceBrowser', () => {
     // Nothing to add with, so the header offers no dead button.
     expect(screen.queryByRole('button', { name: '添加工作区' })).toBeNull()
     expect(screen.getByText('alpha')).toBeTruthy()
+  })
+
+  it('hides the New project button when the Host advertises no projectBase', () => {
+    mount({ useWorkspaces: hook({ ...workspaceState([workspace('alpha', [])]), projectBase: null }) })
+    expect(screen.queryByRole('button', { name: '新建项目' })).toBeNull()
+  })
+
+  it('creates a project from the header dialog and starts a session in it', async () => {
+    const created = workspace('ЖД-12', [])
+    const createProject = vi.fn(async () => created)
+    const b = mount({ useWorkspaces: hook({ ...workspaceState([]), projectBase: '/nw' }), createProject })
+    fireEvent.click(screen.getByRole('button', { name: '新建项目' }))
+    const input = screen.getByRole('textbox', { name: '项目名称' })
+    fireEvent.change(input, { target: { value: 'ЖД-12' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    await waitFor(() => { expect(createProject).toHaveBeenCalledWith({ name: 'ЖД-12' }) })
+    await waitFor(() => { expect(b.props.startSession).toHaveBeenCalledWith(created.workspaceId, { clearPreviousDraft: false }) })
+  })
+
+  it('maps the exists wire failure to the localized dialog message', async () => {
+    const createProject = vi.fn(async () => { throw new WorkspaceProjectCreateError(new RemoteError('workspace/project-exists', 'exists', { path: '/nw/a' })) })
+    mount({ useWorkspaces: hook({ ...workspaceState([]), projectBase: '/nw' }), createProject })
+    fireEvent.click(screen.getByRole('button', { name: '新建项目' }))
+    const input = screen.getByRole('textbox', { name: '项目名称' })
+    fireEvent.change(input, { target: { value: 'alpha' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    await waitFor(() => { expect(screen.getByRole('alert').textContent).toBe('同名文件夹已存在。') })
   })
 
   it('uses the full expanded Workspace section when resolving a Workspace drop half', () => {
