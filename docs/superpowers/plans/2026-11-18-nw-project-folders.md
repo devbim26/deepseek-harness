@@ -1,5 +1,7 @@
 # NW Project Folders Implementation Plan
 
+English | [中文](2026-11-18-nw-project-folders.zh.md)
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** клиентский пользователь NW-сайта создаёт именованные проекты (папки под `%USERPROFILE%\north-waterfront`) кнопкой «Новый проект» в панели проектов; сессии работают в них; spill уходит из `%TEMP%` в `DSH_HOME\spill`; персона не показывает temp-пути.
@@ -100,8 +102,7 @@ describe('projectBase configuration', () => {
 
 - [x] **Step 2: Прогнать и убедиться в падении**
 
-Run: `pnpm vitest run packages/api/workspace-controller`
-Expected: FAIL — свойств `projectBase` нет (TS-ошибка схемастри / нет ветки в initializeDefault).
+Run: `pnpm vitest run packages/api/workspace-controller` Expected: FAIL — свойств `projectBase` нет (TS-ошибка схемастри / нет ветки в initializeDefault).
 
 - [x] **Step 3: Реализовать**
 
@@ -185,8 +186,7 @@ export interface Config {
 
 - [x] **Step 4: Прогнать тесты**
 
-Run: `pnpm vitest run packages/api/workspace-controller`
-Expected: PASS (все, включая старые).
+Run: `pnpm vitest run packages/api/workspace-controller` Expected: PASS (все, включая старые).
 
 - [x] **Step 5: Коммит**
 
@@ -248,8 +248,7 @@ describe('isValidProjectName', () => {
 
 - [x] **Step 2: Прогнать — модуль отсутствует**
 
-Run: `pnpm vitest run packages/api/workspace-controller/tests/project-name.host.spec.ts`
-Expected: FAIL (нет `../src/project-name.ts`).
+Run: `pnpm vitest run packages/api/workspace-controller/tests/project-name.host.spec.ts` Expected: FAIL (нет `../src/project-name.ts`).
 
 - [x] **Step 3: Реализовать `src/project-name.ts`**
 
@@ -329,8 +328,7 @@ describe('createProject', () => {
 
 - [x] **Step 5: Прогнать — падают (метода нет)**
 
-Run: `pnpm vitest run packages/api/workspace-controller`
-Expected: FAIL — `controller.createProject is not a function`.
+Run: `pnpm vitest run packages/api/workspace-controller` Expected: FAIL — `controller.createProject is not a function`.
 
 - [x] **Step 6: Реализовать**
 
@@ -523,8 +521,7 @@ export interface WorkspaceBaseline {
 
 Все литералы `WorkspaceBaseline` в тестах пакета (`tests/remote/workspace.client.ts` helper `baseline()` строка 69-74 — не трогайте: он строит КАДР для мока с тем же типом; добавьте `projectBase: null` в его `value`-литерал) и в client-спеках (Task 4) обязаны получить поле. После правки:
 
-Run: `pnpm vitest run packages/api/workspace-controller`
-Expected: PASS.
+Run: `pnpm vitest run packages/api/workspace-controller` Expected: PASS.
 
 - [x] **Step 5: Коммит**
 
@@ -669,8 +666,7 @@ export class WorkspaceProjectCreateError extends Error {
 
 - [x] **Step 6: Прогнать пакет целиком**
 
-Run: `pnpm vitest run packages/api/workspace-controller`
-Expected: PASS (host + model + transport).
+Run: `pnpm vitest run packages/api/workspace-controller` Expected: PASS (host + model + transport).
 
 - [x] **Step 7: Коммит**
 

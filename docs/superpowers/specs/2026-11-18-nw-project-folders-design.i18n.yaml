@@ -1,0 +1,40 @@
+# Bilingual-pair consistency record for 2026-11-18-nw-project-folders-design.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/superpowers/specs/2026-11-18-nw-project-folders-design.md
+/nw-spill-temp:
+  en: 42b627948a5854d6
+  zh: 74607ca6aa2d3de6
+/nw-spill-temp/section:
+  en: 00109c81cfcc5170
+  zh: 7da267abf7ad6feb
+/nw-spill-temp/section~2:
+  en: 3dcbd9cdc0c35f1c
+  zh: 90c7cd05fad79738
+/nw-spill-temp/section~3:
+  en: 3e27829e8b01fccb
+  zh: b8928dba584be1da
+/nw-spill-temp/section/1-deepseek-ai-dsh-api-workspace-controller:
+  en: c838c7f33c01d819
+  zh: c3a96079868ff101
+/nw-spill-temp/section/2:
+  en: b620aeb94db8687f
+  zh: 8e89bf12cf4a3995
+/nw-spill-temp/section/3-deepseek-ai-dsh-client-ui-workspace:
+  en: da5a0da32ece5058
+  zh: 9dada332bb17d30c
+/nw-spill-temp/section/4-nw:
+  en: b13f70082ea69630
+  zh: 9feb6a333158bf0e
+/nw-spill-temp/section~4:
+  en: 88be14254b2e7dd8
+  zh: 83805c1bb31c5ae4
+/nw-spill-temp/section~5:
+  en: 47daa642993aaba0
+  zh: d33a6bf2a97f0069
+/nw-spill-temp/section~6:
+  en: 1a20360319f3e320
+  zh: 4756508eec858e50
+/nw-spill-temp/section~7:
+  en: e9380080801cef4d
+  zh: 56d17a00f8c3bcbc
