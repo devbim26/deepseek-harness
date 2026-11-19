@@ -48,7 +48,10 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@deepseek-ai/schemastery": "workspace:~"
+    "@deepseek-ai/schemastery": "workspace:~",
+    "mammoth": "^1.9.1",
+    "pdfjs-dist": "^5.4.2",
+    "xlsx": "^0.18.5"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:~"
