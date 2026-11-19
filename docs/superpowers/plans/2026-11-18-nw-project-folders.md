@@ -33,7 +33,7 @@
 **Interfaces:**
 - Produces: `Config.projectBase?: string` (validated, exclusive with `documentsDirectory`); `defaultWorkspaceDirectory` ветка не меняется; Task 2/3 читают `this.config.projectBase`.
 
-- [ ] **Step 1: Написать падающие тесты**
+- [x] **Step 1: Написать падающие тесты**
 
 В `workspace-controller.host.spec.ts` (харнесс `harness()` уже создаёт реальный cordis `Context` + `WorkspaceRegistry` + memory storage; каталог — `mkdtempSync(join(tmpdir(), 'dsh-workspace-controller-'))`; см. строки 54-76) добавьте общий хелпер и describe-блок (хелпер переиспользуют тесты Task 2):
 
@@ -98,12 +98,12 @@ describe('projectBase configuration', () => {
 
 (`roots`, `tempDirs` — уже существующие массивы харнесса, см. строки 33-41; DEFAULT_WORKSPACE_DIRECTORY уже импортирован в спеке.)
 
-- [ ] **Step 2: Прогнать и убедиться в падении**
+- [x] **Step 2: Прогнать и убедиться в падении**
 
 Run: `pnpm vitest run packages/api/workspace-controller`
 Expected: FAIL — свойств `projectBase` нет (TS-ошибка схемастри / нет ветки в initializeDefault).
 
-- [ ] **Step 3: Реализовать**
+- [x] **Step 3: Реализовать**
 
 `src/default-directory.ts` — обобщить валидатор (сообщение для documentsDirectory не меняется):
 
@@ -183,12 +183,12 @@ export interface Config {
 
 Добавьте импорты в `src/index.ts`: `import { join } from 'node:path'` и `validateFullyQualifiedDirectory` к существующему импорту из `./default-directory.ts`; `DEFAULT_WORKSPACE_DIRECTORY` из `./default-workspace.ts`.
 
-- [ ] **Step 4: Прогнать тесты**
+- [x] **Step 4: Прогнать тесты**
 
 Run: `pnpm vitest run packages/api/workspace-controller`
 Expected: PASS (все, включая старые).
 
-- [ ] **Step 5: Коммит**
+- [x] **Step 5: Коммит**
 
 ```bash
 git add packages/api/workspace-controller/src packages/api/workspace-controller/tests
@@ -210,7 +210,7 @@ git commit -m "feat(api): projectBase config with exclusive documentsDirectory p
 - Consumes: `Config.projectBase` (Task 1), `WorkspaceCommands.create({ path })` (существующий, идемпотентен по каноническому пути).
 - Produces: `WorkspaceProjectCreateRequest { name: string }`; verb `controller.createProject(request): Promise<WorkspaceCreateValue>`; `isValidProjectName(name): boolean`; коды `workspace/project-*`. Task 4 кладёт тот же глагол в клиентскую модель.
 
-- [ ] **Step 1: Тесты валидации имени (новый файл)**
+- [x] **Step 1: Тесты валидации имени (новый файл)**
 
 `tests/project-name.host.spec.ts`:
 
@@ -246,12 +246,12 @@ describe('isValidProjectName', () => {
 })
 ```
 
-- [ ] **Step 2: Прогнать — модуль отсутствует**
+- [x] **Step 2: Прогнать — модуль отсутствует**
 
 Run: `pnpm vitest run packages/api/workspace-controller/tests/project-name.host.spec.ts`
 Expected: FAIL (нет `../src/project-name.ts`).
 
-- [ ] **Step 3: Реализовать `src/project-name.ts`**
+- [x] **Step 3: Реализовать `src/project-name.ts`**
 
 ```ts
 /** Project-name validation for the confined project factory. */
@@ -280,7 +280,7 @@ export function isValidProjectName(name: string): boolean {
 }
 ```
 
-- [ ] **Step 4: Тесты глагола (в host.spec.ts; `projectHarness`/`rejectionCode` — из Task 1)**
+- [x] **Step 4: Тесты глагола (в host.spec.ts; `projectHarness`/`rejectionCode` — из Task 1)**
 
 ```ts
 describe('createProject', () => {
@@ -327,12 +327,12 @@ describe('createProject', () => {
 
 (подключите `writeFileSync` к импорту `node:fs` в шапке файла.)
 
-- [ ] **Step 5: Прогнать — падают (метода нет)**
+- [x] **Step 5: Прогнать — падают (метода нет)**
 
 Run: `pnpm vitest run packages/api/workspace-controller`
 Expected: FAIL — `controller.createProject is not a function`.
 
-- [ ] **Step 6: Реализовать**
+- [x] **Step 6: Реализовать**
 
 `src/types.ts` — рядом с `WorkspaceCreateRequest` (строки 64-73):
 
@@ -411,7 +411,7 @@ export interface WorkspaceProjectCreateRequest {
   }
 ```
 
-- [ ] **Step 7: Прогнать тесты + регенерировать typert**
+- [x] **Step 7: Прогнать тесты + регенерировать typert**
 
 ```bash
 pnpm run generate-typert
@@ -420,7 +420,7 @@ pnpm vitest run packages/api/workspace-controller
 
 Expected: PASS (все). Регенерация обновляет `lib/typert.*` артефакты пакета — НЕ коммитьте их (генерятся билдом).
 
-- [ ] **Step 8: Коммит**
+- [x] **Step 8: Коммит**
 
 ```bash
 git add packages/api/workspace-controller/src packages/api/workspace-controller/tests
@@ -441,7 +441,7 @@ git commit -m "feat(api): workspace createProject verb with confined name valida
 - Consumes: `Config.projectBase` (Task 1).
 - Produces: `WorkspaceBaseline.projectBase: string | null` — Task 4 кладёт его в `WorkspaceSnapshot`.
 
-- [ ] **Step 1: Падающий тест**
+- [x] **Step 1: Падающий тест**
 
 В существующий describe follow-тестов добавьте (стиль — по соседним follow-тестам, использующим `WorkspaceFeed`/`controller.follow`):
 
@@ -465,11 +465,11 @@ git commit -m "feat(api): workspace createProject verb with confined name valida
   })
 ```
 
-- [ ] **Step 2: Прогнать — FAIL (поля нет)**
+- [x] **Step 2: Прогнать — FAIL (поля нет)**
 
 Run: `pnpm vitest run packages/api/workspace-controller`
 
-- [ ] **Step 3: Реализовать**
+- [x] **Step 3: Реализовать**
 
 `types.ts` (WorkspaceBaseline):
 
@@ -519,14 +519,14 @@ export interface WorkspaceBaseline {
       }
 ```
 
-- [ ] **Step 4: Тесты + фиксtures**
+- [x] **Step 4: Тесты + фиксtures**
 
 Все литералы `WorkspaceBaseline` в тестах пакета (`tests/remote/workspace.client.ts` helper `baseline()` строка 69-74 — не трогайте: он строит КАДР для мока с тем же типом; добавьте `projectBase: null` в его `value`-литерал) и в client-спеках (Task 4) обязаны получить поле. После правки:
 
 Run: `pnpm vitest run packages/api/workspace-controller`
 Expected: PASS.
 
-- [ ] **Step 5: Коммит**
+- [x] **Step 5: Коммит**
 
 ```bash
 git add packages/api/workspace-controller/src packages/api/workspace-controller/tests
@@ -546,7 +546,7 @@ git commit -m "feat(api): projectBase capability field on the workspace follow b
 - Consumes: verb `workspace/createProject` (Task 2, после `pnpm run generate-typert`), `WorkspaceBaseline.projectBase` (Task 3).
 - Produces: `WorkspaceSnapshot.projectBase: string | null`; `IWorkspaces.createProject(input: { name: string }): Promise<WorkspaceView>`; `WorkspaceProjectCreateError` с `rpcError: RemoteFailure` (поле `rpcError.code` → локаль диалога в Task 5).
 
-- [ ] **Step 1: Падающие тесты модели**
+- [x] **Step 1: Падающие тесты модели**
 
 `model.client.spec.ts` — в `FakeWorkspaceRemote` (строки 71-158) добавьте метод по образцу `create`:
 
@@ -586,11 +586,11 @@ git commit -m "feat(api): projectBase capability field on the workspace follow b
 
 (локальный helper `baseline(model, items, archived, pinned)` в спеке — строки 164-171 — дополните пятым параметром `projectBase: string | null = null`.)
 
-- [ ] **Step 2: Прогнать — FAIL**
+- [x] **Step 2: Прогнать — FAIL**
 
 Run: `pnpm run generate-typert && pnpm vitest run packages/api/workspace-controller/tests/model.client.spec.ts`
 
-- [ ] **Step 3: Реализовать модель**
+- [x] **Step 3: Реализовать модель**
 
 `model.ts`: в `WorkspaceSnapshot` (31-41) после `pinnedSessionIds`:
 
@@ -609,7 +609,7 @@ Run: `pnpm run generate-typert && pnpm vitest run packages/api/workspace-control
   }
 ```
 
-- [ ] **Step 4: Фасад**
+- [x] **Step 4: Фасад**
 
 `service.ts` — класс ошибки по образцу `WorkspaceCreateError` (10-18):
 
@@ -651,7 +651,7 @@ export class WorkspaceProjectCreateError extends Error {
 
 Экспортируйте `WorkspaceProjectCreateError` из клиентского индекса пакета (`src/client/index.ts` переэкспортирует из `./service.ts` по образцу остальных ошибок; проверьте существующий реэкспорт `WorkspaceCreateError` и добавьте рядом).
 
-- [ ] **Step 5: Тестовые хелперы и transport**
+- [x] **Step 5: Тестовые хелперы и transport**
 
 `tests/remote/workspace.client.ts`: в `workspaceWorld.unary` добавьте:
 
@@ -667,12 +667,12 @@ export class WorkspaceProjectCreateError extends Error {
     expect(mock.log.requests('workspace/createProject')).toEqual([{ name: 'Котельная' }])
 ```
 
-- [ ] **Step 6: Прогнать пакет целиком**
+- [x] **Step 6: Прогнать пакет целиком**
 
 Run: `pnpm vitest run packages/api/workspace-controller`
 Expected: PASS (host + model + transport).
 
-- [ ] **Step 7: Коммит**
+- [x] **Step 7: Коммит**
 
 ```bash
 git add packages/api/workspace-controller/src packages/api/workspace-controller/tests
@@ -695,7 +695,7 @@ git commit -m "feat(api): client createProject facade and projectBase snapshot f
 - Consumes: `workspaces.createProject` (Task 4), `useWorkspaces`-хук (`state.projectBase`), `startSession(workspaceId, { clearPreviousDraft: false })` (существующий, WorkspaceBrowser.tsx:1329).
 - Produces: UI-возможность; ключи локали `project.new`, `project.name`, `project.create`, `project.placeholder`, `project.error.exists`, `project.error.invalid`, `project.error.failed`.
 
-- [ ] **Step 1: Ключи локалей (8 словарей)**
+- [x] **Step 1: Ключи локалей (8 словарей)**
 
 В каждый словарь `locales.ts` добавьте по 7 ключей (zh — источник; остальные — `satisfies`):
 
@@ -780,7 +780,7 @@ pt:
   'project.error.failed': 'Falha ao criar o projeto.',
 ```
 
-- [ ] **Step 2: Падающие тесты браузера**
+- [x] **Step 2: Падающие тесты браузера**
 
 В `tests/workspace-browser.client.spec.tsx`: билдер `workspaceState` (75-86) дополните `projectBase: null as string | null`; в `mount()` (115-166) — `createProject: vi.fn(async () => workspace('created')),`; тесты (стиль — по образцу «hides the add button…», строки 2076-2085):
 
@@ -815,11 +815,11 @@ pt:
 
 Импорты в спеку: `WorkspaceProjectCreateError` из `@deepseek-ai/dsh-api-workspace-controller/client`, `RemoteError` из `@deepseek-ai/dsh-typert-protocol` (и `fireEvent` к существующим @testing-library импортам).
 
-- [ ] **Step 3: Прогнать — FAIL**
+- [x] **Step 3: Прогнать — FAIL**
 
 Run: `pnpm vitest run packages/client/ui-workspace/tests/workspace-browser.client.spec.tsx`
 
-- [ ] **Step 4: Слоты-контракт и wiring**
+- [x] **Step 4: Слоты-контракт и wiring**
 
 `contract/slots.ts`: в `WorkspaceBrowserInjected` (243-302; там, где `renameWorkspace`/`deleteWorkspace`) добавьте:
 
@@ -834,7 +834,7 @@ Run: `pnpm vitest run packages/client/ui-workspace/tests/workspace-browser.clien
     createProject: async (input) => workspaces.createProject(input),
 ```
 
-- [ ] **Step 5: Кнопка и диалог в WorkspaceBrowser**
+- [x] **Step 5: Кнопка и диалог в WorkspaceBrowser**
 
 `rows/WorkspaceBrowser.tsx`:
 
@@ -875,7 +875,7 @@ Run: `pnpm vitest run packages/client/ui-workspace/tests/workspace-browser.clien
 
 и импорт `import { NewProjectDialog } from './NewProjectDialog.tsx'`.
 
-- [ ] **Step 6: Новый компонент `rows/NewProjectDialog.tsx`**
+- [x] **Step 6: Новый компонент `rows/NewProjectDialog.tsx`**
 
 (Каркас — точная копия паттерна rename из `WorkspaceDialogs.tsx:14-113`: Modal+Button, busy, `role="alert"`, IME-гард `composingRef`, `data-modal-autofocus`.)
 
@@ -962,7 +962,7 @@ export function NewProjectDialog({ createProject, startSession, onClose, t }: Pr
 
 (`t('close')`/`t('cancel')` — существующие ключи словаря; классы `renameInput`/`renameError` переиспользуются.)
 
-- [ ] **Step 7: Прогнать тесты и i18n-гейт**
+- [x] **Step 7: Прогнать тесты и i18n-гейт**
 
 ```bash
 pnpm vitest run packages/client/ui-workspace
@@ -971,7 +971,7 @@ pnpm run verify-client-ui-i18n
 
 Expected: PASS / без находок.
 
-- [ ] **Step 8: Коммит**
+- [x] **Step 8: Коммит**
 
 ```bash
 git add packages/client/ui-workspace/src packages/client/ui-workspace/tests
@@ -989,7 +989,7 @@ git commit -m "feat(client): New project dialog gated on the workspace projectBa
 **Interfaces:**
 - Consumes: `projectBase` (Task 1), spill-local `root` (существующий конфиг), `dshHomePath` в `!!js` (boot-provide), персоны строк 226 и 328.
 
-- [ ] **Step 1: Оверлей — три правки**
+- [x] **Step 1: Оверлей — три правки**
 
 В `client-north-waterfront.patch.yml`:
 
@@ -1024,7 +1024,7 @@ git commit -m "feat(client): New project dialog gated on the workspace projectBa
 
 (в) `instructionsPrefix` (строка 328) — то же предложение в конец.
 
-- [ ] **Step 2: Лаунчер**
+- [x] **Step 2: Лаунчер**
 
 `dsh-web-north-waterfront.cmd`:
 
@@ -1040,7 +1040,7 @@ set "NW_PROJECTS_DIR=%USERPROFILE%\north-waterfront"
 if not exist "%NW_PROJECTS_DIR%" mkdir "%NW_PROJECTS_DIR%"
 ```
 
-- [ ] **Step 3: Проверки**
+- [x] **Step 3: Проверки**
 
 ```bash
 pnpm run verify-cordis-config
@@ -1049,7 +1049,7 @@ pnpm run doc-sync
 
 Expected: PASS (гейты документации; конфиг-каталог не затронут — строка без config-док уже была).
 
-- [ ] **Step 4: Коммит**
+- [x] **Step 4: Коммит**
 
 ```bash
 git add packages/bundle/web-app/client-north-waterfront.patch.yml dsh-web-north-waterfront.cmd
@@ -1067,7 +1067,7 @@ git commit -m "chore(bundle): north-waterfront project base, spill root, and per
 
 **Interfaces:** нет кода.
 
-- [ ] **Step 1: README**
+- [x] **Step 1: README**
 
 В таблицу «First-use Workspace» добавьте строку:
 
@@ -1081,7 +1081,7 @@ git commit -m "chore(bundle): north-waterfront project base, spill root, and per
 pnpm run verify-translation-pairing --write packages/api/workspace-controller/README.md
 ```
 
-- [ ] **Step 2: Конфиг-каталог (генерат)**
+- [x] **Step 2: Конфиг-каталог (генерат)**
 
 ```bash
 pnpm run gen-config-catalog
@@ -1089,7 +1089,7 @@ pnpm run gen-config-catalog
 
 (блок `@deepseek-ai/dsh-api-workspace-controller` перегенерируется из `Config` — `projectBase` появится сам; строка `source:` сместится.)
 
-- [ ] **Step 3: Финальные гейты**
+- [x] **Step 3: Финальные гейты**
 
 ```bash
 pnpm run generate-typert
@@ -1102,7 +1102,7 @@ pnpm run doc-sync
 
 Expected: всё PASS. (build:check обязан идти после свежего build:artifacts — см. AGENTS.md.)
 
-- [ ] **Step 4: Коммит**
+- [x] **Step 4: Коммит**
 
 ```bash
 git add packages/api/workspace-controller/README.md packages/api/workspace-controller/README.zh.md packages/api/workspace-controller/README.i18n.yaml docs/config-catalog.md
