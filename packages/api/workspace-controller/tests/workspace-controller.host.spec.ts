@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -664,5 +664,46 @@ describe('projectBase configuration', () => {
     const { controller } = await projectHarness({ projectBase: root })
     const value = await controller.initializeDefault(new AbortController().signal)
     expect(value?.workspace.path).toBe(join(root, DEFAULT_WORKSPACE_DIRECTORY))
+  })
+})
+
+describe('createProject', () => {
+  it('creates a project directory and Workspace under projectBase', async () => {
+    const root = realpathSync.native(mkdtempSync(join(tmpdir(), 'dsh-workspace-controller-')))
+    tempDirs.push(root)
+    const { controller } = await projectHarness({ projectBase: root })
+    const value = await controller.createProject({ name: 'Жилой дом 12' })
+    expect(value.created).toBe(true)
+    expect(value.workspace.title).toBe('Жилой дом 12')
+    expect(existsSync(join(root, 'Жилой дом 12'))).toBe(true)
+  })
+
+  it('refuses a duplicate project directory with project-exists', async () => {
+    const root = realpathSync.native(mkdtempSync(join(tmpdir(), 'dsh-workspace-controller-')))
+    tempDirs.push(root)
+    const { controller } = await projectHarness({ projectBase: root })
+    await controller.createProject({ name: 'alpha' })
+    expect(await rejectionCode(controller.createProject({ name: 'alpha' }))).toBe('workspace/project-exists')
+  })
+
+  it.each([['a/b'], ['CON'], [''], ['x'.repeat(65)]])('refuses invalid name %s', async (name) => {
+    const root = realpathSync.native(mkdtempSync(join(tmpdir(), 'dsh-workspace-controller-')))
+    tempDirs.push(root)
+    const { controller } = await projectHarness({ projectBase: root })
+    expect(await rejectionCode(controller.createProject({ name }))).toBe('workspace/project-name-invalid')
+  })
+
+  it('refuses createProject without projectBase', async () => {
+    const { controller } = await projectHarness({})
+    expect(await rejectionCode(controller.createProject({ name: 'alpha' }))).toBe('workspace/project-unavailable')
+  })
+
+  it('reports create-failed when the base is a file', async () => {
+    const root = realpathSync.native(mkdtempSync(join(tmpdir(), 'dsh-workspace-controller-')))
+    tempDirs.push(root)
+    const blocker = join(root, 'blocker.txt')
+    writeFileSync(blocker, '')
+    const { controller } = await projectHarness({ projectBase: blocker })
+    expect(await rejectionCode(controller.createProject({ name: 'alpha' }))).toBe('workspace/project-create-failed')
   })
 })

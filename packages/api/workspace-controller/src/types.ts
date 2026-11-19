@@ -58,12 +58,25 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     'directory-picker/exists': { readonly path: string }
     /** The parent is not fully qualified, the name is not one segment, or creation failed. */
     'directory-picker/create-failed': { readonly path: string }
+    /** Confined project creation is not configured; set `projectBase`. */
+    'workspace/project-unavailable': Record<string, never>
+    /** The proposed project name cannot become one directory segment. */
+    'workspace/project-name-invalid': { readonly name: string }
+    /** A directory already exists at the project path. */
+    'workspace/project-exists': { readonly path: string }
+    /** The project directory could not be created. */
+    'workspace/project-create-failed': { readonly path: string }
   }
 }
 
 /** Existing directory requested for Workspace adoption. */
 export interface WorkspaceCreateRequest {
   readonly path: string
+}
+
+/** Confined project creation: one directory name under the configured project base. */
+export interface WorkspaceProjectCreateRequest {
+  readonly name: string
 }
 
 /** Created or previously registered Workspace. */

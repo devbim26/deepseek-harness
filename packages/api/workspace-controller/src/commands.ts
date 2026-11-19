@@ -1,5 +1,8 @@
 /** Workspace command implementation and stable Remote failure mapping. */
 
+import { existsSync } from 'node:fs'
+import { mkdir } from 'node:fs/promises'
+import { join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import type { Workspace } from '@deepseek-ai/dsh-workspace'
 import {
@@ -12,6 +15,7 @@ import {
 } from '@deepseek-ai/dsh-workspace'
 import { RemoteError, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
 import { workspaceView } from './feed.ts'
+import { isValidProjectName } from './project-name.ts'
 import type {
   WorkspaceArchiveSessionRequest,
   WorkspaceArchiveValue,
@@ -24,6 +28,7 @@ import type {
   WorkspaceOrderValue,
   WorkspacePinSessionRequest,
   WorkspacePinValue,
+  WorkspaceProjectCreateRequest,
   WorkspaceRenameRequest,
   WorkspaceUnarchiveSessionRequest,
   WorkspaceUnpinSessionRequest,
@@ -34,8 +39,12 @@ import type {
 export class WorkspaceCommands {
   private operationTail = Promise.resolve()
 
-  /** @param ctx - Host context containing the Workspace registry. */
-  constructor(private readonly ctx: Context) {}
+  /**
+   * @param ctx - Host context carrying the Workspace registry.
+   * @param projectBase - configured project base directory; undefined disables
+   *   confined project creation.
+   */
+  constructor(private readonly ctx: Context, private readonly projectBase: string | undefined) {}
 
   /**
    * Create or resolve one Workspace over an existing directory.
@@ -43,23 +52,60 @@ export class WorkspaceCommands {
    * @returns the Workspace and whether this call created it.
    */
   create(request: WorkspaceCreateRequest): Promise<WorkspaceCreateValue> {
-    return this.enqueue(async () => {
-      try {
-        const existing = await this.ctx.workspaceRegistry.resolveByPath(request.path)
-        if (existing !== undefined) {
-          return { workspace: workspaceView(existing), created: false }
-        }
-        const workspace = await this.ctx.workspaceRegistry.create(request.path)
-        return { workspace: workspaceView(workspace), created: true }
-      } catch (error) {
-        if (remoteErrorOf(error) !== undefined) throw error
-        throw new RemoteError(
-          'workspace/invalid-path',
-          `cannot create a Workspace at "${request.path}": ${errorMessage(error)}`,
-          { path: request.path },
-          { cause: error },
-        )
+    return this.enqueue(() => this.adopt(request.path))
+  }
+
+  /**
+   * Create or resolve one Workspace over an existing directory; the enqueued
+   * body `create` and `createProject` share, so a project creation adopts its
+   * new directory without re-entering the operation queue.
+   * @param path - directory path to register.
+   * @returns the Workspace and whether the caller created it.
+   */
+  private async adopt(path: string): Promise<WorkspaceCreateValue> {
+    try {
+      const existing = await this.ctx.workspaceRegistry.resolveByPath(path)
+      if (existing !== undefined) {
+        return { workspace: workspaceView(existing), created: false }
       }
+      const workspace = await this.ctx.workspaceRegistry.create(path)
+      return { workspace: workspaceView(workspace), created: true }
+    } catch (error) {
+      if (remoteErrorOf(error) !== undefined) throw error
+      throw new RemoteError(
+        'workspace/invalid-path',
+        `cannot create a Workspace at "${path}": ${errorMessage(error)}`,
+        { path },
+        { cause: error },
+      )
+    }
+  }
+
+  /**
+   * Create one project Workspace: a named child directory under the configured
+   * project base, then ordinary adoption of that directory.
+   * @param request - user-supplied project name.
+   * @returns the Workspace and whether this call created it.
+   */
+  createProject(request: WorkspaceProjectCreateRequest): Promise<WorkspaceCreateValue> {
+    return this.enqueue(async () => {
+      if (this.projectBase === undefined) {
+        throw new RemoteError('workspace/project-unavailable', 'project creation is not configured; set projectBase', {})
+      }
+      if (!isValidProjectName(request.name)) {
+        throw new RemoteError('workspace/project-name-invalid', `"${request.name}" is not a usable project directory name`, { name: request.name })
+      }
+      const path = join(this.projectBase, request.name)
+      try {
+        if (existsSync(path)) {
+          throw new RemoteError('workspace/project-exists', `project directory "${path}" already exists`, { path })
+        }
+        await mkdir(path, { recursive: true })
+      } catch (error: unknown) {
+        if (remoteErrorOf(error) !== undefined) throw error
+        throw new RemoteError('workspace/project-create-failed', `cannot create project directory "${path}": ${errorMessage(error)}`, { path }, { cause: error })
+      }
+      return await this.adopt(path)
     })
   }
 

@@ -26,6 +26,7 @@ import type {
   WorkspaceOrderValue,
   WorkspacePinSessionRequest,
   WorkspacePinValue,
+  WorkspaceProjectCreateRequest,
   WorkspaceRenameRequest,
   WorkspaceUnarchiveSessionRequest,
   WorkspaceUnpinSessionRequest,
@@ -89,7 +90,7 @@ export class WorkspaceController extends TypertRemoteService {
       this.config = { ...this.config, projectBase: validateFullyQualifiedDirectory(this.config.projectBase, process.platform, 'Project base directory') }
     }
     ctx.typert.resources.register('workspace', { field: 'workspaceId' })
-    this.commands = new WorkspaceCommands(ctx)
+    this.commands = new WorkspaceCommands(ctx, this.config.projectBase)
     this.feed = new WorkspaceFeed(ctx)
     // This package is the Loader entry for both Remote owners it hosts: the
     // directory-picking seam is abstract and never an entry itself. The child
@@ -106,6 +107,16 @@ export class WorkspaceController extends TypertRemoteService {
   @Remote('create')
   create(request: WorkspaceCreateRequest): Promise<WorkspaceCreateValue> {
     return this.commands.create(request)
+  }
+
+  /**
+   * Create one project Workspace under the configured project base.
+   * @param request - user-supplied project name.
+   * @returns the Workspace and whether this call created it.
+   */
+  @Remote('createProject')
+  createProject(request: WorkspaceProjectCreateRequest): Promise<WorkspaceCreateValue> {
+    return this.commands.createProject(request)
   }
 
   /**
