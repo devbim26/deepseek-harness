@@ -47,7 +47,7 @@ export const InputBar = memo(function InputBar({
   useSession, useInput, inputActions, keyboard, addFiles, removeAttachment, resolveDraftAttachments,
   retryFileUpload, registerFileIntake,
   toggleCommandMenu, stop, retry, t,
-  renderSlot, useBusyEnter, useFileUploads, useNotices, useLexicon, useMenuLauncher, useStopShortcut,
+  renderSlot, useBusyEnter, useFileUploads, useFileExtractions, useNotices, useLexicon, useMenuLauncher, useStopShortcut,
   useAccess,
   useProjection, sessionId, variant, occurrence, disabled: inert = false, blocked,
   workspacePickerOpen = false, onRequestWorkspace,
@@ -96,11 +96,14 @@ export const InputBar = memo(function InputBar({
   )
   const empty = draft.trim() === '' && attachments.length === 0
   const uploads = useFileUploads(snapshot => snapshot)
-  // Send waits for every picked file and every uploading image: uploading and
-  // failed drafts both hold the gate (a failed upload is retried or removed,
-  // never silently dropped). An image draft without an upload sends inline.
+  const extractions = useFileExtractions(snapshot => snapshot)
+  // Uploads and document-text extraction both hold the send gate; failed
+  // uploads keep it too (retry or remove, never a silent drop). A failed
+  // extraction never holds the gate: the file sends without its text.
+  const extracting = attachments.some(attachment => attachment.kind === 'file'
+    && extractions[attachment.id]?.status === 'extracting')
   const uploadsPending = attachments.some(attachment => attachment.kind === 'file'
-    ? uploads[attachment.id]?.status !== 'ready'
+    ? uploads[attachment.id]?.status !== 'ready' || extractions[attachment.id]?.status === 'extracting'
     : uploads[attachment.id] !== undefined && uploads[attachment.id]?.status !== 'ready')
   // Transient error banner (machine notices, image-intake rejections, and
   // prompt failures): the seq keys the Toast so an identical repeated message
@@ -117,9 +120,9 @@ export const InputBar = memo(function InputBar({
   const imageLimits = useProjection('imageLimits')
   // Enter while uploads hold the send explains the first failed draft; a Host refusal names its reason.
   const failedUpload = attachments.map(attachment => uploads[attachment.id]).find(upload => upload?.status === 'error')
-  const uploadsHeldText = failedUpload?.status !== 'error'
-    ? t('file.stillUploading')
-    : failedUpload.reason === undefined ? t('file.uploadFailed') : attachmentErrorText(t, failedUpload.reason, imageLimits)
+  const uploadsHeldText = failedUpload?.status === 'error'
+    ? (failedUpload.reason === undefined ? t('file.uploadFailed') : attachmentErrorText(t, failedUpload.reason, imageLimits))
+    : extracting ? t('file.stillExtracting') : t('file.stillUploading')
   // Prompt failures are ordinary failures (no create/attach transaction exists
   // anymore): the toast announces promptError, the draft stays in the machine,
   // and the user resubmits. A remount over a session whose machine still holds
@@ -474,6 +477,7 @@ export const InputBar = memo(function InputBar({
           onAddFiles: intakeFiles,
           onRemoveAttachment: (id) => { removeAttachment?.(id) },
           uploads,
+          extractions,
           onRetryFile: (id) => { retryFileUpload?.(id) },
           uploadFailureText: reason => attachmentErrorText(t, reason, imageLimits),
           dropLimits: imageLimits === undefined ? undefined : {

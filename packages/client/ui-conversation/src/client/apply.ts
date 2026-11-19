@@ -4,7 +4,7 @@ import type {} from '@deepseek-ai/dsh-client-product-analytics/client'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type { ISessions, SessionBinding } from '@deepseek-ai/dsh-api-session-controller/client'
-import { IconPaperclipOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
+import { fileSizeText, IconPaperclipOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import { createSnapshotStore, type BoundActions } from '@deepseek-ai/dsh-client-store'
 import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
@@ -21,7 +21,7 @@ import { collapseWhitespaceRule, trimWhitespaceRule } from './user-text/whitespa
 import type { ViewTab } from './contract/views.ts'
 import type {
   ComposerBarInjected, ConversationInjected, ConversationSessionHeaderInjected,
-  ConversationSessionInjected, DraftFileUploads, UserTextInjected,
+  ConversationSessionInjected, DraftExtractions, DraftFileUploads, UserTextInjected,
 } from './contract/slots.ts'
 import type { InputNotice } from './contract/input.ts'
 import type { ReferenceInsert } from './contract/draft-editor.ts'
@@ -67,11 +67,17 @@ export const inject = [
 export interface Config {
   /** Maximum generic-file uploads allowed to run concurrently in browser Workers. */
   maxConcurrentFileUploads?: number
+  /** Files above this many bytes are rejected at intake. */
+  maxFileBytes?: number
+  /** Extracted document text truncates at this many characters. */
+  maxExtractChars?: number
 }
 
 /** Validated Conversation runtime configuration. */
 export const Config: z<Config> = z.object({
   maxConcurrentFileUploads: z.natural().min(1).default(2),
+  maxFileBytes: z.natural().min(1).default(26214400),
+  maxExtractChars: z.natural().min(1).default(50000),
 })
 
 // Stable no-session sources keep the renderer's observable-hook cache and
@@ -96,6 +102,11 @@ const ABSENT_MENU_LAUNCHER = {
 const EMPTY_FILE_UPLOADS: DraftFileUploads = {}
 const ABSENT_FILE_UPLOADS = {
   getSnapshot: () => EMPTY_FILE_UPLOADS,
+  subscribe: () => () => {},
+}
+const EMPTY_DRAFT_EXTRACTIONS: DraftExtractions = {}
+const ABSENT_DRAFT_EXTRACTIONS = {
+  getSnapshot: () => EMPTY_DRAFT_EXTRACTIONS,
   subscribe: () => () => {},
 }
 
@@ -160,6 +171,8 @@ export function apply(ctx: Context, config: Config = Config({})): void {
   const slots = ctx.slots
   // Schemastery's field default is materialized before Cordis calls apply.
   const maxConcurrentFileUploads = config.maxConcurrentFileUploads as number
+  const maxFileBytes = config.maxFileBytes as number
+  const maxExtractChars = config.maxExtractChars as number
   const workspaceNavigation = ctx.get('uiWorkspace') as WorkspaceNavigation
   const uiConversation = new UiConversation(ctx, sessions)
   uiConversation.userText.register(sessionReferenceRule)
@@ -189,6 +202,8 @@ export function apply(ctx: Context, config: Config = Config({})): void {
 
   ctx.effect(() => ctx.locale.register(NS, { zh, en, ja, es, fr, de, ru, pt }), 'ui-conversation: dictionaries')
   const t = ctx.locale.bind(NS)
+  const documentContentText = (name: string, truncated: boolean): string =>
+    truncated ? `${t('file.contentHeader', { name })} (${t('file.contentTruncated')})` : t('file.contentHeader', { name })
   const conversationStore = createConversationStore()
   const submissionPolicy = new ComposerSubmissionPolicy(
     ctx.configForms.get<ConversationSettings>(CONVERSATION_SETTINGS_NAMESPACE),
@@ -492,6 +507,7 @@ export function apply(ctx: Context, config: Config = Config({})): void {
             stopShortcut,
             busyEnter: submissionPolicy.busyEnter,
             fileUploads: ABSENT_FILE_UPLOADS,
+            fileExtractions: ABSENT_DRAFT_EXTRACTIONS,
             notices: ABSENT_NOTICES,
             lexicon: ABSENT_LEXICON,
             menuLauncher: ABSENT_MENU_LAUNCHER,
@@ -519,6 +535,7 @@ export function apply(ctx: Context, config: Config = Config({})): void {
             if (bridge === undefined && directory) return t('attachment.directoryDesktopOnly')
             const path = bridge?.pathFor(file) ?? ''
             if (directory && path === '') return t('attachment.pathUnavailable')
+            if (!directory && file.size > maxFileBytes) return t('file.tooLarge', { size: fileSizeText(maxFileBytes) })
             if (path === '' || (!directory && isImageMediaType(file.type))) {
               uploads.push(file)
               continue
@@ -573,6 +590,7 @@ export function apply(ctx: Context, config: Config = Config({})): void {
           stopShortcut,
           busyEnter: submissionPolicy.busyEnter,
           fileUploads: conversation.fileUploads,
+          fileExtractions: conversation.fileExtractions,
           notices: shell.notices,
           lexicon: shell.lexicon,
           menuLauncher: inputTriggers?.launcher ?? ABSENT_MENU_LAUNCHER,
@@ -599,6 +617,9 @@ export function apply(ctx: Context, config: Config = Config({})): void {
     input: inputHub,
     blocks: composerBlocks,
     maxConcurrentFileUploads,
+    maxFileBytes,
+    maxExtractChars,
+    documentContentText,
   })
   ctx.plugin(todoDockEntry)
   ctx.plugin(queueDockEntry)

@@ -6,7 +6,7 @@ import type { FileUploadReceiptId } from '@deepseek-ai/dsh-client-file-upload/cl
 import type { ImageLightboxLabels } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type {
-  MaybeSnapshotSelectorHook, ObservableSnapshot, SnapshotSelectorHook,
+  MaybeSnapshotSelectorHook, ObservableSnapshot, SnapshotSelectorHook, SnapshotStore,
 } from '@deepseek-ai/dsh-client-store'
 import type {
   FactoryComponentPropsOf, FactoryLocalComponentPropsOf,
@@ -631,6 +631,8 @@ export interface ComposerBarInjected {
     busyEnter: ObservableSnapshot<BusyEnterBehavior>
     /** Live per-draft upload states for drafts that upload when added. */
     fileUploads: ObservableSnapshot<DraftFileUploads>
+    /** Live per-draft document-text extraction states, parallel to `fileUploads`. */
+    fileExtractions: Pick<SnapshotStore<DraftExtractions>, 'getSnapshot' | 'subscribe'>
     notices: ObservableSnapshot<InputNotice | null>
     lexicon: ObservableSnapshot<ReadonlyMap<'/' | '@', readonly string[]>>
     menuLauncher: ObservableSnapshot<string | null>

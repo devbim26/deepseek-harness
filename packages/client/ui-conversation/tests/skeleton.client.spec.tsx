@@ -313,6 +313,7 @@ function mount(
           keyboard={wiring}
           addFiles={() => null}
           useFileUploads={bindSnapshotSelector(createSnapshotStore({}))}
+          useFileExtractions={bindSnapshotSelector(createSnapshotStore({}))}
           retryFileUpload={undefined}
           registerFileIntake={createComposerFileIntake()}
           removeAttachment={() => {}}

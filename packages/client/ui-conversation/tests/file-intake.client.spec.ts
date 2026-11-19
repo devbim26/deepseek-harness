@@ -1,8 +1,20 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import { fireEvent } from '@testing-library/react'
-import type { ComposerFileIntakeTarget } from '../src/client/contract/slots.ts'
+import {
+  SlotTestRuntime, stubConfigForm, usePinnedBrowserLanguages, type SessionBehaviorOverrides,
+} from '@deepseek-ai/dsh-client-test-runtime'
+import type { ISession } from '@deepseek-ai/dsh-api-session-controller/client'
+import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { ComposerBarInjected, ComposerFileIntakeTarget } from '../src/client/contract/slots.ts'
+import { apply, inject } from '../src/client/apply.ts'
 import { createComposerFileIntake } from '../src/client/input/file-intake.ts'
+
+usePinnedBrowserLanguages('zh-CN')
+
+const ROOT = 'root-1' as SessionId
 
 /** One mounted Conversation: content region, transcript, and composer card. */
 function conversation(occurrence: 'main' | 'embedded', parent: HTMLElement = document.body) {
@@ -199,5 +211,69 @@ describe('composer paste route', () => {
     fireEvent.paste(document.body, { clipboardData: filePayload(image) })
     expect(main.add).toHaveBeenCalledTimes(1)
     again()
+  })
+})
+
+/** The real composer-bar inject over a mounted Conversation feature. */
+async function intakeBench() {
+  const runtime = await SlotTestRuntime.create()
+  const upload = vi.fn(() => Promise.resolve({
+    ok: true as const,
+    value: {
+      receiptId: 'root-receipt' as never,
+      file: { attachmentId: 'root-file' as never, name: 'huge.bin', bytes: 1 },
+    },
+  }))
+  runtime.fileUpload.upload = upload
+  runtime.ctx.provide('configForms', {
+    developerTools: {
+      enabled: createSnapshotStore(true),
+      setEnabled: async () => {},
+    },
+    get: () => stubConfigForm().scope,
+  } as never)
+  runtime.ctx.provide('uiWorkspace', {
+    openWorkspace: async () => ROOT,
+    openSession: () => {},
+  } as never)
+  const sessionFake = {
+    loadOlder: vi.fn<ISession['loadOlder']>(() => Promise.resolve()),
+    prompt: vi.fn<ISession['prompt']>(() => Promise.resolve({ ok: true, value: { accepted: true } })),
+    cancel: vi.fn<ISession['cancel']>(() => Promise.resolve({ ok: true, value: { accepted: true } })),
+  } satisfies SessionBehaviorOverrides
+  await runtime.sessions.add({
+    id: ROOT,
+    summary: { title: 'R', displayTitle: 'R', cwd: '/proj' },
+    session: sessionFake,
+  })
+  runtime.sessions.retain(ROOT)
+  const locale = new LocaleRuntime(runtime.ctx)
+  runtime.ctx.provide('locale', locale)
+  runtime.slots.installLocale(locale)
+  runtime.ctx.provide('shortcuts', { catalog: createSnapshotStore([]) })
+  await runtime.root.declare({ 'main': { kind: 'keyed', scope: 'root' } }, () => null)
+  await runtime.mount({ inject: [...inject], apply })
+  const composerEntry = runtime.slots.entries('conversation.composer.bar')[0]!
+  const injectFace = composerEntry.inject as (sessionId: SessionId | undefined) => ComposerBarInjected
+  const composer = injectFace(ROOT)
+  return { runtime, composer, upload }
+}
+
+describe('intake size limit', () => {
+  it('rejects an over-limit file without creating a draft', async () => {
+    const b = await intakeBench()
+    onTestFinished(() => b.runtime.dispose())
+    // A stubbed size above the default 25MB ceiling: the bytes are never read.
+    const oversized = Object.defineProperty(
+      new File([], 'huge.bin', { type: 'application/octet-stream' }),
+      'size',
+      { value: 26214401 },
+    )
+    expect(b.composer.addFiles?.([oversized])).toBe('文件超出 25MB 限制')
+    // No draft enters the input machine or the upload registry, and nothing uploads.
+    const input = b.runtime.ctx.conversation.input.for(b.runtime.sessions.scope(ROOT)!)
+    expect(input.state.getSnapshot().attachmentIds).toEqual([])
+    expect(b.runtime.ctx.conversation.fileUploads.getSnapshot()).toEqual({})
+    expect(b.upload).not.toHaveBeenCalled()
   })
 })

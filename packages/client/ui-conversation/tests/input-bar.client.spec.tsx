@@ -31,7 +31,8 @@ import type { SubmitOutcome } from '../src/client/contract/input.ts'
 import { SessionInputShell } from '../src/client/input/facade.ts'
 import { $replaceDetectSpanWithText, $selectDetectSpan } from '../src/client/input/editor/span-map.ts'
 import type {
-  ComposerAttachment, ComposerAttachmentsOwnerProps, ComposerFileIntake, DraftFileUploads, InputActivityOwnerProps,
+  ComposerAttachment, ComposerAttachmentsOwnerProps, ComposerFileIntake, DraftExtractions, DraftFileUploads,
+  InputActivityOwnerProps,
 } from '../src/client/contract/slots.ts'
 import type { DraftAttachmentId } from '../src/client/contract/input.ts'
 import { InputBar } from '../src/client/skeleton/InputBar.tsx'
@@ -110,6 +111,8 @@ interface BenchOptions {
   attachments?: readonly ComposerAttachment[]
   /** Upload states served for file-kind drafts (absent = every file is ready). */
   fileUploads?: DraftFileUploads
+  /** Extraction states served for file-kind drafts (absent = none). */
+  fileExtractions?: DraftExtractions
   /** Endpoints the Session's access snapshot excludes (absent = every endpoint is allowed). */
   deniedEndpoints?: readonly string[]
   addFiles?: (files: readonly File[], directories?: ReadonlySet<File>) => string | null
@@ -170,6 +173,7 @@ function bench(over?: BenchOptions) {
   const menuLauncher = createSnapshotStore<string | null>(over?.commandMenuOpen === true ? 'command' : null)
   const busyEnter = createSnapshotStore<'queue' | 'steer'>(over?.busyEnter ?? 'queue')
   const stopShortcut = createSnapshotStore<readonly string[]>(['Esc', 'Esc'])
+  const fileExtractions = createSnapshotStore<DraftExtractions>(over?.fileExtractions ?? {})
   const slotCalls: { key: string; owner: unknown }[] = []
   const renderSlot = ((key: string, owner: object) => {
     slotCalls.push({ key, owner })
@@ -215,6 +219,7 @@ function bench(over?: BenchOptions) {
     keyboard: shell,
     addFiles: over?.addFiles ?? (() => null),
     useFileUploads: bindSnapshotSelector(createSnapshotStore<DraftFileUploads>(over?.fileUploads ?? {})),
+    useFileExtractions: bindSnapshotSelector(fileExtractions),
     retryFileUpload: undefined,
     registerFileIntake: over?.registerFileIntake ?? createComposerFileIntake(),
     removeAttachment,
@@ -250,14 +255,16 @@ function bench(over?: BenchOptions) {
   // A running steer-capable composer (ordinary session or continuable child
   // with its parent online) labels Send by the delivery mode it performs over
   // a plain message draft; idle sessions, one-shot children, locked
-  // composers, a child's empty draft, drafts with a pending upload, and `/`
-  // command lines keep plain Send (an ordinary running session's empty draft
-  // is the Stop seat). The mirror models plain-phase drafts only: cases
-  // that claim a command or freeze the machine query the DOM directly.
+  // composers, a child's empty draft, drafts with a pending upload or
+  // extraction, and `/` command lines keep plain Send (an ordinary running
+  // session's empty draft is the Stop seat). The mirror models plain-phase
+  // drafts only: cases that claim a command or freeze the machine query the
+  // DOM directly.
   const steeringAvailable = over?.subagent === undefined || over.subagent.address.mode === 'continuable'
   const composerLocked = over?.disabled === true || over?.inert === true || over?.blocked !== undefined
   const uploadsPending = (over?.attachments ?? []).some(attachment => attachment.kind === 'file'
     ? over?.fileUploads?.[attachment.id]?.status !== 'ready'
+      || over?.fileExtractions?.[attachment.id]?.status === 'extracting'
     : over?.fileUploads?.[attachment.id] !== undefined && over.fileUploads[attachment.id]?.status !== 'ready')
   const plainMessageDraft = sendableDraft && !uploadsPending && !(over?.draft?.trimStart().startsWith('/') ?? false)
   const primaryLabel = primaryStops
@@ -272,7 +279,7 @@ function bench(over?: BenchOptions) {
   const interruptButton = view.container.querySelector<HTMLButtonElement>('button[aria-label="停止生成"]')
   return {
     view, textarea, button, interruptButton, props, sink, shell, wiring: shell, session, stop, removeAttachment, slotCalls,
-    menuLauncher, busyEnter, stopShortcut, retry,
+    menuLauncher, busyEnter, stopShortcut, retry, fileExtractions,
     steerQueue: over?.steerQueue,
     get placeholder() { return placeholderOf(view.container) },
     get inputDisabled() { return textarea.getAttribute('aria-disabled') === 'true' },
@@ -1319,6 +1326,32 @@ describe('running and lock semantics', () => {
     // The attachments slot receives the same localized explanation for its thumbnail.
     const owner = attachmentOwner(bench({ attachments: [image], imageLimits: limits }).slotCalls)
     expect(owner.uploadFailureText('IMAGE_DIMENSION_TOO_LARGE')).toBe(refusal)
+  })
+
+  it('holds the send gate while document text extracts and releases it when extraction finishes', () => {
+    const file = {
+      kind: 'file' as const,
+      id: 'file-1' as DraftAttachmentId,
+      file: new File(['x'], 'notes.pdf', { type: 'application/pdf' }),
+    }
+    const ready = { status: 'ready' as const, receiptId: 'receipt-1' as never, file: { kind: 'file' } as never }
+    const held = bench({
+      running: true, busyEnter: 'steer', draft: '带附件', attachments: [file],
+      fileUploads: { [file.id]: ready },
+      fileExtractions: { [file.id]: { status: 'extracting' } },
+    })
+    // The uploaded file still waits for its document text; Enter explains and withholds the send.
+    expect(held.button.disabled).toBe(true)
+    fireEvent.keyDown(held.textarea, { key: 'Enter' })
+    expect(held.sink).not.toHaveBeenCalled()
+    expect(held.view.getByRole('alert').textContent).toContain('文档文本正在提取，完成后请发送')
+
+    // The extraction finishing releases the gate: busy Send labels its delivery and submits.
+    act(() => { held.fileExtractions.set({ [file.id]: { status: 'done' } }) })
+    const send = held.view.container.querySelector<HTMLButtonElement>('button[aria-label="插话发送"]')!
+    expect(send.disabled).toBe(false)
+    fireEvent.click(send)
+    expect(held.sink).toHaveBeenCalledWith('带附件', [file.id], 'steer', expect.any(AbortSignal), expect.any(Function))
   })
 
   it('idle Send keeps the plain label regardless of the busy-state preference', () => {

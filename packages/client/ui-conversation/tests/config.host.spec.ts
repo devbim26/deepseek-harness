@@ -3,6 +3,7 @@ import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it, onTestFinished } from 'vitest'
 import * as HostPlugin from '../src/index.ts'
+import { Config } from '../src/client/apply.ts'
 import { liveConfig, omitsGeneratedPage } from '../../../settings/settings/tests/live-config.ts'
 import { plainConfig } from '../../../settings/settings/src/schema.ts'
 import {
@@ -32,3 +33,12 @@ it('keeps its own instance off the generated Settings pages', () => omitsGenerat
   await ctx.plugin(SessionProjectionRegistry)
   return ctx.plugin(HostPlugin)
 }))
+
+it('defaults the client file limits and rejects a zero byte ceiling', () => {
+  expect(Config({})).toEqual({
+    maxConcurrentFileUploads: 2,
+    maxFileBytes: 26214400,
+    maxExtractChars: 50000,
+  })
+  expect(() => Config({ maxFileBytes: 0 })).toThrow()
+})
