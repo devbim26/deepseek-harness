@@ -30,7 +30,12 @@ export function validateFullyQualifiedDirectory(
   return paths.normalize(directory)
 }
 
-/** Validate the configured Documents directory. */
+/**
+ * Validate the configured Documents directory.
+ * @param directory - fully qualified directory spelling.
+ * @param platform - Host platform.
+ * @returns the normalized directory.
+ */
 export function validateDocumentsDirectory(directory: string, platform: NodeJS.Platform = process.platform): string {
   return validateFullyQualifiedDirectory(directory, platform)
 }
