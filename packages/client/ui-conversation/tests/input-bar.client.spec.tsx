@@ -197,7 +197,7 @@ function bench(over?: BenchOptions) {
       projectionsBySession: {},
     })),
     useWorkspaces: bindSnapshotSelector(createSnapshotStore({
-      items: [], archivedSessionIds: [], pinnedSessionIds: [], state: 'idle', phase: 'ready', error: null,
+      items: [], archivedSessionIds: [], pinnedSessionIds: [], projectBase: null, state: 'idle', phase: 'ready', error: null,
     })),
     ...allowAllAccess,
     useContextMenu: contextMenuHook(),

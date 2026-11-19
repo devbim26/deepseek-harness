@@ -96,6 +96,7 @@ function workspaceState(
     items,
     archivedSessionIds,
     pinnedSessionIds: [],
+    projectBase: null,
     phase,
     state: phase === 'ready' ? 'idle' : 'loading',
     error: null,
@@ -195,6 +196,7 @@ class FakeWorkspaces implements IWorkspaces {
   }
 
   declare readonly create: IWorkspaces['create']
+  declare readonly createProject: IWorkspaces['createProject']
   declare readonly rename: IWorkspaces['rename']
   declare readonly delete: IWorkspaces['delete']
   declare readonly insertBefore: IWorkspaces['insertBefore']

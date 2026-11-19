@@ -81,6 +81,26 @@ export class TestWorkspaces implements IWorkspaces {
   }
 
   /**
+   * Create one project Workspace (recorded). The default echoes a complete
+   * view under a synthetic project path; stub for failure flows.
+   * @param input - user-supplied project name.
+   * @returns the created Workspace view.
+   */
+  async createProject(input: { readonly name: string }): Promise<WorkspaceView> {
+    this.calls.push({ method: 'createProject', args: [input] })
+    const stub = this.stubs.get('createProject')
+    if (stub !== undefined) return await (stub(input) as Promise<WorkspaceView>)
+    return {
+      workspaceId: `ws-${input.name}` as WorkspaceId,
+      title: input.name,
+      path: `/projects/${input.name}`,
+      sessionIds: [],
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }
+  }
+
+  /**
    * Initialize the default Workspace through a test stub; defaults to an ineligible first use.
    * @param signal - caller lifetime.
    * @returns the stubbed Workspace, or undefined when initialization is ineligible.

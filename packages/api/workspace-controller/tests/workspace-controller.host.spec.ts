@@ -616,7 +616,7 @@ describe('WorkspaceController follow', () => {
     const root = realpathSync.native(mkdtempSync(join(tmpdir(), 'dsh-workspace-controller-')))
     tempDirs.push(root)
     const { controller } = await projectHarness({ projectBase: root })
-    const stream = controller.follow(new AbortController().signal)
+    const stream = controller.follow(new AbortController().signal)[Symbol.asyncIterator]()
     const first = await stream.next()
     expect(first.value).toMatchObject({ type: 'baseline', value: { projectBase: root } })
     await stream.return?.(undefined)
@@ -624,7 +624,7 @@ describe('WorkspaceController follow', () => {
 
   it('carries null projectBase without the config', async () => {
     const { controller } = await projectHarness({})
-    const stream = controller.follow(new AbortController().signal)
+    const stream = controller.follow(new AbortController().signal)[Symbol.asyncIterator]()
     const first = await stream.next()
     expect(first.value).toMatchObject({ type: 'baseline', value: { projectBase: null } })
     await stream.return?.(undefined)
