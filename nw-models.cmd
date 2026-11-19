@@ -49,7 +49,7 @@ goto :write
 
 :write
 set "NW_ENV_FILE=%ENV_FILE%"
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$p=$env:NW_ENV_FILE; $mode=$env:NW_MODE; if(-not (Test-Path -LiteralPath $p)){ Write-Host 'Не найден .env.north-waterfront - сначала настройте сайт.'; exit 1 }; $ids=@(); if($mode -eq 'set'){ $ids=@($env:NW_MODELS_NEW.Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' }); if($ids.Count -eq 0){ Write-Host 'Пустой список - ничего не записано.'; exit 1 } }; $lines=[IO.File]::ReadAllLines($p, [Text.Encoding]::UTF8); $out=New-Object System.Collections.Generic.List[string]; $done=$false; $changed=$false; foreach($line in $lines){ if($line -match '^\s*NW_MODELS\s*='){ if(-not $done -and $mode -eq 'set'){ $out.Add('NW_MODELS=' + ($ids -join ',')); $done=$true }; $changed=$true } else { $out.Add($line) } }; if($mode -eq 'set' -and -not $done){ $out.Add('NW_MODELS=' + ($ids -join ',')) }; if($mode -eq 'remove' -and -not $changed){ Write-Host 'NW_MODELS не задан - действует список по умолчанию из оверлея.'; exit 0 }; try { $utf8=New-Object System.Text.UTF8Encoding($false); [IO.File]::WriteAllText($p, (($out -join [Environment]::NewLine) + [Environment]::NewLine), $utf8) } catch { Write-Host ('Ошибка записи: ' + $_.Exception.Message); exit 1 }; if($mode -eq 'set'){ Write-Host ('Записано: NW_MODELS=' + ($ids -join ',')) } else { Write-Host 'NW_MODELS удалён - действует список по умолчанию из оверлея.' }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$p=$env:NW_ENV_FILE; $mode=$env:NW_MODE; if(-not (Test-Path -LiteralPath $p)){ Write-Host 'Не найден .env.north-waterfront - сначала настройте сайт.'; exit 1 }; $ids=@(); if($mode -eq 'set'){ $ids=@($env:NW_MODELS_NEW.Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' }); if($ids.Count -eq 0){ Write-Host 'Пустой список - ничего не записано.'; exit 1 } }; $lines=[IO.File]::ReadAllLines($p, [Text.Encoding]::UTF8); $out=New-Object System.Collections.Generic.List[string]; $done=$false; $changed=$false; foreach($line in $lines){ if($line -match '^\s*NW_MODELS\s*='){ if(-not $done -and $mode -eq 'set'){ $out.Add('NW_MODELS=' + ($ids -join ',')); $done=$true }; $changed=$true } else { $out.Add($line) } }; if($mode -eq 'set' -and -not $done){ $out.Add('NW_MODELS=' + ($ids -join ',')) }; if($mode -eq 'remove' -and -not $changed){ Write-Host 'NW_MODELS не задан - удалять нечего.'; exit 0 }; try { $utf8=New-Object System.Text.UTF8Encoding($false); [IO.File]::WriteAllText($p, (($out -join [Environment]::NewLine) + [Environment]::NewLine), $utf8) } catch { Write-Host ('Ошибка записи: ' + $_.Exception.Message); exit 1 }; if($mode -eq 'set'){ Write-Host ('Записано: NW_MODELS=' + ($ids -join ',')) } else { Write-Host 'NW_MODELS удалён - до записи нового списка сайт не стартует.' }"
 if errorlevel 1 goto :cancelled
 
 set "NW_ENV_FILE="
@@ -79,14 +79,14 @@ if exist "%ENV_FILE%" (
         if /i "%%A"=="NW_MODELS" (
             set "FOUND=1"
             if "%%B"=="" (
-                echo NW_MODELS= [пусто - действует список по умолчанию]
+                echo NW_MODELS= [пусто - сайт не стартует, запишите список]
             ) else (
                 echo NW_MODELS=%%B
             )
         )
     )
 )
-if not defined FOUND echo NW_MODELS не задан - действует список по умолчанию из оверлея.
+if not defined FOUND echo NW_MODELS не задан - сайт не стартует: оверлей требует список (защита от запуска без лаунчера).
 goto :eof
 
 :cancelled
@@ -100,7 +100,7 @@ echo.
 echo   nw-models.cmd                    спросить список и записать
 echo   nw-models.cmd "id1,id2,..."      записать список
 echo   nw-models.cmd show               показать текущий список
-echo   nw-models.cmd reset              удалить NW_MODELS (вернуть оверлейный дефолт)
+echo   nw-models.cmd reset              удалить NW_MODELS (сайт не стартует до записи нового)
 echo.
 echo Первая модель списка - дефолт новых сессий. Id берутся из каталога
 echo OpenRouter, встроенного в pi-ai; модель вне каталога даст диагностику.

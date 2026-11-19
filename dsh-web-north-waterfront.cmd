@@ -116,8 +116,8 @@ rem live under DSH_HOME, never mixed with the internal deployment.
 set "DSH_HOME=%DSHHOME%"
 if not exist "%DSHHOME%" mkdir "%DSHHOME%"
 if not exist "%NW_PROJECTS_DIR%" mkdir "%NW_PROJECTS_DIR%"
-rem Client secrets (DEVBIM_WEB_PASSWORD, OPENROUTER_API_KEY, DRAWING5_*)
-rem live in .env.north-waterfront, never here.
+rem Client secrets (DEVBIM_WEB_PASSWORD, OPENROUTER_API_KEY, ZAI_CODING_CN_API_KEY,
+rem DRAWING5_*) live in .env.north-waterfront, never here.
 set "ENV_FILE=%ROOT%.env.north-waterfront"
 if exist "%ENV_FILE%" (
     for /f "usebackq eol=# tokens=1,* delims==" %%A in ("%ENV_FILE%") do set "%%A=%%B"

@@ -4,7 +4,8 @@
 # (settings, plugin manager, terminal/files panels, agent-orchestration UI),
 # and narrows the agent's tool set to the drawing5 tools plus read-only
 # workspace access (`read`, `grep`). The model picker
-# stays available but lists only the OpenRouter models named by NW_MODELS.
+# stays available but lists only the OpenRouter models named by NW_MODELS,
+# plus the Z.AI coding-plan catalog when the subscription key is set.
 # The permission catalog keeps only workspace-write and pins it as the
 # new-session default, so the client user works inside their own workspace
 # folder with no access switch.
@@ -42,15 +43,19 @@
         indexTitle: 'NW — Северный берег'
 
 # The client DSH_HOME stages fresh with no stored credentials: the model
-# provider key comes from the launcher env (.env.north-waterfront) and the
+# provider keys come from the launcher env (.env.north-waterfront) and the
 # default model is pinned here, so no sign-in onboarding ever appears.
 #
 # NW_MODELS is the deployment's model allowlist: a comma-separated list of
 # OpenRouter ids (from .env.north-waterfront). The `models` list REPLACES the
 # installed OpenRouter catalog, so the picker and the session model catalog
 # expose exactly these ids. The first entry is also the new-session default.
-# An unset or empty value keeps the three defaults below; never resolve `models`
-# to an empty list, because an empty `models` means the FULL installed catalog.
+# An unset or empty value FAILS THE BOOT. The value reaches the process only
+# through the launcher env, so emptiness means the site was started outside
+# dsh-web-north-waterfront.cmd. The historical three-model fallback hid that
+# misconfiguration (and its sessions ran on models the operator never chose);
+# an empty `models` list must never be substituted either, because an empty
+# `models` means the FULL installed catalog. Hence the loud guard below.
 # Each id must appear exactly once: a duplicate invalidates every copy of the
 # id. The route pins `api: openai-completions` because NW_MODELS may name ids
 # the installed pi-ai catalog has not caught up with, and the OpenRouter
@@ -58,19 +63,44 @@
 # Anthropic ones anthropic-messages), so an unlisted id has no api to inherit.
 # OpenRouter serves every model through its OpenAI-compatible completions API,
 # which also becomes the wire protocol of the two catalog Anthropic models.
+#
+# Subscription plans connect through the same env file: a non-empty
+# ZAI_CODING_CN_API_KEY adds the `zai-coding-cn` route, whose key names an
+# installed pi-ai catalog provider, so the endpoint
+# (https://open.bigmodel.cn/api/coding/paas/v4), the wire protocol, and the
+# model catalog (glm-5.3, glm-5.3-flash, glm-5.3-highspeed, glm-4.6v) are all
+# inherited and need no restatement. The route is added only when the key is
+# set, because an API-key route lists its catalog even without a credential,
+# which would show clients models every request of theirs would fail on.
+# To wire the international plan instead, rename the env var and the route to
+# `zai`/`ZAI_API_KEY` (api.z.ai; a wider catalog). Both expressions below
+# compute the whole `providers` dict, so the two routes stay one config value.
 - id: llm-pi-ai
   name: '@deepseek-ai/dsh-llm-pi-ai'
   config:
-    providers:
-      openrouter:
-        apiKeyEnv: OPENROUTER_API_KEY
-        api: openai-completions
-        models: !!js "(() => { const ids = (process.env.NW_MODELS ?? '').split(',').map((id) => id.trim()).filter(Boolean); return (ids.length > 0 ? ids : ['deepseek/deepseek-v4.1-flash', 'deepseek/deepseek-v4-pro', 'deepseek/deepseek-v4-flash']).map((id) => ({ id })); })()"
+    providers: !!js "(() => {
+      const ids = (process.env.NW_MODELS ?? '').split(',').map((id) => id.trim()).filter(Boolean);
+      if (ids.length === 0) {
+        throw new Error('client-north-waterfront: NW_MODELS is empty - the model allowlist comes only from the'
+          + ' launcher env (.env.north-waterfront), so the site was started outside dsh-web-north-waterfront.cmd.'
+          + ' Launch through the launcher, or set NW_MODELS with nw-models.cmd id1,id2,...');
+      }
+      return {
+        openrouter: {
+          apiKeyEnv: 'OPENROUTER_API_KEY',
+          api: 'openai-completions',
+          models: ids.map((id) => ({ id })),
+        },
+        ...((process.env.ZAI_CODING_CN_API_KEY ?? '').trim() === '' ? {} : {
+          'zai-coding-cn': { apiKeyEnv: 'ZAI_CODING_CN_API_KEY', displayName: 'Z.AI Coding' },
+        }),
+      };
+    })()"
 - id: agent-default-model
   name: '@deepseek-ai/dsh-agent-default-model'
   config:
     provider: openrouter
-    model: !!js (process.env.NW_MODELS ?? 'deepseek/deepseek-v4.1-flash,deepseek/deepseek-v4-pro,deepseek/deepseek-v4-flash').split(',').map((id) => id.trim()).filter(Boolean)[0] ?? 'deepseek/deepseek-v4.1-flash'
+    model: !!js "(() => { const ids = (process.env.NW_MODELS ?? '').split(',').map((id) => id.trim()).filter(Boolean); if (ids.length === 0) throw new Error('client-north-waterfront: NW_MODELS is empty - start the site via dsh-web-north-waterfront.cmd or set NW_MODELS with nw-models.cmd'); return ids[0]; })()"
 
 # Only the OpenRouter route above is reachable on the client site: the native
 # DeepSeek adapters would add their own unrestricted provider groups to the
@@ -81,11 +111,22 @@
   disabled: true
 
 # The client tunnel authority joins the /api Host/Origin trust fence (the
-# documented deployment extension of the connection row's expression).
+# documented deployment extension of the connection row's expression). The
+# same expression carries the NW_MODELS guard: `connection` is a required
+# startup entry, so an empty allowlist fails the whole boot. The llm rows'
+# own guards name the cause, but their failure alone only degrades the site
+# (the boot survives non-required plugin failures and still listens).
 - id: connection
   inject: [webStartup]
   config:
-    trustedHosts: !!js "['north-waterfront.dev-bim.com', ...ctx.webStartup.trustedHosts]"
+    trustedHosts: !!js "(() => {
+      const ids = (process.env.NW_MODELS ?? '').split(',').map((id) => id.trim()).filter(Boolean);
+      if (ids.length === 0) {
+        throw new Error('client-north-waterfront: NW_MODELS is empty - start the site via'
+          + ' dsh-web-north-waterfront.cmd, or set NW_MODELS with nw-models.cmd id1,id2,...');
+      }
+      return ['north-waterfront.dev-bim.com', ...ctx.webStartup.trustedHosts];
+    })()"
 
 # -- Access presets: one workspace folder per client user. --------------------
 # Same-id override of the base `permission` row's whole config (a patch
