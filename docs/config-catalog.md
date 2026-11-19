@@ -158,7 +158,7 @@ export type Config = PresetDefinition
 
 - `inject`: `agentPresets` · `storageDomain`
 - `refs`: [`PresetDefinition`](../packages/preset/agent-preset-registry/src/index.ts)
-- `source`: [`packages/preset/agent-preset-custom/src/config.ts:32`](../packages/preset/agent-preset-custom/src/config.ts)
+- `source`: [`packages/preset/agent-preset-custom/src/config.ts:45`](../packages/preset/agent-preset-custom/src/config.ts)
 
 ```ts config-catalog
 /** Config of the `agent-preset-custom` service row. */
@@ -205,6 +205,19 @@ export interface DelegationEntry {
    * or an empty string keeps the persona free of roster text.
    */
   rosterTemplate?: string | undefined
+  /**
+   * Additional orchestrator-only row, such as the shared subagent control
+   * tools; omission mounts nothing beside the delegation row.
+   */
+  control?: DelegationControlEntry | undefined
+}
+
+/** One additional orchestrator-only row, such as the shared subagent control tools. */
+export interface DelegationControlEntry {
+  /** Package name of the mounted control plugin row. */
+  name: string
+  /** Row config passed through to the plugin. */
+  config?: Record<string, unknown>
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-agent-preset-custom -->
@@ -406,13 +419,20 @@ export interface Config {
 ## `@deepseek-ai/dsh-api-workspace-controller`
 
 - `inject`: `remoteAccess` · `typert` · `workspaceRegistry`
-- `source`: [`packages/api/workspace-controller/src/index.ts:37`](../packages/api/workspace-controller/src/index.ts)
+- `source`: [`packages/api/workspace-controller/src/index.ts:40`](../packages/api/workspace-controller/src/index.ts)
 
 ```ts config-catalog
 /** First-use directory policy for the Host account. */
 export interface Config {
   /** Override the system Documents directory with a fully qualified path. */
   documentsDirectory?: string
+  /**
+   * Base directory for confined project creation: `createProject` makes one
+   * named child directory per call, and first-use default Workspace anchoring
+   * uses `<projectBase>/default-workspace`. Mutually exclusive with
+   * `documentsDirectory`.
+   */
+  projectBase?: string
   /** Maximum duration of the operating system's Documents lookup. */
   documentsLookupTimeoutMs?: number
 }
