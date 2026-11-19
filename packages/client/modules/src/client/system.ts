@@ -48,6 +48,20 @@ function chunkId(ownerId: string, fileName: string): string {
   return `${ownerId}/${fileName}`
 }
 
+/**
+ * Resolve a factory require specifier to its module-table key: a package-local
+ * chunk spec (`./client.<name>.js`) keys against the requiring package, every
+ * other specifier strips its `/client` suffix.
+ * @param spec - the specifier a factory passed to `require`.
+ * @param ownerId - the package whose factory is requiring.
+ * @returns the module-table key for the specifier.
+ */
+function requireId(spec: string, ownerId: string): string {
+  if (!spec.startsWith('./')) return stripClientSuffix(spec)
+  const fileName = spec.slice(2)
+  return CLIENT_CHUNK.test(fileName) ? chunkId(ownerId, fileName) : stripClientSuffix(spec)
+}
+
 /** Resolve a sibling chunk against the package's one-resource URL and current revision. */
 function chunkUrl(row: BootModuleRow, fileName: string, rev: string): string {
   const url = atRevision(row.url, rev)
@@ -328,10 +342,10 @@ export class ClientModuleSystem implements ClientModuleLoader {
     const require = (spec: string): unknown => {
       edges.add(spec)
       if (this.seed.has(spec)) return this.seed.get(spec)
-      const id = stripClientSuffix(spec)
+      const id = requireId(spec, ownerId)
       const record = this.loadCache.get(id)
       if (record !== undefined) return record.exports
-      if (this.factories.has(id)) return this.materialize(id).exports
+      if (this.factories.has(id)) return this.materialize(id, ownerId).exports
       throw new Error(
         `client-modules: require("${spec}") missed the module table — not a platform seed word, not a materialized module, `
         + 'and no registered package factory (a build-time externals drift, or a dynamic dependency that did not arrive)',

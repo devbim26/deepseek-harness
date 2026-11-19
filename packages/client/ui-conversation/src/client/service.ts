@@ -429,9 +429,9 @@ export class ConversationController extends Service implements IConversation {
   private dropExtraction(id: DraftAttachmentId): void {
     this.extractionControllers.get(id)?.abort()
     this.extractionControllers.delete(id)
-    const rest: Record<string, DraftExtraction> = { ...this.fileExtractions.getSnapshot() }
-    delete rest[id]
-    this.fileExtractions.set(rest)
+    this.fileExtractions.set(Object.fromEntries(
+      Object.entries(this.fileExtractions.getSnapshot()).filter(([key]) => key !== id),
+    ))
   }
 
   /**

@@ -72,38 +72,29 @@ function truncate(text: string, limits: DocumentExtractLimits): DocumentExtractR
 
 const aborted = (signal: AbortSignal | undefined): boolean => signal?.aborted === true
 
-/** Extract text through pdf.js; an empty layer means a scan. */
+/** Extract the text layer through the lazy pdf chunk; an empty layer means a
+ * scan. */
 async function extractPdf(file: File, signal: AbortSignal | undefined): Promise<string> {
-  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
-  const document = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise
-  const pages: string[] = []
-  for (let number = 1; number <= document.numPages; number++) {
-    if (aborted(signal)) throw new Error('document-extract: aborted')
-    const page = await document.getPage(number)
-    const content = await page.getTextContent()
-    pages.push(content.items.map(item => 'str' in item ? item.str : '').join(' '))
-    page.cleanup()
-  }
-  const text = pages.join('\n\n').trim()
+  const { extractPdfText } = await import('./pdf.ts')
+  const text = await extractPdfText(file, signal)
   if (text === '') throw new NoTextLayerError()
   return text
 }
 
-/** Extract paragraph text through mammoth's prebuilt browser bundle: the
- * typed Node entry does not implement the `arrayBuffer` input outside
- * browser-field resolvers such as Vitest. */
+/** Extract paragraph text through the lazy docx chunk, whose own module
+ * bundles mammoth's prebuilt browser build (the typed Node entry does not
+ * implement the `arrayBuffer` input outside browser-field resolvers such as
+ * Vitest). */
 async function extractDocx(file: File): Promise<string> {
-  const mammoth = await import('mammoth/mammoth.browser.js')
-  const { value } = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() })
-  return value
+  const { extractDocxText } = await import('./docx.ts')
+  return extractDocxText(file)
 }
 
-/** Extract every sheet as CSV through SheetJS. */
+/** Extract every sheet as CSV through the lazy excel chunk, whose own module
+ * bundles SheetJS. */
 async function extractSheet(file: File): Promise<string> {
-  const XLSX = await import('xlsx')
-  const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' })
-  return workbook.SheetNames
-    .map(name => XLSX.utils.sheet_to_csv(workbook.Sheets[name]!)).join('\n\n')
+  const { extractSheetCsv } = await import('./excel.ts')
+  return extractSheetCsv(file)
 }
 
 /**

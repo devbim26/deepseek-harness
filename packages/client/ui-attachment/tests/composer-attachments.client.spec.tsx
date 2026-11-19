@@ -338,15 +338,22 @@ describe('ComposerAttachments file drafts', () => {
 
   it('spins while extracting, states a failed extraction notice, and keeps done cards plain', () => {
     const view = render(<ComposerAttachments {...props({
-      attachments: [fileDraft('busy'), fileDraft('legacy', 'legacy.doc'), fileDraft('done')],
+      attachments: [
+        fileDraft('busy'), fileDraft('legacy', 'legacy.doc'), fileDraft('scan', 'scan.pdf'),
+        fileDraft('broken', 'broken.pdf'), fileDraft('done'),
+      ],
       uploads: {
         busy: { status: 'ready', receiptId: 'receipt-busy' as never },
         legacy: { status: 'ready', receiptId: 'receipt-legacy' as never },
+        scan: { status: 'ready', receiptId: 'receipt-scan' as never },
+        broken: { status: 'ready', receiptId: 'receipt-broken' as never },
         done: { status: 'ready', receiptId: 'receipt-done' as never },
       },
       extractions: {
         busy: { status: 'extracting' },
         legacy: { status: 'failed', notice: 'docLegacy' },
+        scan: { status: 'failed', notice: 'noTextLayer' },
+        broken: { status: 'failed', notice: 'parseFailed' },
         done: { status: 'done' },
       },
     })} />)
@@ -360,6 +367,8 @@ describe('ComposerAttachments file drafts', () => {
     expect(legacy.querySelector('[class*="metaFailed"]')).toBeTruthy()
     expect(legacy.textContent).toContain('不支持旧版 .doc；请另存为 .docx 后重新添加')
     expect(view.queryByRole('button', { name: '重试上传 legacy.doc' })).toBeNull()
+    expect(view.getByTitle('scan.pdf').textContent).toContain('没有文本层（扫描件？）；文件仍会原样附带')
+    expect(view.getByTitle('broken.pdf').textContent).toContain('未能提取文本；文件仍会原样附带')
     expect(view.getByTitle('done.pdf').textContent).toContain('PDF 3B')
   })
 

@@ -497,6 +497,30 @@ function asyncChunkRequirePlugin(): TsdownPlugin {
       }
       return transformed.hasChanged() ? transformed : null
     },
+    generateBundle(_outputOptions, bundle) {
+      // Rolldown extracts its interop helpers (`.a`/`.n`/`.t`) into a shared
+      // `client.rolldown-runtime.js` chunk whenever two or more output chunks
+      // need them, and every consumer references that file through a
+      // synchronous `require` — a relative chunk spec the module loader's
+      // sync require resolves against the owning package. The runtime factory
+      // therefore rides at the end of the entry script (the only file whose
+      // byte layout a source map pins), the standalone chunk is dropped, and
+      // lazy chunks resolve the same entry-registered factory.
+      const runtimeName = 'client.rolldown-runtime.js'
+      const runtime = bundle[runtimeName]
+      if (runtime === undefined || runtime.type !== 'chunk') return
+      const runtimeRequire = new RegExp(`require\\((['"])\\./${escapeSpecifier(runtimeName)}\\1\\)`, 'u')
+      const consumers = Object.values(bundle).flatMap(output => {
+        if (output.type !== 'chunk' || output.fileName === runtimeName) return []
+        return runtimeRequire.test(output.code) ? [output] : []
+      })
+      const entry = consumers.find(chunk => chunk.isEntry === true)
+      if (entry === undefined) {
+        throw new Error(`client bundle compiler: shared runtime chunk ${JSON.stringify(runtimeName)} has no entry consumer`)
+      }
+      entry.code += `\n${runtime.code}\n`
+      delete bundle[runtimeName]
+    },
     async writeBundle(outputOptions, bundle) {
       const entry = Object.values(bundle).find(output => output.type === 'chunk' && output.isEntry)
       if (entry === undefined || outputOptions.dir === undefined) return

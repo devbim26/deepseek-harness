@@ -661,7 +661,7 @@ describe('draft document extraction', () => {
     await expect(b.root.sendSession(session, '', [draft.id], 'queue')).resolves.toEqual({ kind: 'success' })
     expect(b.prompt.mock.calls[0]?.[0]).toEqual([
       { type: 'file', receiptId: 'receipt-вед.xlsx' },
-      { type: 'text', text: expect.stringMatching(/^«вед\.xlsx» \(усечён\)\nПозиция/) },
+      { type: 'text', text: expect.stringMatching(/^«вед\.xlsx» \(усечён\)\nПозиция/) as string },
     ])
     await b.runtime.dispose()
   })
