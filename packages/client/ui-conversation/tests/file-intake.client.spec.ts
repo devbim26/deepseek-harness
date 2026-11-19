@@ -8,7 +8,8 @@ import type { ISession } from '@deepseek-ai/dsh-api-session-controller/client'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { ComposerBarInjected, ComposerFileIntakeTarget } from '../src/client/contract/slots.ts'
+import type { ComposerFileIntakeTarget } from '../src/client/contract/slots.ts'
+import type { ConversationController } from '../src/client/service.ts'
 import { apply, inject } from '../src/client/apply.ts'
 import { createComposerFileIntake } from '../src/client/input/file-intake.ts'
 
@@ -214,6 +215,11 @@ describe('composer paste route', () => {
   })
 })
 
+/** Composer-bar inject share this bench exercises; the registry stores inject faces type-erased. */
+type ComposerInjectFace = (...args: never[]) => {
+  addFiles: ((files: readonly File[], directories?: ReadonlySet<File>) => string | null) | undefined
+}
+
 /** The real composer-bar inject over a mounted Conversation feature. */
 async function intakeBench() {
   const runtime = await SlotTestRuntime.create()
@@ -254,8 +260,8 @@ async function intakeBench() {
   await runtime.root.declare({ 'main': { kind: 'keyed', scope: 'root' } }, () => null)
   await runtime.mount({ inject: [...inject], apply })
   const composerEntry = runtime.slots.entries('conversation.composer.bar')[0]!
-  const injectFace = composerEntry.inject as (sessionId: SessionId | undefined) => ComposerBarInjected
-  const composer = injectFace(ROOT)
+  const injectFace = composerEntry.inject! as ComposerInjectFace
+  const composer = injectFace(...([ROOT] as never[]))
   return { runtime, composer, upload }
 }
 
@@ -273,7 +279,9 @@ describe('intake size limit', () => {
     // No draft enters the input machine or the upload registry, and nothing uploads.
     const input = b.runtime.ctx.conversation.input.for(b.runtime.sessions.scope(ROOT)!)
     expect(input.state.getSnapshot().attachmentIds).toEqual([])
-    expect(b.runtime.ctx.conversation.fileUploads.getSnapshot()).toEqual({})
+    // The upload registry is concrete-class state; IConversation does not expose it.
+    const controller = b.runtime.ctx.get('conversation') as ConversationController
+    expect(controller.fileUploads.getSnapshot()).toEqual({})
     expect(b.upload).not.toHaveBeenCalled()
   })
 })
