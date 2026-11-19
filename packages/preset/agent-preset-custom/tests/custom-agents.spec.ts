@@ -135,6 +135,23 @@ describe('custom agent presets service', () => {
     expect(after.presets.find(preset => preset.id === created.id)).toBeUndefined()
   })
 
+  it('mounts the deployment control row beside delegation for orchestrators only', async () => {
+    const { ctx } = await harness({
+      delegation: {
+        name: '@deepseek-ai/dsh-tool-subagent',
+        config: { provider: 'spawn', toolName: 'subagent' },
+        control: { name: '@deepseek-ai/dsh-tool-subagent-control' },
+      },
+    })
+    const worker = await ctx.customAgentPresets.create({ name: 'Worker', description: '', instructions: 'Do the work.', tools: [], isOrchestrator: false, delegates: [], hidden: false })
+    const lead = await ctx.customAgentPresets.create({ name: 'Lead', description: '', instructions: 'Run the workers.', tools: [], isOrchestrator: true, delegates: [worker.id], hidden: false })
+    const document = await ctx.agentPresets.readDocument(lead.id)
+    expect(document.content).toContain('dsh-tool-subagent')
+    expect(document.content).toContain('dsh-tool-subagent-control')
+    const workerDocument = await ctx.agentPresets.readDocument(worker.id)
+    expect(workerDocument.content).not.toContain('dsh-tool-subagent-control')
+  })
+
   it('remounts referencing orchestrators when a delegate is updated', async () => {
     const { ctx } = await harness({
       delegation: {

@@ -14,6 +14,14 @@ export interface AllowedToolsEntry {
   description?: string
 }
 
+/** One additional orchestrator-only row, such as the shared subagent control tools. */
+export interface DelegationControlEntry {
+  /** Package name of the mounted control plugin row. */
+  name: string
+  /** Row config passed through to the plugin. */
+  config?: Record<string, unknown>
+}
+
 /** The delegation row template an orchestrator mounts; its presence enables the orchestrator flag. */
 export interface DelegationEntry {
   /** Package name of the mounted delegation plugin row. */
@@ -26,6 +34,11 @@ export interface DelegationEntry {
    * or an empty string keeps the persona free of roster text.
    */
   rosterTemplate?: string | undefined
+  /**
+   * Additional orchestrator-only row, such as the shared subagent control
+   * tools; omission mounts nothing beside the delegation row.
+   */
+  control?: DelegationControlEntry | undefined
 }
 
 /** Config of the `agent-preset-custom` service row. */
@@ -57,6 +70,10 @@ export const Config: z<Config> = z.object({
     name: z.string().required(),
     config: z.dict(z.any()),
     rosterTemplate: z.string(),
+    control: (z.object({
+      name: z.string().required(),
+      config: z.dict(z.any()),
+    }) as z<DelegationControlEntry | undefined>).default(undefined),
   }) as z<DelegationEntry | undefined>).default(undefined),
   maxNameChars: z.number().default(64),
   maxDescriptionChars: z.number().default(200),

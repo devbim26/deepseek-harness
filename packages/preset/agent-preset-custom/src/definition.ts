@@ -33,14 +33,21 @@ export function synthesizeDefinition(
     : ''
   const prefix = `${base}${roster}`
   const delegation = record.isOrchestrator && record.delegates.length > 0 && config.delegation !== undefined
-    ? [{
-      id: 'delegation',
-      name: config.delegation.name,
-      config: {
-        ...(config.delegation.config ?? {}),
-        allowedAgentPresets: [...record.delegates],
+    ? [
+      {
+        id: 'delegation',
+        name: config.delegation.name,
+        config: {
+          ...(config.delegation.config ?? {}),
+          allowedAgentPresets: [...record.delegates],
+        },
       },
-    }]
+      ...(config.delegation.control === undefined ? [] : [{
+        id: 'delegation-control',
+        name: config.delegation.control.name,
+        config: config.delegation.control.config ?? {},
+      }]),
+    ]
     : []
   return {
     id: record.id,
