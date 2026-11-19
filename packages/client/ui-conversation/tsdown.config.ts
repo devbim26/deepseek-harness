@@ -1,10 +1,30 @@
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
+import { dirname, join } from 'node:path'
 import type { UserConfig } from 'tsdown'
 import { clientBundle } from '../tsdown.client.ts'
 
-const bundle = clientBundle(import.meta.dirname, ['lib/types/index.js'])
 const require = createRequire(import.meta.url)
+
+/**
+ * Keep one bundled library's license visible in the published client chunk
+ * that carries it (the same obligation `ui-sidebar-documentpreview` meets for
+ * its preview chunks).
+ * @param name - the installed package whose LICENSE file ships in the chunk.
+ * @returns the license text as a JavaScript comment banner.
+ */
+function licenseBanner(name: string): string {
+  const license = readFileSync(join(dirname(require.resolve(`${name}/package.json`)), 'LICENSE'), 'utf8')
+  return ['//! Bundled license notices', ...license.trimEnd().split('\n').map(line => `// ${line}`)].join('\n')
+}
+
+const bundle = clientBundle(import.meta.dirname, ['lib/types/index.js'], {
+  clientBanner: fileName => fileName.endsWith('client.pdf.js')
+    ? licenseBanner('pdfjs-dist')
+    : fileName.endsWith('client.excel.js')
+      ? licenseBanner('xlsx')
+      : fileName.endsWith('client.docx.js') ? licenseBanner('mammoth') : undefined,
+})
 const workerSpecifier = 'pdfjs-dist/build/pdf.worker.min.mjs?raw'
 const workerModule = '\0dsh-ui-conversation-pdf-worker.mjs'
 

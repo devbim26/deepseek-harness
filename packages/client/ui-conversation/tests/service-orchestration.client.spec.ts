@@ -728,6 +728,71 @@ describe('draft document extraction', () => {
     expect(b.prompt.mock.calls[0]?.[0]).toEqual([{ type: 'file', receiptId: 'receipt-broken.docx' }])
     await b.runtime.dispose()
   })
+
+  /** A picked text file whose extraction settles only when the test releases it. */
+  class HeldTextFile extends File {
+    private settle?: { resolve: (text: string) => void, reject: (error: Error) => void }
+
+    override text(): Promise<string> {
+      return new Promise((resolve, reject) => { this.settle = { resolve, reject } })
+    }
+
+    /** Finish the held extraction successfully. */
+    finish(): void { this.settle?.resolve('заметка') }
+
+    /** Fail the held extraction. */
+    fail(): void { this.settle?.reject(new Error('extraction exploded')) }
+  }
+
+  it('a settlement after its draft was released writes no resurrected extraction entry', async () => {
+    const b = await extractBench()
+    const session = b.runtime.sessions.binding('s1')!.session
+    ;(session as { uploadFile?: unknown }).uploadFile = uploadByName()
+    const held = new HeldTextFile(['заметка'], 'held.txt', { type: 'text/plain' })
+    const [draft] = b.root.createDrafts(session.sessionId, [held], UPLOAD_IMAGES)
+    if (draft === undefined || draft.kind !== 'file') throw new Error('file draft missing')
+    await vi.waitFor(() => {
+      expect(b.root.fileExtractions.getSnapshot()[draft.id]).toEqual({ status: 'extracting' })
+    })
+    b.root.releaseDraftAttachment(draft.id)
+    expect(b.root.fileExtractions.getSnapshot()[draft.id]).toBeUndefined()
+    held.finish()
+    await new Promise((resolve) => { setTimeout(resolve, 20) })
+    expect(b.root.fileExtractions.getSnapshot()[draft.id]).toBeUndefined()
+    expect(draft.extraction).toBeUndefined()
+    await b.runtime.dispose()
+  })
+
+  it('a rejection after its draft was released writes no failed extraction entry', async () => {
+    const b = await extractBench()
+    const session = b.runtime.sessions.binding('s1')!.session
+    ;(session as { uploadFile?: unknown }).uploadFile = uploadByName()
+    const held = new HeldTextFile(['заметка'], 'held.txt', { type: 'text/plain' })
+    const [draft] = b.root.createDrafts(session.sessionId, [held], UPLOAD_IMAGES)
+    if (draft === undefined || draft.kind !== 'file') throw new Error('file draft missing')
+    await vi.waitFor(() => {
+      expect(b.root.fileExtractions.getSnapshot()[draft.id]).toEqual({ status: 'extracting' })
+    })
+    b.root.releaseDraftAttachment(draft.id)
+    held.fail()
+    await new Promise((resolve) => { setTimeout(resolve, 20) })
+    expect(b.root.fileExtractions.getSnapshot()[draft.id]).toBeUndefined()
+    expect(draft.extraction).toBeUndefined()
+    await b.runtime.dispose()
+  })
+
+  it('a legacy .doc pick records its failed notice without starting extraction', async () => {
+    const b = await extractBench()
+    const session = b.runtime.sessions.binding('s1')!.session
+    ;(session as { uploadFile?: unknown }).uploadFile = uploadByName()
+    const [draft] = b.root.createDrafts(session.sessionId, [
+      new File([Uint8Array.of(1)], 'legacy.doc'),
+    ], UPLOAD_IMAGES)
+    if (draft === undefined || draft.kind !== 'file') throw new Error('file draft missing')
+    expect(b.root.fileExtractions.getSnapshot()[draft.id]).toEqual({ status: 'failed', notice: 'docLegacy' })
+    expect(draft.extraction).toBeUndefined()
+    await b.runtime.dispose()
+  })
 })
 
 describe('sendSession submission echo', () => {
