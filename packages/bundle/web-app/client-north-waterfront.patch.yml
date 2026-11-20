@@ -64,6 +64,15 @@
 # OpenRouter serves every model through its OpenAI-compatible completions API,
 # which also becomes the wire protocol of the two catalog Anthropic models.
 #
+# The openrouter route pins `baseURL: https://openrouter.ai/api/v1` beside the
+# api pin, and the pin is load-bearing: the api pin alone is not enough for ids
+# the installed pi-ai catalog lists. A listed anthropic-protocol entry carries
+# baseUrl https://openrouter.ai/api (its own path builder appends /v1/messages),
+# and under the pinned completions protocol that inherited base resolves to the
+# nonexistent /api/chat/completions — a flat 404 on every turn of that model.
+# The pinned base makes every id on the route, listed or bare, post to
+# /api/v1/chat/completions.
+#
 # Subscription plans connect through the same env file: a non-empty
 # ZAI_CODING_CN_API_KEY adds the `zai-coding-cn` route, whose key names an
 # installed pi-ai catalog provider, so the endpoint
@@ -89,6 +98,7 @@
         openrouter: {
           apiKeyEnv: 'OPENROUTER_API_KEY',
           api: 'openai-completions',
+          baseURL: 'https://openrouter.ai/api/v1',
           models: ids.map((id) => ({ id })),
         },
         ...((process.env.ZAI_CODING_CN_API_KEY ?? '').trim() === '' ? {} : {
