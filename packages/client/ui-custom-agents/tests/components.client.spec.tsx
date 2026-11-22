@@ -14,11 +14,11 @@ afterEach(() => { document.body.textContent = '' })
 
 const translations: ReadonlyMap<string, string> = new Map(Object.entries(en))
 
-const seededAgent: CustomAgentRecord = { id: 'custom/agent', slug: 'agent', name: 'Сметчик', description: 'Считает', instructions: 'i', tools: [], isOrchestrator: false, delegates: [], hidden: false, version: 1, updatedAt: '2026-11-15T00:00:00.000Z' }
+const seededAgent: CustomAgentRecord = { id: 'custom/agent', slug: 'agent', name: 'Сметчик', description: 'Считает', instructions: 'i', tools: [], isOrchestrator: false, delegates: [], orchestratorMaxIterations: 3, orchestratorMaxParallel: 3, orchestratorAutoReport: true, hidden: false, version: 1, updatedAt: '2026-11-15T00:00:00.000Z' }
 
-const seededLead: CustomAgentRecord = { id: 'custom/lead', slug: 'lead', name: 'Ведущий', description: '', instructions: 'i', tools: [], isOrchestrator: true, delegates: [seededAgent.id], hidden: true, version: 1, updatedAt: '2026-11-15T00:00:00.000Z' }
+const seededLead: CustomAgentRecord = { id: 'custom/lead', slug: 'lead', name: 'Ведущий', description: '', instructions: 'i', tools: [], isOrchestrator: true, delegates: [seededAgent.id], orchestratorMaxIterations: 5, orchestratorMaxParallel: 4, orchestratorAutoReport: false, hidden: true, version: 1, updatedAt: '2026-11-15T00:00:00.000Z' }
 
-const seededGhost: CustomAgentRecord = { id: 'custom/ghost', slug: 'ghost', name: 'Призрак', description: '', instructions: 'i', tools: [], isOrchestrator: false, delegates: [], hidden: true, version: 1, updatedAt: '2026-11-15T00:00:00.000Z' }
+const seededGhost: CustomAgentRecord = { id: 'custom/ghost', slug: 'ghost', name: 'Призрак', description: '', instructions: 'i', tools: [], isOrchestrator: false, delegates: [], orchestratorMaxIterations: 3, orchestratorMaxParallel: 3, orchestratorAutoReport: true, hidden: true, version: 1, updatedAt: '2026-11-15T00:00:00.000Z' }
 
 const catalog: CustomAgentCatalog = {
   agents: [seededAgent, seededLead, seededGhost],
@@ -28,6 +28,8 @@ const catalog: CustomAgentCatalog = {
       { key: 'smeta', label: 'Сметы (БелЕНиР)' },
     ],
     delegationAvailable: true,
+    orchestratorDefaults: { maxIterations: 3, maxParallel: 3, autoReport: true },
+    orchestratorCeilings: { maxIterations: 10, maxParallel: 10 },
     maxNameChars: 64,
     maxDescriptionChars: 200,
     maxInstructionsChars: 16384,
@@ -254,5 +256,56 @@ describe('custom agent picker entry', () => {
     view({ agents: [seededLead] }, orchestratorOnly)
     fireEvent.click(entry())
     expect(screen.getByText(en.noDelegates)).not.toBeNull()
+  })
+
+  it('renders the orchestration limits only for an orchestrator and starts from policy defaults', () => {
+    view()
+    fireEvent.click(entry())
+    expect(screen.queryByRole('spinbutton', { name: en.orchestratorMaxIterations })).toBeNull()
+    fireEvent.click(screen.getByRole('checkbox', { name: en.orchestrator }))
+    expect(screen.getByRole('spinbutton', { name: en.orchestratorMaxIterations })).toHaveProperty('value', '3')
+    expect(screen.getByRole('spinbutton', { name: en.orchestratorMaxParallel })).toHaveProperty('value', '3')
+    expect(screen.getByRole('checkbox', { name: en.orchestratorAutoReport })).toHaveProperty('checked', true)
+  })
+
+  it('submits the changed orchestration limits and the report toggle', async () => {
+    const view_ = view()
+    fireEvent.click(entry())
+    fireEvent.click(screen.getByRole('checkbox', { name: en.orchestrator }))
+    fireEvent.change(screen.getByRole('spinbutton', { name: en.orchestratorMaxIterations }), { target: { value: '4' } })
+    fireEvent.change(screen.getByRole('spinbutton', { name: en.orchestratorMaxParallel }), { target: { value: '2' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: en.orchestratorAutoReport }))
+    fireEvent.change(screen.getByLabelText(en.name), { target: { value: 'Диспетчер' } })
+    fireEvent.change(screen.getByLabelText(en.instructions), { target: { value: 'Раздавай задачи.' } })
+    fireEvent.click(screen.getByRole('button', { name: en.save }))
+    await waitFor(() => expect(view_.events).toContain('custom-agents/changed'))
+    expect(view_.creates[0]).toMatchObject({
+      isOrchestrator: true,
+      orchestratorMaxIterations: 4,
+      orchestratorMaxParallel: 2,
+      orchestratorAutoReport: false,
+    })
+  })
+
+  it('restores the stored orchestration values when editing an orchestrator', () => {
+    view()
+    fireEvent.click(entry())
+    fireEvent.click(screen.getAllByRole('button', { name: en.edit })[1]!)
+    expect(screen.getByRole('spinbutton', { name: en.orchestratorMaxIterations })).toHaveProperty('value', '5')
+    expect(screen.getByRole('spinbutton', { name: en.orchestratorMaxParallel })).toHaveProperty('value', '4')
+    expect(screen.getByRole('checkbox', { name: en.orchestratorAutoReport })).toHaveProperty('checked', false)
+  })
+
+  it('reports an out-of-range limit and focuses the first invalid field', () => {
+    const view_ = view()
+    fireEvent.click(entry())
+    fireEvent.click(screen.getByRole('checkbox', { name: en.orchestrator }))
+    fireEvent.change(screen.getByRole('spinbutton', { name: en.orchestratorMaxIterations }), { target: { value: '0' } })
+    fireEvent.change(screen.getByLabelText(en.name), { target: { value: 'Диспетчер' } })
+    fireEvent.change(screen.getByLabelText(en.instructions), { target: { value: 'Раздавай задачи.' } })
+    fireEvent.click(screen.getByRole('button', { name: en.save }))
+    expect(view_.creates).toEqual([])
+    expect(screen.getByRole('alert').textContent).toContain('1')
+    expect(document.activeElement).toBe(screen.getByRole('spinbutton', { name: en.orchestratorMaxIterations }))
   })
 })

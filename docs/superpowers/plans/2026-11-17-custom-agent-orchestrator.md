@@ -38,7 +38,7 @@
 
 В `describe('validateInput')` обнови `base` и добавь кейсы (файл целиком):
 
-```ts
+```text
 import { describe, expect, it } from 'vitest'
 import { slugForName, validateInput } from '../src/validate.ts'
 import { standardConfig } from './harness.ts'
@@ -87,7 +87,7 @@ Run: `pnpm exec vitest run packages/preset/agent-preset-custom/tests/validate.sp
 
 `src/types.ts` — в `CustomAgentRecord` после `tools`:
 
-```ts
+```text
   /** Whether this agent may launch other custom agents as subagents. */
   readonly isOrchestrator: boolean
   /** Ids of the custom agents this orchestrator launches; regular agents only. */
@@ -98,7 +98,7 @@ Run: `pnpm exec vitest run packages/preset/agent-preset-custom/tests/validate.sp
 
 В `CustomAgentInput` после `tools`:
 
-```ts
+```text
   readonly isOrchestrator: boolean
   readonly delegates: readonly string[]
   readonly hidden: boolean
@@ -106,7 +106,7 @@ Run: `pnpm exec vitest run packages/preset/agent-preset-custom/tests/validate.sp
 
 В `CustomAgentPolicy` после `allowedTools`:
 
-```ts
+```text
   /** Whether the deployment carries the delegation row; gates the orchestrator checkbox in the form. */
   readonly delegationAvailable: boolean
 ```
@@ -125,20 +125,20 @@ export interface DelegationEntry {
 
 В `interface Config` после `allowedTools`:
 
-```ts
+```text
   /** Delegation row template for orchestrators; omit to disable the orchestrator flag entirely. */
   delegation?: DelegationEntry
 ```
 
 В `z.object` схемы после `allowedTools`:
 
-```ts
+```text
   delegation: z.object({ name: z.string().required(), config: z.dict(z.any()) }),
 ```
 
 `src/spec.ts` — в `customAgentRecord` после `tools`:
 
-```ts
+```text
   isOrchestrator: z.boolean().default(false),
   delegates: z.array(z.string()).default([]),
   hidden: z.boolean().default(false),
@@ -148,7 +148,7 @@ export interface DelegationEntry {
 
 `src/validate.ts` — в `validateInput` перед `return` и новый возвращаемый набор:
 
-```ts
+```text
   if (typeof input.isOrchestrator !== 'boolean' || typeof input.hidden !== 'boolean') {
     throw invalid('isOrchestrator and hidden must be booleans')
   }
@@ -172,7 +172,7 @@ export interface DelegationEntry {
 
 Добавь в конец `describe`:
 
-```ts
+```text
   it('defaults the delegation fields for a record written by an older build', async () => {
     const root = await mkdtemp(join(tmpdir(), 'dsh-custom-agents-'))
     roots.push(root)
@@ -229,7 +229,7 @@ git commit -m "feat(agent-preset-custom): orchestrator, delegates, and visibilit
 
 Внутри существующего `describe` добавь (используя уже импортированные в файле `harness`/`declare`; если `declare` не импортирован — добавь в существующий import из `'./harness.ts'`):
 
-```ts
+```text
   it('carries the hidden flag to the roster without breaking the preset', async () => {
     const ctx = await harness()
     await declare(ctx, { id: 'stealth', hidden: true, plugins: [] })
@@ -247,26 +247,26 @@ Run: `pnpm exec vitest run packages/preset/agent-preset-registry/tests/display.s
 
 `agent-preset-registry/src/definition.ts` — в `PresetDefinition` после `order`:
 
-```ts
+```text
   /** Client-facing visibility: pickers hide the preset; it still composes sessions and resolves as a child. */
   readonly hidden?: boolean
 ```
 
 `agent-preset/src/index.ts` — в `static Config` схему после `order`:
 
-```ts
+```text
     hidden: z.boolean(),
 ```
 
 `agent-preset-registry/src/index.ts` — в `list()`, в маппинг строки после строки с `order`:
 
-```ts
+```text
         ...(record.config.hidden === undefined ? {} : { hidden: record.config.hidden }),
 ```
 
 `agent-preset-registry/src/types.ts` — в `AgentPresetRow` после `description`:
 
-```ts
+```text
   /** Whether pickers hide this preset; the definition still composes sessions and resolves as a child. */
   readonly hidden?: boolean
 ```
@@ -309,14 +309,14 @@ git commit -m "feat(agent-preset-registry): client-facing hidden flag on preset 
 
 `tests/harness.ts` — импорты и бут (после `StorageJson`-импортов и до `DomainFacility`):
 
-```ts
+```text
 import Subagents from '@deepseek-ai/dsh-subagent'
 import SubagentSpawn from '@deepseek-ai/dsh-subagent-spawn-in-process'
 ```
 
 В `harness()` после `await ctx.plugin(Storage)`:
 
-```ts
+```text
   // The delegation row synthesized for orchestrators needs the host-plane
   // subagent registry and its spawn provider to activate.
   await ctx.plugin(Subagents)
@@ -325,7 +325,7 @@ import SubagentSpawn from '@deepseek-ai/dsh-subagent-spawn-in-process'
 
 И в `standardConfig` — витрина с делегированием по умолчанию (спекам на «недоступность» передают `delegation: undefined`):
 
-```ts
+```text
   delegation: { name: '@deepseek-ai/dsh-tool-subagent', config: { provider: 'spawn', toolName: 'subagent' } },
 ```
 
@@ -333,7 +333,7 @@ import SubagentSpawn from '@deepseek-ai/dsh-subagent-spawn-in-process'
 
 В `tests/custom-agents.spec.ts` добавь:
 
-```ts
+```text
   it('mounts the delegation row with the record delegates for an orchestrator', async () => {
     const { ctx } = await harness()
     const worker = await ctx.customAgentPresets.create({ name: 'Worker', description: '', instructions: 'Do the work.', tools: [], isOrchestrator: false, delegates: [], hidden: false })
@@ -363,7 +363,7 @@ Run: `pnpm exec vitest run packages/preset/agent-preset-custom/tests/custom-agen
 
 Файл целиком:
 
-```ts
+```text
 /** Synthesis of one stored record into a registry preset definition. */
 import type { PresetDefinition } from '@deepseek-ai/dsh-agent-preset-registry'
 import type { Config } from './config.ts'
@@ -442,7 +442,7 @@ git commit -m "feat(agent-preset-custom): synthesize the delegation row and hidd
 
 В `tests/custom-agents.spec.ts`:
 
-```ts
+```text
   it('reports delegation availability from the deployment config', async () => {
     const { ctx } = await harness()
     expect((await ctx.customAgentPresets.remoteExportList()).policy.delegationAvailable).toBe(true)
@@ -489,13 +489,13 @@ Run: `pnpm exec vitest run packages/preset/agent-preset-custom/tests/custom-agen
 
 `policy()` — после `allowedTools: ...`:
 
-```ts
+```text
       delegationAvailable: this.config.delegation !== undefined,
 ```
 
 Приватные проверки (рядом с `unusedId`):
 
-```ts
+```text
   /** Cross-record invariants: an orchestrator launches existing regular agents, never itself. */
   private validateDelegates(delegates: readonly string[], selfId: string): void {
     const table = this.requireTable()
@@ -529,7 +529,7 @@ Run: `pnpm exec vitest run packages/preset/agent-preset-custom/tests/custom-agen
 
 В `create()` после `const fields = await validateInput(input, this.config)`:
 
-```ts
+```text
     const id = this.unusedId(fields.name)
     this.assertOrchestratorFields(fields, id)
 ```
@@ -538,13 +538,13 @@ Run: `pnpm exec vitest run packages/preset/agent-preset-custom/tests/custom-agen
 
 В `update()` после `const fields = await validateInput(input, this.config)`:
 
-```ts
+```text
     this.assertOrchestratorFields(fields, id)
 ```
 
 В `remove()` после `await table.delete(id)`:
 
-```ts
+```text
     // Cascade: drop the deleted agent from every orchestrator's delegates and
     // remount the trimmed records; an emptied list unmounts the tool row.
     for (const [otherId, record] of table.entries()) {
@@ -592,7 +592,7 @@ git commit -m "feat(agent-preset-custom): delegate invariants, delegation policy
 
 `tests/settings-store.client.spec.ts` — тип параметра `presets` у `fakeRoster`/`fakeApi` пополни `hidden?: boolean`, и новый `it` в `describe('the agent-preset roster store')`:
 
-```ts
+```text
   it('omits hidden presets: visibility is a picker concern, not a composition concern', async () => {
     const controller = derivedController(fakeApi([
       { id: 'standard', isDefault: true },
@@ -607,7 +607,7 @@ git commit -m "feat(agent-preset-custom): delegate invariants, delegation policy
 
 `tests/section-store.client.spec.ts` — новый `it` в `describe('the preset roster')`:
 
-```ts
+```text
   it('drops hidden presets from the management roster', async () => {
     const { remote, controller, state } = fixture()
     remote.agentPresets.list.mockResolvedValueOnce({ ok: true, value: { presets: [
@@ -627,7 +627,7 @@ Run: `pnpm exec vitest run packages/client/ui-agent-preset/tests/settings-store.
 
 `settings-store.ts` — сигнатура и фильтр `presetOptions`:
 
-```ts
+```text
 export function presetOptions(
   presets: readonly { id: string; name?: string; description?: string; broken?: string; hidden?: boolean }[],
 ): AgentPresetOption[] {
@@ -638,7 +638,7 @@ export function presetOptions(
 
 `section-store.ts:50`:
 
-```ts
+```text
       this.set({ status: 'ready', error: null, rows: result.value.presets.filter(row => row.hidden !== true) })
 ```
 
@@ -672,13 +672,13 @@ git commit -m "feat(ui-agent-preset): hide hidden presets from the picker and th
 
 `locales.ts` — тип-юнион пополни:
 
-```ts
+```text
   | 'orchestrator' | 'orchestratorHint' | 'visible' | 'visibleHint' | 'delegatesTitle' | 'noDelegates' | 'orchestratorBadge' | 'hiddenBadge'
 ```
 
 `en`:
 
-```ts
+```text
   orchestrator: 'Orchestrator',
   orchestratorHint: 'The agent launches the checked agents as its subagents.',
   visible: 'Show in the mode picker',
@@ -691,7 +691,7 @@ git commit -m "feat(ui-agent-preset): hide hidden presets from the picker and th
 
 `ru`:
 
-```ts
+```text
   orchestrator: 'Оркестратор',
   orchestratorHint: 'Агент запускает отмеченных агентов как своих субагентов.',
   visible: 'Показывать в выборе режима',
@@ -704,7 +704,7 @@ git commit -m "feat(ui-agent-preset): hide hidden presets from the picker and th
 
 `zh`:
 
-```ts
+```text
   orchestrator: '编排者',
   orchestratorHint: '该智能体将选中的智能体作为子智能体启动。',
   visible: '在选择器中显示',
@@ -719,7 +719,7 @@ git commit -m "feat(ui-agent-preset): hide hidden presets from the picker and th
 
 `tests/components.client.spec.tsx` — обнови фикстуры: `seededAgent` += `isOrchestrator: false, delegates: [], hidden: false`; `catalog.policy` += `delegationAvailable: true`; добавь второго агента:
 
-```ts
+```text
 const seededLead: CustomAgentRecord = { id: 'custom/lead', slug: 'lead', name: 'Ведущий', description: '', instructions: 'i', tools: [], isOrchestrator: true, delegates: [seededAgent.id], hidden: true, version: 1, updatedAt: '2026-11-15T00:00:00.000Z' }
 ```
 
@@ -760,13 +760,13 @@ const seededLead: CustomAgentRecord = { id: 'custom/lead', slug: 'lead', name: '
 
 1. `BLANK`:
 
-```ts
+```text
 const BLANK: CustomAgentInput = { name: '', description: '', instructions: '', tools: [], isOrchestrator: false, delegates: [], hidden: false }
 ```
 
 2. `startEdit` — строку `setFields({...})` замени:
 
-```ts
+```text
     setFields({
       name: record.name,
       description: record.description,
@@ -780,7 +780,7 @@ const BLANK: CustomAgentInput = { name: '', description: '', instructions: '', t
 
 3. После `const policy = state.policy` добавь:
 
-```ts
+```text
   const delegateChoices = state.agents.filter(agent => agent.id !== editing?.id && !agent.isOrchestrator)
 ```
 

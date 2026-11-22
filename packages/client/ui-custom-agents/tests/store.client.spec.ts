@@ -4,13 +4,15 @@ import { RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
 import { CustomAgentsController } from '../src/client/custom-agents-store.ts'
 import type { CustomAgentCatalog, CustomAgentRecord } from '@deepseek-ai/dsh-agent-preset-custom/types'
 
-const seededAgent: CustomAgentRecord = { id: 'custom/agent', slug: 'agent', name: 'Сметчик', description: 'd', instructions: 'i', tools: [], isOrchestrator: false, delegates: [], hidden: false, version: 1, updatedAt: '2026-11-15T00:00:00.000Z' }
+const seededAgent: CustomAgentRecord = { id: 'custom/agent', slug: 'agent', name: 'Сметчик', description: 'd', instructions: 'i', tools: [], isOrchestrator: false, delegates: [], orchestratorMaxIterations: 3, orchestratorMaxParallel: 3, orchestratorAutoReport: true, hidden: false, version: 1, updatedAt: '2026-11-15T00:00:00.000Z' }
 
 const catalog: CustomAgentCatalog = {
   agents: [seededAgent],
   policy: {
     allowedTools: [{ key: 'drawing5', label: 'Чертежи (drawing5)', description: 'Инструменты чертежей.' }],
     delegationAvailable: true,
+    orchestratorDefaults: { maxIterations: 3, maxParallel: 3, autoReport: true },
+    orchestratorCeilings: { maxIterations: 10, maxParallel: 10 },
     maxNameChars: 64,
     maxDescriptionChars: 200,
     maxInstructionsChars: 16384,

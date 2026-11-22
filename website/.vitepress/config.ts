@@ -341,6 +341,13 @@ export default withMermaid({
     // `srcDir` puts the Vite root inside the disposable generated tree, whose
     // own `public/` no tracked asset can live in.
     publicDir: resolve(import.meta.dirname, '../public'),
+    // VitePress 1.6 resolves Vite 5, whose esbuild 0.21 rejects the workspace
+    // tsconfig's `es2024` transform target. The site's own scripts need only
+    // modern-browser syntax, so keep the transform on esbuild's neutral default.
+    esbuild: { target: 'esnext' },
+    // `build.target` must stay neutral too: Vite 5 still runs its esbuild
+    // render pass for any non-esnext target even when minification is off.
+    build: { target: 'esnext' },
     plugins: [
       {
         name: 'deepseek-harness-doc-projector',

@@ -291,6 +291,22 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Owns streaming intake, durable storage, and staged receipt lifetime; the Session controller binds receipts to accepted submissions.',
   },
   {
+    key: 'fileDeliveries',
+    pkg: 'tool-present',
+    title: 'Scoped programmatic file deliveries',
+    mode: 'service',
+    consumers: ['tool-agent-orchestrator'],
+    note: 'Stages files a composite tool declares and commits them to the Session only after the caller reports a successful tool result.',
+  },
+  {
+    key: 'pdfReports',
+    pkg: 'tool-pdf',
+    title: 'Scoped PDF report writer',
+    mode: 'service',
+    consumers: ['agent-orchestrator', 'tool-pdf'],
+    note: 'Builds and writes PDF reports from typed blocks for the model tool and programmatic consumers, sharing the scoped file and attachment context.',
+  },
+  {
     key: 'llm',
     pkg: 'llm',
     title: 'LLM adapter registry',
@@ -650,6 +666,14 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Eagerly mounts YAML-declared preset revisions, binds Agents and cold readers to scoped contributions, and retains retired revisions until their last user releases them.',
   },
   {
+    key: 'customAgentPresets',
+    pkg: 'agent-preset-custom',
+    title: 'User-created agent presets',
+    mode: 'service',
+    consumers: ['client-ui-custom-agents'],
+    note: 'Persists deployment-constrained custom presets in the storage domain and mounts them into the preset registry; one Typert Remote namespace serves Client CRUD.',
+  },
+  {
     key: 'commands',
     pkg: 'commands',
     title: 'Human command registry',
@@ -840,6 +864,14 @@ const SERVICE_ROLES: ServiceRole[] = [
     implementations: ['subagent-spawn-in-process', 'subagent-fork-in-process', 'subagent-acp', 'subagent-codex', 'subagent-claude-code', 'subagent-dsh-sdk'],
     consumers: ['tool-subagent', 'tool-subagent-control', 'tool-ralph'],
     note: 'Providers prepare local children or execute external tasks; one activation manager owns both lifecycles. The delegation tool selects a backend, control tools deliver local follow-ups, and workflows await activation results.',
+  },
+  {
+    key: 'agentOrchestrator',
+    pkg: 'agent-orchestrator',
+    title: 'Foreground conversational orchestration',
+    mode: 'service',
+    consumers: ['agent-preset-custom', 'tool-agent-orchestrator'],
+    note: 'Runs worker and evaluator handoffs in the foreground under deployment-owned limits, retains settled runs per scoped service, and writes generated reports through the pdfReports service.',
   },
   {
     key: 'speechToText',

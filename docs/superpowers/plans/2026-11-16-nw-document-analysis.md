@@ -55,7 +55,7 @@
 
 Create `packages/document/tool-document/tests/support.ts`:
 
-```ts
+```text
 /** Shared composition for document_read tests: real services over a temp home. */
 
 import { Context } from '@deepseek-ai/cordis'
@@ -177,7 +177,7 @@ export async function compose(overrides: Partial<ToolDocument.Config> = {}): Pro
 
 Create `packages/document/tool-document/tests/read-text.spec.ts`:
 
-```ts
+```text
 /** document_read over plain-text and CSV attachments, including the path guard. */
 
 import { writeFile } from 'node:fs/promises'
@@ -625,7 +625,7 @@ export interface DocumentReadValue {
 
 Create `packages/document/tool-document/src/paths.ts`:
 
-```ts
+```text
 /**
  * Attachment-path authorization for document_read: the requested path must be
  * one of the calling Session's generic-file attachments. @module
@@ -736,7 +736,7 @@ export function normalizeText(text: string): string {
 
 Create `packages/document/tool-document/src/extract/text.ts`:
 
-```ts
+```text
 /** Plain-text and CSV decoding. @module @deepseek-ai/dsh-tool-document/extract/text */
 
 import { normalizeText } from './normalize.ts'
@@ -770,7 +770,7 @@ export function readPlainText(bytes: Uint8Array): string {
 
 Create `packages/document/tool-document/src/extract/index.ts`:
 
-```ts
+```text
 /**
  * Format dispatch for document_read. Each format extracts one bounded unit;
  * later formats are added by their own implementation tasks. @module
@@ -859,7 +859,7 @@ export async function extractDocument(
 
 Create `packages/document/tool-document/src/render.ts`:
 
-```ts
+```text
 /** Model-facing result rendering for document_read. @module @deepseek-ai/dsh-tool-document/render */
 
 import { basename } from 'node:path'
@@ -904,7 +904,7 @@ export function renderDocument(value: DocumentReadValue): { type: 'text'; text: 
 
 Create `packages/document/tool-document/src/index.ts`:
 
-```ts
+```text
 /**
  * Model-facing document reading: extract text from an uploaded PDF, Word,
  * spreadsheet, or plain-text file and return one bounded window. @module
@@ -1109,8 +1109,8 @@ git commit -m "feat(tool-document): read TXT and CSV attachments with a Session 
 ### Task 2: PDF text extraction
 
 **Files:**
-- Create: `packages/document/tool-document/src/extract/pdf.ts`
-- Create: `packages/document/tool-document/tests/pdf.spec.ts`
+- Create: `packages/document/tool-pdf/src/pdf.ts`
+- Create: `packages/document/tool-pdf/tests/pdf.spec.ts`
 - Modify: `packages/document/tool-document/src/extract/index.ts`
 
 **Interfaces:**
@@ -1119,9 +1119,9 @@ git commit -m "feat(tool-document): read TXT and CSV attachments with a Session 
 
 - [ ] **Step 1: Write the failing tests**
 
-Create `packages/document/tool-document/tests/pdf.spec.ts`:
+Create `packages/document/tool-pdf/tests/pdf.spec.ts`:
 
-```ts
+```text
 /** document_read over generated PDFs: text pages, page selection, and scans. */
 
 import { PDFDocument, StandardFonts } from 'pdf-lib'
@@ -1183,13 +1183,13 @@ describe('document_read PDF', () => {
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
-Run: `pnpm exec vitest run packages/document/tool-document/tests/pdf.spec.ts` — Expected: FAIL because `.pdf` is reported as an unsupported format.
+Run: `pnpm exec vitest run packages/document/tool-pdf/tests/pdf.spec.ts` — Expected: FAIL because `.pdf` is reported as an unsupported format.
 
 - [ ] **Step 3: Implement the PDF extractor**
 
-Create `packages/document/tool-document/src/extract/pdf.ts`:
+Create `packages/document/tool-pdf/src/pdf.ts`:
 
-```ts
+```text
 /** PDF text-layer extraction through pdfjs. @module @deepseek-ai/dsh-tool-document/extract/pdf */
 
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs'
@@ -1251,19 +1251,19 @@ export async function extractPdfPage(bytes: Uint8Array, page: number): Promise<P
 Modify `packages/document/tool-document/src/extract/index.ts`:
 - Add import after `readPlainText`:
 
-```ts
+```text
 import { extractPdfPage } from './pdf.ts'
 ```
 
 - Add the `.pdf` case in `formatOf` before `'.txt'`:
 
-```ts
+```text
     case '.pdf': return 'pdf'
 ```
 
 - Add the `pdf` case in `extractDocument` before the `txt` case:
 
-```ts
+```text
     case 'pdf': {
       const page = request.page ?? 1
       const extracted = await extractPdfPage(bytes, page)
@@ -1283,7 +1283,7 @@ import { extractPdfPage } from './pdf.ts'
 
 - [ ] **Step 5: Run the tests**
 
-Run: `pnpm exec vitest run packages/document/tool-document/tests/pdf.spec.ts` — Expected: PASS (4 tests).
+Run: `pnpm exec vitest run packages/document/tool-pdf/tests/pdf.spec.ts` — Expected: PASS (4 tests).
 
 Run: `pnpm exec vitest run --coverage packages/document/tool-document` — Expected: PASS with `src/extract/pdf.ts` at 100%.
 
@@ -1299,8 +1299,8 @@ git commit -m "feat(tool-document): extract PDF page text and report scans witho
 ### Task 3: DOCX text extraction
 
 **Files:**
-- Create: `packages/document/tool-document/src/extract/docx.ts`
-- Create: `packages/document/tool-document/tests/docx.spec.ts`
+- Create: `packages/document/tool-office/src/formats.ts`
+- Create: `packages/document/tool-office/tests/tool-office.spec.ts`
 - Modify: `packages/document/tool-document/src/extract/index.ts`
 
 **Interfaces:**
@@ -1309,9 +1309,9 @@ git commit -m "feat(tool-document): extract PDF page text and report scans witho
 
 - [ ] **Step 1: Write the failing tests**
 
-Create `packages/document/tool-document/tests/docx.spec.ts`:
+Create `packages/document/tool-office/tests/tool-office.spec.ts`:
 
-```ts
+```text
 /** document_read over generated DOCX bodies: paragraphs, tables, and entities. */
 
 import { strToU8, zipSync } from 'fflate'
@@ -1381,13 +1381,13 @@ describe('document_read DOCX', () => {
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
-Run: `pnpm exec vitest run packages/document/tool-document/tests/docx.spec.ts` — Expected: FAIL because `.docx` is reported as an unsupported format.
+Run: `pnpm exec vitest run packages/document/tool-office/tests/tool-office.spec.ts` — Expected: FAIL because `.docx` is reported as an unsupported format.
 
 - [ ] **Step 3: Implement the DOCX extractor**
 
-Create `packages/document/tool-document/src/extract/docx.ts`:
+Create `packages/document/tool-office/src/formats.ts`:
 
-```ts
+```text
 /** DOCX body-text extraction from the OOXML package. @module @deepseek-ai/dsh-tool-document/extract/docx */
 
 import { unzipSync } from 'fflate'
@@ -1455,26 +1455,26 @@ export function extractDocx(bytes: Uint8Array): string {
 Modify `packages/document/tool-document/src/extract/index.ts`:
 - Add import after the PDF import:
 
-```ts
+```text
 import { extractDocx } from './docx.ts'
 ```
 
 - Add the `.docx` case in `formatOf`:
 
-```ts
+```text
     case '.docx': return 'docx'
 ```
 
 - Add the `docx` case in `extractDocument` after the `pdf` case:
 
-```ts
+```text
     case 'docx':
       return slice(extractDocx(bytes), request.offset ?? 0, request.limit)
 ```
 
 - [ ] **Step 5: Run the tests**
 
-Run: `pnpm exec vitest run packages/document/tool-document/tests/docx.spec.ts` — Expected: PASS (4 tests).
+Run: `pnpm exec vitest run packages/document/tool-office/tests/tool-office.spec.ts` — Expected: PASS (4 tests).
 
 Run: `pnpm exec vitest run --coverage packages/document/tool-document` — Expected: PASS with `src/extract/docx.ts` at 100%.
 
@@ -1490,8 +1490,8 @@ git commit -m "feat(tool-document): extract DOCX paragraph and table text"
 ### Task 4: XLSX and XLS extraction
 
 **Files:**
-- Create: `packages/document/tool-document/src/extract/workbook.ts`
-- Create: `packages/document/tool-document/tests/workbook.spec.ts`
+- Create: `packages/document/tool-office/src/formats.ts`
+- Create: `packages/document/tool-office/tests/tool-office.spec.ts`
 - Modify: `packages/document/tool-document/src/extract/index.ts`
 
 **Interfaces:**
@@ -1500,9 +1500,9 @@ git commit -m "feat(tool-document): extract DOCX paragraph and table text"
 
 - [ ] **Step 1: Write the failing tests**
 
-Create `packages/document/tool-document/tests/workbook.spec.ts`:
+Create `packages/document/tool-office/tests/tool-office.spec.ts`:
 
-```ts
+```text
 /** document_read over generated workbooks: sheets, rows, formulas, and XLS. */
 
 import * as XLSX from 'xlsx'
@@ -1601,13 +1601,13 @@ describe('document_read workbooks', () => {
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
-Run: `pnpm exec vitest run packages/document/tool-document/tests/workbook.spec.ts` — Expected: FAIL because `.xlsx` and `.xls` are reported as unsupported formats.
+Run: `pnpm exec vitest run packages/document/tool-office/tests/tool-office.spec.ts` — Expected: FAIL because `.xlsx` and `.xls` are reported as unsupported formats.
 
 - [ ] **Step 3: Implement the workbook extractor**
 
-Create `packages/document/tool-document/src/extract/workbook.ts`:
+Create `packages/document/tool-office/src/formats.ts`:
 
-```ts
+```text
 /** XLSX and XLS worksheet extraction through SheetJS. @module @deepseek-ai/dsh-tool-document/extract/workbook */
 
 import * as XLSX from 'xlsx'
@@ -1692,20 +1692,20 @@ export function extractWorkbookSheet(
 Modify `packages/document/tool-document/src/extract/index.ts`:
 - Add import after the DOCX import:
 
-```ts
+```text
 import { extractWorkbookSheet } from './workbook.ts'
 ```
 
 - Add the cases in `formatOf`:
 
-```ts
+```text
     case '.xlsx': return 'xlsx'
     case '.xls': return 'xls'
 ```
 
 - Add the workbook case in `extractDocument` after the `docx` case:
 
-```ts
+```text
     case 'xlsx':
     case 'xls':
       return extractWorkbookSheet(bytes, request.sheet, request.row ?? 0, request.maxRows)
@@ -1713,7 +1713,7 @@ import { extractWorkbookSheet } from './workbook.ts'
 
 - [ ] **Step 5: Run the tests**
 
-Run: `pnpm exec vitest run packages/document/tool-document/tests/workbook.spec.ts` — Expected: PASS (6 tests).
+Run: `pnpm exec vitest run packages/document/tool-office/tests/tool-office.spec.ts` — Expected: PASS (6 tests).
 
 Run: `pnpm exec vitest run --coverage packages/document/tool-document` — Expected: PASS with `src/extract/workbook.ts` at 100%.
 
@@ -1729,8 +1729,8 @@ git commit -m "feat(tool-document): extract XLSX and XLS worksheet values and fo
 ### Task 5: Legacy DOC conversion through the Office kit
 
 **Files:**
-- Create: `packages/document/tool-document/src/extract/legacy-doc.ts`
-- Create: `packages/document/tool-document/tests/legacy-doc.spec.ts`
+- Create: `packages/document/office-kit/src/index.ts`
+- Create: `packages/document/tool-office/tests/tool-office.spec.ts`
 - Modify: `packages/document/tool-document/src/extract/index.ts`
 
 **Interfaces:**
@@ -1739,9 +1739,9 @@ git commit -m "feat(tool-document): extract XLSX and XLS worksheet values and fo
 
 - [ ] **Step 1: Write the failing tests**
 
-Create `packages/document/tool-document/tests/legacy-doc.spec.ts`:
+Create `packages/document/tool-office/tests/tool-office.spec.ts`:
 
-```ts
+```text
 /** document_read over legacy .doc files through a stubbed Office kit. */
 
 import { writeFile } from 'node:fs/promises'
@@ -1804,13 +1804,13 @@ describe('document_read legacy DOC', () => {
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
-Run: `pnpm exec vitest run packages/document/tool-document/tests/legacy-doc.spec.ts` — Expected: FAIL because `.doc` is reported as an unsupported format.
+Run: `pnpm exec vitest run packages/document/tool-office/tests/tool-office.spec.ts` — Expected: FAIL because `.doc` is reported as an unsupported format.
 
 - [ ] **Step 3: Implement the legacy converter**
 
-Create `packages/document/tool-document/src/extract/legacy-doc.ts`:
+Create `packages/document/office-kit/src/index.ts`:
 
-```ts
+```text
 /** Legacy .doc conversion through the Office kit. @module @deepseek-ai/dsh-tool-document/extract/legacy-doc */
 
 import { basename } from 'node:path'
@@ -1889,19 +1889,19 @@ export async function convertLegacyDoc(
 Modify `packages/document/tool-document/src/extract/index.ts`:
 - Add import after the workbook import:
 
-```ts
+```text
 import { convertLegacyDoc } from './legacy-doc.ts'
 ```
 
 - Add the `.doc` case in `formatOf`:
 
-```ts
+```text
     case '.doc': return 'doc'
 ```
 
 - Add the `doc` case in `extractDocument` before the workbook case:
 
-```ts
+```text
     case 'doc': {
       const text = await convertLegacyDoc(ctx, agent, target, bytes, request.maxBytes, signal)
       return slice(normalizeText(text), request.offset ?? 0, request.limit)
@@ -1910,7 +1910,7 @@ import { convertLegacyDoc } from './legacy-doc.ts'
 
 - Add `normalizeText` to the imports from `./normalize.ts`:
 
-```ts
+```text
 import { normalizeText } from './normalize.ts'
 ```
 
@@ -1919,7 +1919,7 @@ import { normalizeText } from './normalize.ts'
 
 - [ ] **Step 5: Run the tests**
 
-Run: `pnpm exec vitest run packages/document/tool-document/tests/legacy-doc.spec.ts` — Expected: PASS (2 tests).
+Run: `pnpm exec vitest run packages/document/tool-office/tests/tool-office.spec.ts` — Expected: PASS (2 tests).
 
 Run: `pnpm exec vitest run --coverage packages/document/tool-document` — Expected: PASS with every `src` file at 100%.
 
@@ -2013,7 +2013,7 @@ In `packages/bundle/web-app/package.json`, add this entry to `dependencies` in a
 
 In `scripts/product-package-policy.ts`, add this entry to `PRODUCT_PACKAGE_POLICY` in directory order:
 
-```ts
+```text
   'packages/document/tool-document': {
     category: 'optional',
     reason: 'Document text extraction mounted only by the client deployment overlay.',

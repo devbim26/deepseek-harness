@@ -147,6 +147,48 @@ interface WorkspaceChanges {
 
 Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
 
+<a id="ctxfiledeliveries--filedeliveries"></a>
+
+### `ctx.fileDeliveries` — `FileDeliveries`
+
+Scoped programmatic file-delivery service used by composite tools.
+
+```ts cordis-catalog
+/**
+ * Validate and stage files for delivery after the caller's successful final tool result.
+ * @param agent - exact live Agent owning the open turn.
+ * @param files - existing regular files to declare.
+ * @param exec - the caller's own tool execution and cancellation.
+ * @returns the open turn and canonical file paths.
+ */
+present(agent: Agent, files: readonly PresentedFile[], exec: ToolRunContext): Promise<PresentedFileResult>
+```
+
+Types: [Agent](core.md) · [ToolRunContext](tools.md)
+
+Source: [`packages/deliverables/tool-present/src/types.ts`](../../packages/deliverables/tool-present/src/types.ts)
+
+<a id="ctxpdfreports--pdfreports"></a>
+
+### `ctx.pdfReports` — `PdfReports`
+
+Scoped programmatic PDF report writer.
+
+```ts cordis-catalog
+/**
+ * Assemble and write one report through the same filesystem and attachment policy as `pdf_report`.
+ * @param agent - exact live owning Agent.
+ * @param request - output path, title, blocks, and optional policy actor.
+ * @param signal - cancellation for path resolution, image collection, and writing.
+ * @returns canonical path, size, page count, and image outcomes.
+ */
+create(agent: Agent, request: PdfReportCreateRequest, signal: AbortSignal): Promise<PdfReportResult>
+```
+
+Types: [Agent](core.md)
+
+Source: [`packages/document/tool-pdf/src/types.ts`](../../packages/document/tool-pdf/src/types.ts)
+
 <a id="ctxworkspacechanges--workspacechanges"></a>
 
 ### `ctx.workspaceChanges` — `WorkspaceChanges`

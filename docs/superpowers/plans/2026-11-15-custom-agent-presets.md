@@ -49,7 +49,7 @@
 
 `packages/preset/agent-preset-custom/tests/harness.ts`:
 
-```ts
+```text
 /** Test harness: the real preset registry stack plus a memory-backed storage domain. */
 import { MemoryMediaPool, MemoryStorageBackend } from '../../../storage/storage-domain/tests/helpers/memory-backend.ts'
 import Storage from '@deepseek-ai/dsh-storage'
@@ -89,7 +89,7 @@ export async function harness(config: Partial<HarnessConfig> = {}): Promise<{ ct
 
 `packages/preset/agent-preset-custom/tests/custom-agents.spec.ts`:
 
-```ts
+```text
 import { describe, expect, it } from 'vitest'
 import { harness } from './harness.ts'
 
@@ -302,7 +302,7 @@ export const Config: z<Config> = z.object({
 
 `packages/preset/agent-preset-custom/src/spec.ts`:
 
-```ts
+```text
 /** The durable declaration of the custom-agent-presets domain. */
 import { z } from 'zod'
 import { defineDomain, domainTable } from '@deepseek-ai/dsh-storage-domain'
@@ -336,7 +336,7 @@ export const customAgentsDomainSpec = defineDomain({
 
 `packages/preset/agent-preset-custom/src/index.ts`:
 
-```ts
+```text
 /** User-created agent presets: durable CRUD, mounted into the preset registry. */
 import { Service } from '@deepseek-ai/cordis'
 import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
@@ -445,7 +445,7 @@ git commit -m "feat(agent-preset-custom): scaffold the custom agent preset servi
 
 `packages/preset/agent-preset-custom/tests/validate.spec.ts`:
 
-```ts
+```text
 import { describe, expect, it } from 'vitest'
 import { slugForName, validateInput } from '../src/validate.ts'
 import { standardConfig } from './harness.ts'
@@ -480,7 +480,7 @@ describe('validateInput', () => {
 
 `packages/preset/agent-preset-custom/src/validate.ts`:
 
-```ts
+```text
 /** Input validation: every rule rejects with a coded, actionable RemoteError. */
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import type { Config } from './config.ts'
@@ -542,7 +542,7 @@ git commit -m "feat(agent-preset-custom): validate input against the deployment 
 
 - [ ] **Step 1: Падающие тесты** — дописать в `tests/custom-agents.spec.ts`:
 
-```ts
+```text
   it('creates a record, mounts it into the registry roster, and derives unique slugs', async () => {
     const { ctx } = await harness()
     const first = await ctx.customAgentPresets.create({ name: 'Сметчик', description: 'Считает объёмы.', instructions: 'Считай объёмы работ.', tools: ['todo'] })
@@ -593,7 +593,7 @@ git commit -m "feat(agent-preset-custom): validate input against the deployment 
 
 `src/definition.ts`:
 
-```ts
+```text
 /** Synthesis of one stored record into a registry preset definition. */
 import type { PresetDefinition } from '@deepseek-ai/dsh-agent-preset-registry'
 import type { Config } from './config.ts'
@@ -734,7 +734,7 @@ export async function harness(config: Partial<HarnessConfig> = {}, storage: { js
 
 Точный вариант (маршрут через конфиг facility):
 
-```ts
+```text
   const backendName = storage.jsonRoot !== undefined ? 'json' : 'memory'
   const facility = new DomainFacility(ctx, { backend: backendName, routes: {} })
 ```
@@ -743,7 +743,7 @@ export async function harness(config: Partial<HarnessConfig> = {}, storage: { js
 
 - [ ] **Step 2: Падающий тест** `tests/persistence.spec.ts`:
 
-```ts
+```text
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -797,7 +797,7 @@ git commit -m "test(agent-preset-custom): prove records reopen from the json bac
 
 - [ ] **Step 2: Смонтировать remote** — в `packages/api/remotes/src/client/index.ts`, зеркально `agentPresetsRemote` (строки 6 и ~195):
 
-```ts
+```text
 import customAgentsRemote from '@deepseek-ai/dsh-agent-preset-custom/remote'
 // ...
 export type {} from '@deepseek-ai/dsh-agent-preset-custom/remote'
@@ -834,7 +834,7 @@ git commit -m "feat(api-remotes): mount the custom agent presets remote"
 
 `packages/client/ui-agent-preset/src/client/slot-contract.ts`:
 
-```ts
+```text
 /** Slot contract owned by the agent-preset surfaces. */
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -865,7 +865,7 @@ export {}
 
 - [ ] **Step 3: Регистрация** — в `index.ts`, в `scope.effect` регистрации чипа (строки ~226-230):
 
-```ts
+```text
         const chip = scope.slots.register({
           name: 'conversation.hero.agentPreset',
           locale: 'settings.agentPreset',
@@ -911,7 +911,7 @@ git commit -m "feat(ui-agent-preset): open the picker menu to contributed action
 
 - [ ] **Step 1: Падающий тест** `tests/store.client.spec.ts`:
 
-```ts
+```text
 import { describe, expect, it } from 'vitest'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import { RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
@@ -1052,7 +1052,7 @@ export const ru: Record<CustomAgentsKey, string> = {
 
 - [ ] **Step 5: Стор** `src/client/custom-agents-store.ts`:
 
-```ts
+```text
 /** Client store for the custom-agent manager: one catalog load and CRUD writes. */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
@@ -1137,7 +1137,7 @@ export class CustomAgentsController {
 
 - [ ] **Step 6: Apply** `src/client/index.ts`:
 
-```ts
+```text
 /** Custom-agent manager surface: the picker-menu entry and its modal. */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
@@ -1441,7 +1441,7 @@ git commit -m "docs(deploy): enable the custom agent builder on the north-waterf
 
 - [ ] **Step 2: Сценарий** `apps/web/tests/custom-agent-presets.e2e.ts` (по образцу `agent-preset-selection.e2e.ts`; zero model calls):
 
-```ts
+```text
 // Web e2e scenario: user-created custom agent presets. The service mounts the
 // seeded record before the page loads; the manager writes go through the UI.
 // Zero model calls: no replay fixture mounts, so a stray stream fails loud.

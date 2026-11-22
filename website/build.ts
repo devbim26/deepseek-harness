@@ -63,6 +63,10 @@ export function docSiteBuildOptions(siteRoot: string, mpa: boolean): DocSiteBuil
   const root = resolve(siteRoot)
   return {
     ...mpa ? { mpa: 'true' } : {},
+    // esbuild 0.21 (Vite 5) fails to remove its Windows temp file during the
+    // minify pass. The docs site is a local artifact there, so skip only that
+    // platform's minification; other platforms keep VitePress's default.
+    ...process.platform === 'win32' ? { minify: false } : {},
     onAfterConfigResolve(siteConfig) {
       cleanDocSiteOutput(root, siteConfig.outDir)
     },

@@ -1,5 +1,37 @@
 /** Shared report input and result types for the pdf_report tool. */
 
+import type { Agent } from '@deepseek-ai/dsh-agent'
+
+/** Inputs for one programmatic report write. */
+export interface PdfReportCreateRequest {
+  /** Output path ending in `.pdf`, relative to the Session working directory. */
+  readonly filePath: string
+  /** Optional title printed at the top of the first page. */
+  readonly title?: string
+  /** Ordered text, table, and image blocks. */
+  readonly blocks: readonly ReportBlock[]
+  /** Opaque filesystem-policy actor; omitted uses an actor bound to this Agent. */
+  readonly actor?: object | undefined
+}
+
+/** Scoped programmatic PDF report writer. */
+export interface PdfReports {
+  /**
+   * Assemble and write one report through the same filesystem and attachment policy as `pdf_report`.
+   * @param agent - exact live owning Agent.
+   * @param request - output path, title, blocks, and optional policy actor.
+   * @param signal - cancellation for path resolution, image collection, and writing.
+   * @returns canonical path, size, page count, and image outcomes.
+   */
+  create(agent: Agent, request: PdfReportCreateRequest, signal: AbortSignal): Promise<PdfReportResult>
+}
+
+declare module '@deepseek-ai/cordis' {
+  interface Context {
+    pdfReports: PdfReports
+  }
+}
+
 /** One embedded image with its originating tool call and optional caption. */
 export interface ReportImage {
   /** Tool call id whose result carried the image. */

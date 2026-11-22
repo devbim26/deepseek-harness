@@ -189,6 +189,7 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 | Package | Config | Description |
 |---|---|---|
 | `@deepseek-ai/dsh-office-kit` | yes | Shared Office rendering, conversion, and recalculation with bounded queues and caching |
+| `@deepseek-ai/dsh-tool-document` | yes | Model-facing text extraction from uploaded PDF, Word, spreadsheet, and plain-text documents |
 | `@deepseek-ai/dsh-tool-office` | yes | Model-facing Office tools for rendering, converting, and recalculating documents |
 | `@deepseek-ai/dsh-tool-pdf` | yes | Model-facing PDF report assembly from text sections and captured tool-result images |
 
@@ -470,6 +471,7 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 
 | Package | Config | Description |
 |---|---|---|
+| `@deepseek-ai/dsh-agent-orchestrator` | yes | Foreground conversational worker and evaluator orchestration over durable subagents |
 | `@deepseek-ai/dsh-subagent` | yes | Abstract subagent seam (ctx.subagents): named-provider registry for delegating to child agents |
 | `@deepseek-ai/dsh-subagent-acp` | yes | Out-of-process ACP subagent backend: drives a child agent in a spawned subprocess over the Agent Client Protocol |
 | `@deepseek-ai/dsh-subagent-claude-code` | yes | One-shot Claude Code subagent provider over the official Agent SDK |
@@ -477,6 +479,7 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 | `@deepseek-ai/dsh-subagent-dsh-sdk` | yes | Out-of-process SDK subagent backend: drives a child DeepSeek Harness runtime subprocess over stdio JSON-RPC through the TypeScript SDK client |
 | `@deepseek-ai/dsh-subagent-fork-in-process` | yes | In-process fork subagent backend: runs a child agent seeded with a prefix of the parent's log |
 | `@deepseek-ai/dsh-subagent-spawn-in-process` | yes | In-process spawn subagent backend: runs a fresh child agent on ctx.agents |
+| `@deepseek-ai/dsh-tool-agent-orchestrator` | yes | Model-facing conversational orchestration over stored custom-agent delegates |
 | `@deepseek-ai/dsh-tool-subagent` | yes | Model-facing subagent delegation tool over the ctx.subagents seam |
 | `@deepseek-ai/dsh-tool-subagent-control` | yes | Shared messaging, interruption, and child discovery tools for subagents |
 

@@ -4,17 +4,13 @@
  * shell or Python. @module @deepseek-ai/dsh-tool-pdf
  */
 
-import { mkdir, writeFile } from 'node:fs/promises'
-import { dirname } from 'node:path'
 import type {} from '@deepseek-ai/dsh-working-directory'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import { FsError } from '@deepseek-ai/dsh-fs'
 import { ToolArgsError, ToolContextUnavailableError, defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-agent'
-import type { AvailableImageCall, ReportBlock, SkippedImage } from './types.ts'
-import { buildPdfReport } from './pdf.ts'
-import { collectReportImages, type RequestedImage } from './session-images.ts'
+import type { ReportBlock } from './types.ts'
+import { PdfReportRuntime } from './service.ts'
 
 /** Stable Loader identity. */
 export const name = 'tool-pdf'
@@ -96,6 +92,7 @@ export function apply(ctx: Context, config: Config): void {
   if (!Number.isSafeInteger(config.maxImageBytes) || config.maxImageBytes < 1) {
     throw new Error('pdf_report requires a positive integer maxImageBytes')
   }
+  ctx.plugin(PdfReportRuntime, config)
   ctx.tools.register(defineTool({
     name: 'pdf_report',
     description: 'Assemble a PDF report file in the working directory from text sections, tables, and images '
@@ -211,49 +208,15 @@ export function apply(ctx: Context, config: Config): void {
     }),
     async execute(args, exec) {
       if (exec.agent === undefined) throw new ToolContextUnavailableError('pdf_report requires an agent Session')
-      if (!args.file_path.toLowerCase().endsWith('.pdf')) {
-        throw new ToolArgsError(['pdf_report requires an output path ending in .pdf'])
-      }
       const blocks: readonly ReportBlock[] = validateBlocks(args.blocks)
-      const requested: readonly RequestedImage[] = blocks
-        .filter((block): block is Extract<ReportBlock, { type: 'image' }> => block.type === 'image')
-        .map(block => ({ callId: block.callId, ...block.caption !== undefined ? { caption: block.caption } : {} }))
-      const cwd = await ctx.workingDirectory.ensure(exec.agent, exec.signal)
-      const options = { cwd, signal: exec.signal }
-      const target = await ctx.fs.resolve(args.file_path, options)
-      const before = await ctx.fs.stat(target, exec.signal)
-      if (before !== undefined && before.type !== 'file') {
-        throw new FsError(`Cannot write ${args.file_path}: not a regular file`, 'FS_NOT_REGULAR_FILE')
-      }
-      const intent = await ctx.waterfall('fs/write-intent', target, exec, () => undefined)
-      if (intent?.kind === 'createIfAbsent' && before !== undefined) {
-        throw new FsError(`Cannot write ${args.file_path}: the file already exists`, 'FS_ALREADY_EXISTS')
-      }
-      const { images, skipped, available } = await collectReportImages(
-        ctx, exec.agent.session, requested, config.maxImages, config.maxImageBytes, exec.signal,
-      )
-      const document = await buildPdfReport(args.title, blocks, images)
-      exec.signal.throwIfAborted()
-      // The filesystem service models text writes only; the resolved local target
-      // receives the encoded PDF bytes directly through the host filesystem.
-      // A nested output folder such as reports/ is part of the contract: create
-      // it instead of failing the write with a missing parent directory.
-      const outPath = ctx.fs.processPath(target)
-      await mkdir(dirname(outPath), { recursive: true })
-      await writeFile(outPath, document.bytes)
-      const after = await ctx.fs.stat(target, exec.signal)
-      if (after === undefined || after.type !== 'file') {
-        throw new FsError(`The written report ${args.file_path} is not readable as a regular file`, 'FS_NOT_FOUND')
-      }
-      ctx.emit('fs/observed', target, { kind: 'present', version: after.version }, exec)
-      return {
-        path: ctx.fs.processPath(target),
-        bytes: document.bytes.byteLength,
-        pages: document.pages,
-        imagesEmbedded: images.length,
-        imagesSkipped: skipped as SkippedImage[],
-        availableImageCalls: available as AvailableImageCall[],
-      }
+      const reports = ctx.get('pdfReports')
+      if (reports === undefined) throw new ToolContextUnavailableError('pdf_report requires the PDF report service')
+      return reports.create(exec.agent, {
+        filePath: args.file_path,
+        ...(args.title === undefined ? {} : { title: args.title }),
+        blocks,
+        actor: exec,
+      }, exec.signal)
     },
   }))
 }

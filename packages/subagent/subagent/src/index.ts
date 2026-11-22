@@ -58,6 +58,7 @@ import type {
   SubagentInterruptAuthority,
   SubagentMemberNames,
   SubagentProvider,
+  SubagentResumeActivationRequest,
   SubagentRunEndInfo,
   SubagentRunInfo,
   SubagentSendMessageOptions,
@@ -89,6 +90,8 @@ export type {
   SubagentInterruptAuthority,
   SubagentMemberNames,
   SubagentProvider,
+  SubagentResumeActivationRequest,
+  SubagentActivationSetup,
   SubagentResult,
   SubagentRun,
   SubagentSendMessageOptions,
@@ -277,6 +280,9 @@ export class SubagentRuntime extends TypertRemoteService {
     }
     if (spec.outputSchema !== undefined) assertObjectJsonSchema(spec.outputSchema)
     const prepare = provider.prepareContinuable?.bind(provider)
+    if (spec.setup !== undefined && prepare === undefined) {
+      throw new SubagentError('activation setup requires a local continuable backend', 'UNSUPPORTED_CAPABILITY')
+    }
     if (prepare !== undefined) {
       return manager.startLocal(spec, (request) => {
         this.assertProviderCurrent(provider)
@@ -289,6 +295,24 @@ export class SubagentRuntime extends TypertRemoteService {
       this.assertProviderCurrent(provider)
       return start(request)
     })
+  }
+
+  /**
+   * Resume an inactive direct local child as one owned follow-up round.
+   * The child retains its durable Session, history, and preset; the returned
+   * result and optional output schema belong only to this new activation.
+   * @param request - exact live direct parent, durable child, prompt, schema, setup, and cancellation.
+   * @returns the accepted message and owned activation for the new round.
+   * @throws ACTIVATION_BUSY when any previous activation is still resident.
+   */
+  async resumeActivation(
+    request: SubagentResumeActivationRequest,
+  ): Promise<SubagentActivation & { readonly messageId: MessageId }> {
+    if (this.ctx.get('agents')?.get(request.parent.id) !== request.parent) {
+      throw new SubagentError('subagent continuation requires the exact live parent agent', 'UNAUTHORIZED')
+    }
+    if (request.outputSchema !== undefined) assertObjectJsonSchema(request.outputSchema)
+    return this.requireManager().resumeLocal(request)
   }
 
   /**
@@ -524,7 +548,6 @@ export class SubagentRuntime extends TypertRemoteService {
     if (provider.start === undefined && provider.prepareContinuable === undefined) {
       throw new SubagentError(`subagent provider "${name}" must implement start or prepareContinuable`, 'UNSUPPORTED_CAPABILITY')
     }
-    // oxlint-disable-next-line typescript/no-misused-promises -- synchronous disposer
     return this.ctx.effect(function* (this: SubagentRuntime) {
       if (this.providers.has(name)) {
         throw new SubagentError(`a subagent provider named "${name}" is already registered`, 'DUPLICATE_PROVIDER')

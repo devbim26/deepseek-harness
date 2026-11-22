@@ -39,7 +39,7 @@
 
 在 `workspace-controller.host.spec.ts`（harness `harness()` 已创建真实 cordis `Context` + `WorkspaceRegistry` + memory storage；目录为 `mkdtempSync(join(tmpdir(), 'dsh-workspace-controller-'))`；见 54-76 行）中加入共享 helper 与 describe 块（任务 2 的测试复用该 helper）：
 
-```ts
+```text
 /** Полный стек реестра под контроллером с явным конфигом first-use политики. */
 async function projectHarness(config: { projectBase?: string; documentsDirectory?: string }) {
   const ctx = new Context()
@@ -72,7 +72,7 @@ async function rejectionCode(promise: Promise<unknown>): Promise<string> {
 }
 ```
 
-```ts
+```text
 describe('projectBase configuration', () => {
   it('rejects documentsDirectory and projectBase together', async () => {
     const ctx = new Context()
@@ -108,7 +108,7 @@ describe('projectBase configuration', () => {
 
 `src/default-directory.ts`——泛化校验器（documentsDirectory 的消息不变）：
 
-```ts
+```text
 /**
  * Validate a configured directory path without resolving it against cwd.
  * @param directory - fully qualified directory spelling.
@@ -155,7 +155,7 @@ export interface Config {
 
 构造函数中 `this.config = WorkspaceController.Config(config)` 之后：
 
-```ts
+```text
     if (this.config.documentsDirectory !== undefined && this.config.projectBase !== undefined) {
       throw new Error('projectBase and documentsDirectory are mutually exclusive; configure one first-use policy')
     }
@@ -166,7 +166,7 @@ export interface Config {
 
 以及 `initializeDefault` 中的分支（替换 `initializeDefault` 回调的主体）：
 
-```ts
+```text
   @Remote('initializeDefault')
   async initializeDefault(signal: AbortSignal): Promise<WorkspaceValue | undefined> {
     const workspace = await this.ctx.workspaceRegistry.initializeDefault(async () => {
@@ -214,7 +214,7 @@ git commit -m "feat(api): projectBase config with exclusive documentsDirectory p
 
 `tests/project-name.host.spec.ts`：
 
-```ts
+```text
 import { describe, expect, it } from 'vitest'
 import { isValidProjectName } from '../src/project-name.ts'
 
@@ -281,7 +281,7 @@ export function isValidProjectName(name: string): boolean {
 
 - [x] **步骤 4：动词测试（在 host.spec.ts；`projectHarness`/`rejectionCode` 来自任务 1）**
 
-```ts
+```text
 describe('createProject', () => {
   it('creates a project directory and Workspace under projectBase', async () => {
     const root = realpathSync.native(mkdtempSync(join(tmpdir(), 'dsh-workspace-controller-')))
@@ -343,7 +343,7 @@ export interface WorkspaceProjectCreateRequest {
 
 并加入既有带 `RemoteErrorDetailsMap` 的 `declare module '@deepseek-ai/dsh-typert-protocol'` 块（32-62 行；与相邻条目对称）：
 
-```ts
+```text
     'workspace/project-unavailable': Record<string, never>
     'workspace/project-name-invalid': { readonly name: string }
     'workspace/project-exists': { readonly path: string }
@@ -352,7 +352,7 @@ export interface WorkspaceProjectCreateRequest {
 
 `src/commands.ts`——构造函数接收基目录（找到 `constructor(private readonly ctx: Context)` 并替换）：
 
-```ts
+```text
   /**
    * @param ctx - Host context carrying the Workspace registry.
    * @param projectBase - configured project base directory; undefined disables
@@ -363,7 +363,7 @@ export interface WorkspaceProjectCreateRequest {
 
 以及 `create` 旁的方法（40-64 行）：
 
-```ts
+```text
   /**
    * Create one project Workspace: a named child directory under the configured
    * project base, then ordinary adoption of that directory.
@@ -397,7 +397,7 @@ export interface WorkspaceProjectCreateRequest {
 
 `src/index.ts`——透传与 verb（构造函数中 `new WorkspaceCommands(ctx)` → `new WorkspaceCommands(ctx, this.config.projectBase)`；放在 `@Remote('create')` 方法旁）：
 
-```ts
+```text
   /**
    * Create one project Workspace under the configured project base.
    * @param request - user-supplied project name.
@@ -443,7 +443,7 @@ git commit -m "feat(api): workspace createProject verb with confined name valida
 
 加入既有的 follow 测试 describe（风格仿照使用 `WorkspaceFeed`/`controller.follow` 的相邻 follow 测试）：
 
-```ts
+```text
   it('carries projectBase in the follow baseline', async () => {
     const root = realpathSync.native(mkdtempSync(join(tmpdir(), 'dsh-workspace-controller-')))
     tempDirs.push(root)
@@ -471,7 +471,7 @@ git commit -m "feat(api): workspace createProject verb with confined name valida
 
 `types.ts`（WorkspaceBaseline）：
 
-```ts
+```text
 /** Complete reconnect baseline for Workspace browser state. */
 export interface WorkspaceBaseline {
   readonly items: readonly WorkspaceView[]
@@ -485,7 +485,7 @@ export interface WorkspaceBaseline {
 
 `feed.ts`——构造函数与 baseline：
 
-```ts
+```text
   /**
    * @param ctx - Host context containing the authoritative Workspace registry.
    * @param projectBase - configured project base; null when project creation
@@ -497,7 +497,7 @@ export interface WorkspaceBaseline {
 
 （替换既有构造函数的第一行；主体不变），并在 `baseline()` 中加入字段：
 
-```ts
+```text
     return {
       items: this.ctx.workspaceRegistry.list().map(workspaceView),
       archivedSessionIds: [...this.ctx.workspaceRegistry.archivedSessionIds],
@@ -508,7 +508,7 @@ export interface WorkspaceBaseline {
 
 `index.ts`：`this.feed = new WorkspaceFeed(ctx, this.config.projectBase ?? null)`；在 `filtered()`（214-223 行）透传（`replace` 帧也经 `filtered` 组装，不透传字段会丢失）：
 
-```ts
+```text
       return {
         items: items.map(item => ({ ...item, sessionIds: sessions(item.sessionIds) })),
         archivedSessionIds: sessions(value.archivedSessionIds),
@@ -547,7 +547,7 @@ git commit -m "feat(api): projectBase capability field on the workspace follow b
 
 `model.client.spec.ts`——在 `FakeWorkspaceRemote`（71-158 行）中按 `create` 的样子加入方法：
 
-```ts
+```text
   onCreateProject = (_request: { name: string }): Promise<RemoteResult<WorkspaceCreateValue>> =>
     Promise.resolve(remoteOk({ workspace: workspace('project'), created: true }))
   async createProject(request: { name: string }): Promise<RemoteResult<WorkspaceCreateValue>> {
@@ -558,7 +558,7 @@ git commit -m "feat(api): projectBase capability field on the workspace follow b
 
 以及测试：
 
-```ts
+```text
   it('creates a project and merges the returned row', async () => {
     const remote = new FakeWorkspaceRemote()
     const model = modelFor(remote)
@@ -591,14 +591,14 @@ git commit -m "feat(api): projectBase capability field on the workspace follow b
 
 `model.ts`：在 `WorkspaceSnapshot`（31-41）的 `pinnedSessionIds` 之后：
 
-```ts
+```text
   /** Configured project-creation base from the latest baseline; null when off. */
   readonly projectBase: string | null
 ```
 
 类字段放在其他状态旁：`private projectBase: string | null = null`；`replaceBaseline`（260-275）中在 `this.invalidate()` 之前：`this.projectBase = baseline.projectBase`；快照组装（348-357，`buildSnapshot`）加入一行 `projectBase: this.projectBase,`；按 `create`（93-102）的样子加方法：
 
-```ts
+```text
   async createProject(input: { name: string }): Promise<RemoteResult<WorkspaceCreateValue>> {
     const result = await this.remote.createProject(input)
     if (result.ok) this.upsert(result.value.workspace)
@@ -610,7 +610,7 @@ git commit -m "feat(api): projectBase capability field on the workspace follow b
 
 `service.ts`——按 `WorkspaceCreateError`（10-18）的样子写错误类：
 
-```ts
+```text
 /** createProject wire failure; `rpcError.code` picks the dialog's localized message. */
 export class WorkspaceProjectCreateError extends Error {
   readonly rpcError: RemoteFailure
@@ -627,7 +627,7 @@ export class WorkspaceProjectCreateError extends Error {
 
 在接口 `IWorkspaces`（46-115）中 `create` 旁：
 
-```ts
+```text
   /**
    * Create one project Workspace under the configured project base.
    * @param input - user-supplied project name.
@@ -638,7 +638,7 @@ export class WorkspaceProjectCreateError extends Error {
 
 以及类中 `create` 旁的实现（130-134）：
 
-```ts
+```text
   async createProject(input: { name: string }): Promise<WorkspaceView> {
     const result = await this.model.createProject(input)
     if (!result.ok) throw new WorkspaceProjectCreateError(result.error)
@@ -652,14 +652,14 @@ export class WorkspaceProjectCreateError extends Error {
 
 `tests/remote/workspace.client.ts`：在 `workspaceWorld.unary` 中加入：
 
-```ts
+```text
       'workspace/createProject': (request: { name: string }): RemoteResult<WorkspaceCreateValue> =>
         ok({ workspace: workspace('project', { path: `/nw/${request.name}`, title: request.name }), created: true }),
 ```
 
 并在 `baseline(...)` helper（69-74）的 value 字面量中加 `projectBase: null`。在 `transport.client.spec.ts` 中扩展现有测试「publishes the model source and exposes successful Workspace commands」（357-388）：
 
-```ts
+```text
     await expect(controller.createProject({ name: 'Котельная' })).resolves.toMatchObject({ title: 'Котельная' })
     expect(mock.log.requests('workspace/createProject')).toEqual([{ name: 'Котельная' }])
 ```
@@ -696,7 +696,7 @@ git commit -m "feat(api): client createProject facade and projectBase snapshot f
 在每个 `locales.ts` 字典中加入 7 个 key（zh 为来源；其余用 `satisfies`）：
 
 zh：
-```ts
+```text
   'project.new': '新建项目',
   'project.name': '项目名称',
   'project.create': '创建',
@@ -706,7 +706,7 @@ zh：
   'project.error.failed': '项目创建失败。',
 ```
 en：
-```ts
+```text
   'project.new': 'New project',
   'project.name': 'Project name',
   'project.create': 'Create',
@@ -716,7 +716,7 @@ en：
   'project.error.failed': 'Project creation failed.',
 ```
 ru：
-```ts
+```text
   'project.new': 'Новый проект',
   'project.name': 'Имя проекта',
   'project.create': 'Создать',
@@ -726,7 +726,7 @@ ru：
   'project.error.failed': 'Не удалось создать проект.',
 ```
 ja：
-```ts
+```text
   'project.new': '新規プロジェクト',
   'project.name': 'プロジェクト名',
   'project.create': '作成',
@@ -736,7 +736,7 @@ ja：
   'project.error.failed': 'プロジェクトを作成できませんでした。',
 ```
 es：
-```ts
+```text
   'project.new': 'Proyecto nuevo',
   'project.name': 'Nombre del proyecto',
   'project.create': 'Crear',
@@ -746,7 +746,7 @@ es：
   'project.error.failed': 'No se pudo crear el proyecto.',
 ```
 fr：
-```ts
+```text
   'project.new': 'Nouveau projet',
   'project.name': 'Nom du projet',
   'project.create': 'Créer',
@@ -756,7 +756,7 @@ fr：
   'project.error.failed': 'Échec de la création du projet.',
 ```
 de：
-```ts
+```text
   'project.new': 'Neues Projekt',
   'project.name': 'Projektname',
   'project.create': 'Erstellen',
@@ -766,7 +766,7 @@ de：
   'project.error.failed': 'Projekt konnte nicht erstellt werden.',
 ```
 pt：
-```ts
+```text
   'project.new': 'Projeto novo',
   'project.name': 'Nome do projeto',
   'project.create': 'Criar',
@@ -819,14 +819,14 @@ spec 的导入：`WorkspaceProjectCreateError` 来自 `@deepseek-ai/dsh-api-work
 
 `contract/slots.ts`：在 `WorkspaceBrowserInjected`（243-302；`renameWorkspace`/`deleteWorkspace` 所在处）加入：
 
-```ts
+```text
   /** Create one project Workspace under the Host's project base. */
   createProject: (input: { readonly name: string }) => Promise<WorkspaceView>
 ```
 
 （`WorkspaceView` 已在契约中导入。）`src/client/index.ts`：在 `browserInjected()`（334-357）中 `startSession` 旁：
 
-```ts
+```text
     createProject: async (input) => workspaces.createProject(input),
 ```
 

@@ -491,7 +491,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 
 类型：[PresentedFile](subsystems/deliverables.zh.md) · [ToolCallId](subsystems/core.zh.md)
 
-来源：[`packages/deliverables/tool-present/src/types.ts:15`](../packages/deliverables/tool-present/src/types.ts)
+来源：[`packages/deliverables/tool-present/src/types.ts:43`](../packages/deliverables/tool-present/src/types.ts)
 
 ### `developer/*`
 
@@ -4480,7 +4480,7 @@ SHA-256: `3bd652ebfa8726b3ce3937a4f1bd2759e02f86b3a08a20f9e41a8513656fbc5f`
 
 SHA-256: `b8fc636a2121df9d8423c242e03c9d23b7ab7c6fdce00e45746932c60b730f97`
 
-来源：[`packages/deliverables/tool-present/src/types.ts:5`](../packages/deliverables/tool-present/src/types.ts)
+来源：[`packages/deliverables/tool-present/src/types.ts:7`](../packages/deliverables/tool-present/src/types.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
@@ -5939,7 +5939,7 @@ SHA-256: `e4c18e294232c3ba6c9f1999f168263cc55956147cfe4121720899be8e52edd1`
 
 SHA-256: `1528539c63db8b23506f0209a99ce77d8ad138adfbfcee3d4769b7382d93756c`
 
-来源：[`packages/deliverables/tool-present/src/types.ts:15`](../packages/deliverables/tool-present/src/types.ts)
+来源：[`packages/deliverables/tool-present/src/types.ts:43`](../packages/deliverables/tool-present/src/types.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|

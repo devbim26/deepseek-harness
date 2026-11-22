@@ -5,7 +5,7 @@
  * and tool checkboxes are bounded by the deployment policy the service
  * reports, and the service re-validates every write.
  */
-import { useId, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-ui-slots'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import { Button, Checkbox, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -28,6 +28,11 @@ export interface CustomAgentsModalProps {
 /** Blank form fields for a create. */
 const BLANK: CustomAgentInput = { name: '', description: '', instructions: '', tools: [], isOrchestrator: false, delegates: [], hidden: false }
 
+/** Whether one orchestration limit is a whole number inside the deployment ceiling. */
+function validLimit(value: number | undefined, ceiling: number): boolean {
+  return value !== undefined && Number.isSafeInteger(value) && value >= 1 && value <= ceiling
+}
+
 /**
  * Render the manager over the catalog store.
  * @param props - locale, store hook, controller, and the close command.
@@ -43,6 +48,11 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
   const settingsTitleId = useId()
   const toolsTitleId = useId()
   const delegatesTitleId = useId()
+  const iterationsInput = useRef<HTMLInputElement>(null)
+  const parallelInput = useRef<HTMLInputElement>(null)
+  const policy = state.policy
+  const defaults = policy?.orchestratorDefaults ?? { maxIterations: 3, maxParallel: 3, autoReport: true }
+  const ceilings = policy?.orchestratorCeilings ?? { maxIterations: 10, maxParallel: 10 }
 
   const startCreate = (): void => {
     setEditing(undefined)
@@ -59,11 +69,15 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
       tools: [...record.tools],
       isOrchestrator: record.isOrchestrator,
       delegates: [...record.delegates],
+      orchestratorMaxIterations: record.orchestratorMaxIterations,
+      orchestratorMaxParallel: record.orchestratorMaxParallel,
+      orchestratorAutoReport: record.orchestratorAutoReport,
       hidden: record.hidden,
     })
     setDeleting(undefined)
     setFailure(undefined)
   }
+  const delegateChoices = state.agents.filter(agent => agent.id !== editing?.id && !agent.isOrchestrator)
   const outcomeMessage = (outcome: WriteOutcome): string | undefined => {
     if (outcome.ok) return undefined
     if (outcome.kind === 'limit') return t('limitReached')
@@ -80,6 +94,18 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
     if (missing !== undefined) {
       setFailure(missing)
       return
+    }
+    if (fields.isOrchestrator) {
+      if (!validLimit(fields.orchestratorMaxIterations, ceilings.maxIterations)) {
+        setFailure(t('orchestratorRange', { max: ceilings.maxIterations }))
+        iterationsInput.current?.focus()
+        return
+      }
+      if (!validLimit(fields.orchestratorMaxParallel, ceilings.maxParallel)) {
+        setFailure(t('orchestratorRange', { max: ceilings.maxParallel }))
+        parallelInput.current?.focus()
+        return
+      }
     }
     const outcome = editing === undefined
       ? await controller.create(fields)
@@ -99,8 +125,6 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
     setFailure(outcomeMessage(outcome))
     setDeleting(undefined)
   }
-  const policy = state.policy
-  const delegateChoices = state.agents.filter(agent => agent.id !== editing?.id && !agent.isOrchestrator)
 
   return (
     <Modal
@@ -208,10 +232,86 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
               <Checkbox
                 label={t('orchestrator')}
                 checked={fields.isOrchestrator}
-                onChange={(checked) => { setFields({ ...fields, isOrchestrator: checked, ...(checked ? {} : { delegates: [] }) }) }}
+                onChange={(checked) => {
+                  setFields({
+                    ...fields,
+                    isOrchestrator: checked,
+                    ...(checked ? {} : { delegates: [] }),
+                    ...(checked ? {
+                      orchestratorMaxIterations: fields.orchestratorMaxIterations ?? defaults.maxIterations,
+                      orchestratorMaxParallel: fields.orchestratorMaxParallel ?? defaults.maxParallel,
+                      orchestratorAutoReport: fields.orchestratorAutoReport ?? defaults.autoReport,
+                    } : {}),
+                  })
+                }}
               />
               <span className={css.toolDescription}>{t('orchestratorHint')}</span>
             </div>
+          )}
+          {fields.isOrchestrator && policy?.delegationAvailable === true && (
+            <fieldset className={css.orchestrationFields}>
+              <legend className={css.fieldLabel}>{t('orchestrator')}</legend>
+              <div className={css.orchestrationField}>
+                <label className={css.fieldLabel} htmlFor="custom-agents-orchestrator-iterations">{t('orchestratorMaxIterations')}</label>
+                <input
+                  id="custom-agents-orchestrator-iterations"
+                  name="orchestratorMaxIterations"
+                  ref={iterationsInput}
+                  className={css.input}
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={ceilings.maxIterations}
+                  step={1}
+                  required
+                  value={fields.orchestratorMaxIterations ?? defaults.maxIterations}
+                  aria-describedby="custom-agents-orchestrator-iterations-hint"
+                  aria-invalid={failure !== undefined && !validLimit(fields.orchestratorMaxIterations, ceilings.maxIterations)}
+                  onChange={(event) => {
+                    const raw = event.target.value
+                    setFields({ ...fields, orchestratorMaxIterations: raw === '' ? undefined : Number(raw) })
+                    setFailure(undefined)
+                  }}
+                />
+                <span id="custom-agents-orchestrator-iterations-hint" className={css.toolDescription}>
+                  {t('orchestratorLimitsHint', { max: ceilings.maxIterations })}
+                </span>
+              </div>
+              <div className={css.orchestrationField}>
+                <label className={css.fieldLabel} htmlFor="custom-agents-orchestrator-parallel">{t('orchestratorMaxParallel')}</label>
+                <input
+                  id="custom-agents-orchestrator-parallel"
+                  name="orchestratorMaxParallel"
+                  ref={parallelInput}
+                  className={css.input}
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={ceilings.maxParallel}
+                  step={1}
+                  required
+                  value={fields.orchestratorMaxParallel ?? defaults.maxParallel}
+                  aria-describedby="custom-agents-orchestrator-parallel-hint"
+                  aria-invalid={failure !== undefined && !validLimit(fields.orchestratorMaxParallel, ceilings.maxParallel)}
+                  onChange={(event) => {
+                    const raw = event.target.value
+                    setFields({ ...fields, orchestratorMaxParallel: raw === '' ? undefined : Number(raw) })
+                    setFailure(undefined)
+                  }}
+                />
+                <span id="custom-agents-orchestrator-parallel-hint" className={css.toolDescription}>
+                  {t('orchestratorLimitsHint', { max: ceilings.maxParallel })}
+                </span>
+              </div>
+              <div className={css.orchestrationField}>
+                <Checkbox
+                  label={t('orchestratorAutoReport')}
+                  checked={fields.orchestratorAutoReport ?? defaults.autoReport}
+                  onChange={(checked) => { setFields({ ...fields, orchestratorAutoReport: checked }) }}
+                />
+                <span className={css.toolDescription}>{t('orchestratorAutoReportHint')}</span>
+              </div>
+            </fieldset>
           )}
           <div className={css.field}>
             <Checkbox

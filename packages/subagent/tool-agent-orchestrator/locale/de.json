@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Konversationsbasierte Agenten-Orchestrierung",
+    "description": "Führt gespeicherte Delegierte und einen Bewerter mit Rückfragen und einem optionalen PDF-Bericht aus."
+  }
+}

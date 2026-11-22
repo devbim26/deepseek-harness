@@ -5,10 +5,12 @@ import Storage from '@deepseek-ai/dsh-storage'
 import * as StorageJson from '@deepseek-ai/dsh-storage-json'
 import Subagents from '@deepseek-ai/dsh-subagent'
 import * as SubagentSpawn from '@deepseek-ai/dsh-subagent-spawn-in-process'
+import LocalFileSystem from '@deepseek-ai/dsh-fs-local'
+import LocalAttachmentStore from '@deepseek-ai/dsh-attachment-local'
 import { DomainFacility } from '@deepseek-ai/dsh-storage-domain'
 import { harness as presetHarness } from '../../agent-preset-registry/tests/harness.ts'
 import CustomAgentPresets from '../src/index.ts'
-import type { AllowedToolsEntry, DelegationEntry } from '../src/config.ts'
+import type { AllowedToolsEntry, DelegationEntry, OrchestrationEntry } from '../src/config.ts'
 import type { PresetDefinition } from '@deepseek-ai/dsh-agent-preset-registry'
 import type { Context } from '@deepseek-ai/cordis'
 
@@ -24,14 +26,19 @@ export const standardConfig = {
   basePlugins: [] as PresetDefinition['plugins'],
   allowedTools: standardAllowedTools,
   delegation: { name: '@deepseek-ai/dsh-tool-subagent', config: { provider: 'spawn', toolName: 'subagent' } },
+  orchestratorDefaults: { maxIterations: 3, maxParallel: 3, autoReport: true },
+  orchestratorCeilings: { maxIterations: 10, maxParallel: 10 },
   maxNameChars: 64,
   maxDescriptionChars: 200,
   maxInstructionsChars: 16384,
   maxAgents: 50,
 }
 
-/** Config overrides a spec may pass to {@link harness}; `delegation: undefined` drops the delegation row. */
-export type HarnessConfig = Omit<typeof standardConfig, 'delegation'> & { delegation?: DelegationEntry | undefined }
+/** Config overrides a spec may pass to {@link harness}; undefined drops the corresponding template. */
+export type HarnessConfig = Omit<typeof standardConfig, 'delegation'> & {
+  delegation?: DelegationEntry | undefined
+  orchestration?: OrchestrationEntry | undefined
+}
 
 /**
  * Boot the preset-registry test stack, add a storage domain facility over the
@@ -50,6 +57,8 @@ export async function harness(
   // subagent registry and its spawn provider to activate; the registry defers
   // until its workingDirectory dependency exists.
   await mountWorkingDirectoryFixture(ctx)
+  await ctx.plugin(LocalFileSystem, { cwd: storage.jsonRoot ?? process.cwd() })
+  await ctx.plugin(LocalAttachmentStore, { dshHome: storage.jsonRoot ?? process.cwd() })
   await ctx.plugin(Subagents)
   await ctx.plugin(SubagentSpawn)
   const backendName = storage.jsonRoot !== undefined ? 'json' : 'memory'

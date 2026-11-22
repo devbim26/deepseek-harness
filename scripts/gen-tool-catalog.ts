@@ -88,6 +88,8 @@ import SandboxPolicy from '@deepseek-ai/dsh-sandbox-policy'
 import McpResources from '@deepseek-ai/dsh-mcp-resources'
 import * as ToolSubagent from '@deepseek-ai/dsh-tool-subagent'
 import * as ToolSubagentOar from '@deepseek-ai/dsh-experimental-tool-subagent-oar'
+import * as ToolAgentOrchestrator from '@deepseek-ai/dsh-tool-agent-orchestrator'
+import AgentOrchestrator from '@deepseek-ai/dsh-agent-orchestrator'
 import * as ToolWeb from '@deepseek-ai/dsh-tool-web'
 import WorkflowEngine from '@deepseek-ai/dsh-workflow'
 import type { WorkflowRun, WorkflowStartRequest } from '@deepseek-ai/dsh-workflow'
@@ -647,6 +649,33 @@ const TOOL_PACKAGES: ToolPackage[] = [
     },
     note:
       'The load-time `toolName` selects the delegation name (default `subagent`); `modelSelection` adds optional route fields. `modelDiscovery` defaults off and registers shared discovery on one instance per scope. Web and Desktop presets enable spawn discovery and route fields and leave `subagent_fork` route fields disabled. The Host settings service records authorization for each new top-level Session; child Sessions inherit it. Without a recorded policy, discovery and explicit selection permit only the current parent route. Every delegation returns the child\'s name promptly; local children accept follow-ups, while external backends report their single execution automatically.',
+  },
+  {
+    pkg: '@deepseek-ai/dsh-tool-agent-orchestrator',
+    dir: 'tool-agent-orchestrator',
+    source: {
+      orchestrate_agents: 'packages/subagent/tool-agent-orchestrator/src/index.ts',
+    },
+    requires: ['ctx.tools', 'ctx.agentOrchestrator', 'ctx.subagents', 'an exact live root Agent'],
+    writes: ['tool/call', 'tool/result', 'child session events through ctx.subagents'],
+    shippedNames: ['orchestrate_agents'],
+    async mount(ctx) {
+      await ctx.plugin(SubagentRuntime)
+      await ctx.plugin(AgentOrchestrator, {
+        provider: 'spawn', maxHandoffChars: 65_536, maxSettledRuns: 32, reportDirectory: 'reports',
+      })
+      await ctx.plugin(ToolAgentOrchestrator, {
+        delegates: [{ id: 'worker', name: 'Worker', description: 'Runs one part of the objective.' }],
+        maxIterations: 3,
+        maxParallel: 1,
+        autoReport: false,
+        maxSummaryChars: 4000,
+        maxGapCount: 32,
+        maxGapChars: 500,
+      })
+    },
+    note:
+      'The tool runs the stored delegates and the evaluator of one orchestration preset: the model supplies an objective, optional circumstances, and an optional delegate subset, while delegates, limits, evaluator preset, and reporting come from the deployment config and the stored record. Workers and the evaluator keep their own Sessions across rounds, and the engine writes the report itself. Complete, partial, and budget-limited runs are successful outcomes; failed and cancelled runs are errors.',
   },
   {
     pkg: '@deepseek-ai/dsh-tool-subagent-control',

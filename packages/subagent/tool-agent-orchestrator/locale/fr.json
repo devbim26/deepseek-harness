@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Orchestration conversationnelle d’agents",
+    "description": "Exécute des délégués enregistrés et un évaluateur avec des relances et un rapport PDF facultatif."
+  }
+}

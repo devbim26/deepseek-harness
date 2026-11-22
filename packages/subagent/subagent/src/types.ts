@@ -7,6 +7,7 @@
  * @module @deepseek-ai/dsh-subagent/types
  */
 
+import type { Context } from '@deepseek-ai/cordis'
 import type { Agent, AgentOptions } from '@deepseek-ai/dsh-agent'
 import type { Branded } from '@deepseek-ai/dsh-brand'
 import type { ContentBlock, MessageId } from '@deepseek-ai/dsh-llm'
@@ -24,6 +25,14 @@ export type SubagentRunId = Branded<'SubagentRunId'>
 export function SubagentRunId(id: string): SubagentRunId {
   return id as SubagentRunId
 }
+
+/**
+ * Caller-owned composition installed before a local child accepts its prompt.
+ * @param childCtx - the unpublished child Agent scope.
+ * @param child - the unpublished local child Agent.
+ * @returns nothing; registrations remain owned by the child scope.
+ */
+export type SubagentActivationSetup = (childCtx: Context, child: Agent) => void
 
 /** One managed child execution and its result delivery policy. */
 export interface SubagentActivationSpec extends Omit<SubagentStartRequest, 'label' | 'signal'> {
@@ -43,6 +52,24 @@ export interface SubagentActivationSpec extends Omit<SubagentStartRequest, 'labe
   readonly signal: AbortSignal
   /** Parent delivery notifies the model; caller delivery only returns the result. Local children always enter the parent catalog. */
   readonly delivery: 'parent' | 'caller'
+  /** Optional local-only setup run after preset composition and before prompt admission. */
+  readonly setup?: SubagentActivationSetup
+}
+
+/** One owned follow-up round on an inactive durable local child. */
+export interface SubagentResumeActivationRequest {
+  /** Exact live direct creator of the child. */
+  readonly parent: Agent
+  /** Durable continuable child Session id. */
+  readonly childId: SessionId
+  /** Model-visible prompt for the new round. */
+  readonly prompt: ContentBlock[]
+  /** Optional structured result schema attached only to this activation. */
+  readonly outputSchema?: ObjectJsonSchema | undefined
+  /** Optional setup run after cold composition and before prompt admission. */
+  readonly setup?: SubagentActivationSetup | undefined
+  /** Cancellation before prompt acceptance; later cancellation belongs to the returned activation. */
+  readonly signal: AbortSignal
 }
 
 /** A managed execution; disposal addresses this exact activation, never a later resume. */

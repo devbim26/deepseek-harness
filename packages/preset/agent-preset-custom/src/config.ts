@@ -1,4 +1,4 @@
-/** Service configuration: the deployment-authored template, whitelist, and limits. */
+/** Service configuration: deployment templates, whitelist, and orchestration policy. */
 import z from '@deepseek-ai/schemastery'
 import type { PresetDefinition } from '@deepseek-ai/dsh-agent-preset-registry'
 
@@ -28,29 +28,70 @@ export interface DelegationEntry {
   name: string
   /** Base row config; the service adds `allowedAgentPresets` from the record. */
   config?: Record<string, unknown>
-  /**
-   * Lead-in text appended to an orchestrator's persona ahead of the rendered
-   * delegate roster (`- <id> «<name>» — <description>` per delegate). Omission
-   * or an empty string keeps the persona free of roster text.
-   */
+  /** Lead-in text appended to an orchestrator's persona ahead of the rendered delegate roster. */
   rosterTemplate?: string | undefined
-  /**
-   * Additional orchestrator-only row, such as the shared subagent control
-   * tools; omission mounts nothing beside the delegation row.
-   */
+  /** Additional orchestrator-only row, such as shared subagent control tools. */
   control?: DelegationControlEntry | undefined
+}
+
+/** One plugin row used by the conversational orchestration template. */
+export interface OrchestrationPluginEntry {
+  /** Package name of the mounted plugin row. */
+  name: string
+  /** Row config passed through before stored-record values are applied. */
+  config?: Record<string, unknown>
+  /** Cordis service the row publishes; omission uses the package's known service. */
+  service?: string | undefined
+}
+
+/** Conversational workers/evaluator composition mounted instead of prompt-only delegation. */
+export interface OrchestrationEntry {
+  /** Scoped engine service row. */
+  engine: OrchestrationPluginEntry
+  /** Model-facing orchestrate_agents row. */
+  tool: OrchestrationPluginEntry
+  /** PDF service row, deduplicated by package name. */
+  pdf: OrchestrationPluginEntry
+  /** Interactive delivery service row, deduplicated by package name. */
+  present: OrchestrationPluginEntry
+  /** Evaluator preset; omission uses the orchestrator record itself. */
+  evaluatorPreset?: string | undefined
+}
+
+/** Stored-record defaults published to the manager form. */
+export interface OrchestratorDefaults {
+  /** Rounds a new orchestrator record starts with. */
+  readonly maxIterations: number
+  /** Simultaneously active workers a new orchestrator record starts with. */
+  readonly maxParallel: number
+  /** Whether a new orchestrator record reports through a PDF. */
+  readonly autoReport: boolean
+}
+
+/** Maximum values accepted for one stored record. */
+export interface OrchestratorCeilings {
+  /** Largest stored round count. */
+  readonly maxIterations: number
+  /** Largest stored parallelism count. */
+  readonly maxParallel: number
 }
 
 /** Config of the `agent-preset-custom` service row. */
 export interface Config {
   /** Site persona prepended to every custom agent's instructions. */
   instructionsPrefix: string
-  /** Fixed child rows (agent-instructions, time-context, compaction) the deployment copies from its standard preset, minus persona. */
+  /** Fixed child rows copied from the deployment's standard preset, minus persona. */
   basePlugins: PresetDefinition['plugins']
-  /** Whitelist: entry key → the plugin row a selecting agent mounts; an unchecked entry is a hard block. */
+  /** Whitelist: entry key → the plugin row a selecting agent mounts. */
   allowedTools: Record<string, AllowedToolsEntry>
-  /** Delegation row template for orchestrators; omit or pass `undefined` to disable the orchestrator flag entirely. */
+  /** Legacy prompt-only delegation template. */
   delegation?: DelegationEntry | undefined
+  /** Conversational orchestration template; takes precedence when configured. */
+  orchestration?: OrchestrationEntry | undefined
+  /** Values materialized for legacy records and omitted wire fields. */
+  orchestratorDefaults: OrchestratorDefaults
+  /** Maximum stored iteration and parallelism values. */
+  orchestratorCeilings: OrchestratorCeilings
   /** Name length cap. */
   maxNameChars: number
   /** Description length cap. */
@@ -75,6 +116,22 @@ export const Config: z<Config> = z.object({
       config: z.dict(z.any()),
     }) as z<DelegationControlEntry | undefined>).default(undefined),
   }) as z<DelegationEntry | undefined>).default(undefined),
+  orchestration: (z.object({
+    engine: z.object({ name: z.string().required(), config: z.dict(z.any()) }),
+    tool: z.object({ name: z.string().required(), config: z.dict(z.any()) }),
+    pdf: z.object({ name: z.string().required(), config: z.dict(z.any()) }),
+    present: z.object({ name: z.string().required(), config: z.dict(z.any()) }),
+    evaluatorPreset: z.string().min(1),
+  }) as z<OrchestrationEntry | undefined>).default(undefined),
+  orchestratorDefaults: z.object({
+    maxIterations: z.number().step(1).min(1).max(10).default(3),
+    maxParallel: z.number().step(1).min(1).max(10).default(3),
+    autoReport: z.boolean().default(true),
+  }).default({ maxIterations: 3, maxParallel: 3, autoReport: true }),
+  orchestratorCeilings: z.object({
+    maxIterations: z.number().step(1).min(1).max(10).default(10),
+    maxParallel: z.number().step(1).min(1).max(10).default(10),
+  }).default({ maxIterations: 10, maxParallel: 10 }),
   maxNameChars: z.number().default(64),
   maxDescriptionChars: z.number().default(200),
   maxInstructionsChars: z.number().default(16384),

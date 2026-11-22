@@ -1,0 +1,76 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/subagent/agent-orchestrator/README.md
+/:
+  en: d49a9059f293ab99
+  zh: d49a9059f293ab99
+/deepseek-ai-dsh-agent-orchestrator:
+  en: a9eca880cf046a26
+  zh: 2a8d229fa9b975d1
+/deepseek-ai-dsh-agent-orchestrator/summary:
+  en: 5b5fe87141b04b45
+  zh: 5204eaff5c7f8d04
+/deepseek-ai-dsh-agent-orchestrator/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 09388d293f9be9cb
+/deepseek-ai-dsh-agent-orchestrator/use-this-package:
+  en: 703fb51b98e12a38
+  zh: de7c098f53b5050a
+/deepseek-ai-dsh-agent-orchestrator/use-this-package/when-to-choose-it:
+  en: 3216f590683c5be9
+  zh: 2c7870acb910c99a
+/deepseek-ai-dsh-agent-orchestrator/use-this-package/minimal-configuration:
+  en: 0637bc7828f89736
+  zh: ea50a5bba8cd6cc9
+/deepseek-ai-dsh-agent-orchestrator/understand-the-implementation:
+  en: cc704d681a0b3f15
+  zh: d09a75e55506f705
+/deepseek-ai-dsh-agent-orchestrator/further-exploration:
+  en: f5a73701483f3624
+  zh: fbb5ea5b41d34500
+/deepseek-ai-dsh-agent-orchestrator/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-agent-orchestrator/model-experience/worker-task:
+  en: 2a3db0a15a0760cd
+  zh: 8bea1b66069a891e
+/deepseek-ai-dsh-agent-orchestrator/model-experience/worker-task/what-the-model-sees:
+  en: 67c0293fc9885b37
+  zh: 9a8c35fd6ba67da7
+/deepseek-ai-dsh-agent-orchestrator/model-experience/worker-task/token-effect:
+  en: f210cd0e348243cf
+  zh: d7a6bf937ff5d12a
+/deepseek-ai-dsh-agent-orchestrator/model-experience/worker-task/kv-cache-effect:
+  en: f0cb8da591d1ec9c
+  zh: 39e57e6314078fcd
+/deepseek-ai-dsh-agent-orchestrator/model-experience/worker-follow-up:
+  en: 485b12616b34f346
+  zh: c65ebbac314989ae
+/deepseek-ai-dsh-agent-orchestrator/model-experience/worker-follow-up/what-the-model-sees:
+  en: bbf6cd44bf901adc
+  zh: e2291b2dcd5e8a65
+/deepseek-ai-dsh-agent-orchestrator/model-experience/worker-follow-up/token-effect:
+  en: 71f7d3402723f7ae
+  zh: a7329bc3a7d2f7bf
+/deepseek-ai-dsh-agent-orchestrator/model-experience/worker-follow-up/kv-cache-effect:
+  en: ce283000df3bddde
+  zh: abced15193920f65
+/deepseek-ai-dsh-agent-orchestrator/model-experience/evaluator-decision:
+  en: 26240ff644b07496
+  zh: 4be715dc30e8c462
+/deepseek-ai-dsh-agent-orchestrator/model-experience/evaluator-decision/what-the-model-sees:
+  en: 744cfcc7ca4b0898
+  zh: 5731de7db9cf10b2
+/deepseek-ai-dsh-agent-orchestrator/model-experience/evaluator-decision/token-effect:
+  en: 23aa787c2850580b
+  zh: 32594413762a4a5f
+/deepseek-ai-dsh-agent-orchestrator/model-experience/evaluator-decision/kv-cache-effect:
+  en: 91de067dfbf545e0
+  zh: 63c02ad5a67d270a
+/deepseek-ai-dsh-agent-orchestrator/known-limitations-and-deferred-work:
+  en: 3874c0143d647eea
+  zh: 13dd89184c0810fd
+/deepseek-ai-dsh-agent-orchestrator/known-limitations-and-deferred-work/dev-note:
+  en: 358ae42e963e60d0
+  zh: e0b521fff19fb883

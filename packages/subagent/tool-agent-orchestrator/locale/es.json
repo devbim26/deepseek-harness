@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Orquestación conversacional de agentes",
+    "description": "Ejecuta delegados guardados y un evaluador con seguimientos y un informe PDF opcional."
+  }
+}

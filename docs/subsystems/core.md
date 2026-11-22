@@ -851,6 +851,13 @@ Registry-backed CRUD for deployment-constrained, user-created agent presets.
 
 ```ts cordis-catalog
 /**
+ * Read one stored record by its preset identity.
+ * @param id - the roster identity of a stored agent.
+ * @returns the resolved record, or undefined when no record carries that identity.
+ */
+record(id: string): CustomAgentRecord | undefined
+
+/**
  * Serve the current catalog and the deployment policy.
  * @returns every stored record plus the whitelist and limits the form renders against.
  */

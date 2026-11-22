@@ -1,24 +1,96 @@
 /** Synthesis of one stored record into a registry preset definition. */
 import type { PresetDefinition } from '@deepseek-ai/dsh-agent-preset-registry'
-import type { Config } from './config.ts'
+import type { Config, OrchestrationEntry } from './config.ts'
 import type { CustomAgentRecord } from './types.ts'
+
+/** Cordis service each known package publishes into a preset realm. */
+const SERVICE_ISOLATION: Readonly<Record<string, string>> = {
+  '@deepseek-ai/dsh-agent-orchestrator': 'agentOrchestrator',
+  '@deepseek-ai/dsh-tool-pdf': 'pdfReports',
+  '@deepseek-ai/dsh-tool-present': 'fileDeliveries',
+}
 
 /** One rendered roster line naming a delegate agent. */
 function rosterLine(delegate: CustomAgentRecord): string {
   return `- ${delegate.id} «${delegate.name}» — ${delegate.description}`
 }
 
+/** Keep one scoped service private to this preset revision. */
+function isolatedRow(row: PresetDefinition['plugins'][number]): PresetDefinition['plugins'][number] {
+  const service = SERVICE_ISOLATION[row.name]
+  return service === undefined ? row : { ...row, isolate: { ...row.isolate, [service]: true } }
+}
+
+/** One preset plugin row before the orchestration group is assembled. */
+type Row = PresetDefinition['plugins'][number]
+
 /**
- * Build the registry definition: the site persona plus the user instructions,
- * the deployment's fixed base rows, the whitelisted tool rows the record
- * selected, and — for an orchestrator with delegates — the deployment's
- * delegation row narrowed to those delegates plus a roster of them appended
- * to the persona. User data enters as plain configuration values only —
- * nothing here parses user text as configuration.
- * @param record - the stored record.
- * @param config - the service config (prefix, base rows, whitelist, delegation row).
- * @param delegateRecords - the stored records behind `record.delegates`, in order; empty for a non-orchestrator.
- * @returns the definition handed to `agentPresets.register`.
+ * Split preset rows into the ones the orchestration group owns and the rest.
+ *
+ * PDF and present rows join the group so the engine and the report writer
+ * share one realm; a package already present in the deployment is not added
+ * twice.
+ */
+function partitionServiceRows(rows: readonly Row[]): { grouped: Row[]; rest: Row[] } {
+  const grouped: Row[] = []
+  const rest: Row[] = []
+  const seen = new Set<string>()
+  for (const row of rows) {
+    if (SERVICE_ISOLATION[row.name] === undefined) {
+      rest.push(row)
+      continue
+    }
+    if (seen.has(row.name)) continue
+    seen.add(row.name)
+    grouped.push(row)
+  }
+  return { grouped, rest }
+}
+
+/** Rows for the conversational engine and its stored model-facing configuration. */
+function orchestrationChildren(
+  record: CustomAgentRecord,
+  config: OrchestrationEntry,
+  delegateRecords: readonly CustomAgentRecord[],
+  deploymentRows: readonly Row[],
+): Row[] {
+  const { grouped } = partitionServiceRows(deploymentRows)
+  const children: Row[] = [
+    { id: 'agent-orchestrator', name: config.engine.name, config: config.engine.config ?? {} },
+    {
+      id: 'orchestrate-agents',
+      name: config.tool.name,
+      config: {
+        ...(config.tool.config ?? {}),
+        delegates: delegateRecords.map(delegate => ({ id: delegate.id, name: delegate.name, description: delegate.description })),
+        evaluatorPreset: config.evaluatorPreset ?? record.id,
+        maxIterations: record.orchestratorMaxIterations,
+        maxParallel: record.orchestratorMaxParallel,
+        autoReport: record.orchestratorAutoReport,
+      },
+    },
+  ]
+  const owned = new Set(grouped.map(row => row.name))
+  if (!owned.has(config.pdf.name)) {
+    children.push({ id: 'orchestration-pdf', name: config.pdf.name, config: config.pdf.config ?? {} })
+  }
+  if (!owned.has(config.present.name)) {
+    children.push({ id: 'orchestration-present', name: config.present.name, config: config.present.config ?? {} })
+  }
+  const rows = [...grouped, ...children]
+  return rows.map((row) => {
+    const service = SERVICE_ISOLATION[row.name]
+    return service === undefined ? row : { ...row, isolate: { ...row.isolate, [service]: true } }
+  })
+}
+
+/**
+ * Build the registry definition from stored fields and the selected deployment template.
+ *
+ * @param record - Stored custom-agent record whose fields seed the definition.
+ * @param config - Deployment configuration supplying templates and allowed rows.
+ * @param delegateRecords - Stored records named by an orchestrated record's delegate ids.
+ * @returns The preset definition mounted for this record revision.
  */
 export function synthesizeDefinition(
   record: CustomAgentRecord,
@@ -28,11 +100,12 @@ export function synthesizeDefinition(
   const base = config.instructionsPrefix === ''
     ? record.instructions
     : `${config.instructionsPrefix} ${record.instructions}`
-  const roster = record.isOrchestrator && record.delegates.length > 0 && config.delegation?.rosterTemplate
+  const orchestrated = record.isOrchestrator && record.delegates.length > 0 && config.orchestration !== undefined
+  const roster = !orchestrated && record.isOrchestrator && record.delegates.length > 0 && config.delegation?.rosterTemplate
     ? `\n\n${config.delegation.rosterTemplate}\n${delegateRecords.map(rosterLine).join('\n')}`
     : ''
   const prefix = `${base}${roster}`
-  const delegation = record.isOrchestrator && record.delegates.length > 0 && config.delegation !== undefined
+  const delegation = !orchestrated && record.isOrchestrator && record.delegates.length > 0 && config.delegation !== undefined
     ? [
       {
         id: 'delegation',
@@ -49,23 +122,41 @@ export function synthesizeDefinition(
       }]),
     ]
     : []
+  const selectedRows: Row[] = record.tools.map((key) => {
+    const row = config.allowedTools[key]
+    // Stored tools were validated against this same whitelist at write
+    // time; a narrowed config orphaning a stored key fails loud here.
+    if (row === undefined) throw new Error(`custom-agent-presets: the whitelist no longer carries the '${key}' tool`)
+    return { id: `tool-${key}`, name: row.name, config: row.config }
+  })
+  const deploymentRows: Row[] = [...config.basePlugins, ...selectedRows]
+  const { grouped, rest } = partitionServiceRows(deploymentRows)
+  const orchestration = config.orchestration
+  const plugins: Row[] = orchestrated && orchestration !== undefined
+    ? [
+      { id: 'persona', name: '@deepseek-ai/dsh-persona', config: { prefix } },
+      ...rest,
+      ...delegation,
+      {
+        id: 'orchestration',
+        name: 'cordis:group',
+        group: true,
+        isolate: { agentOrchestrator: true, pdfReports: true, fileDeliveries: true },
+        config: orchestrationChildren(record, orchestration, delegateRecords, deploymentRows),
+      },
+    ]
+    : [
+      { id: 'persona', name: '@deepseek-ai/dsh-persona', config: { prefix } },
+      ...rest,
+      ...grouped.map(isolatedRow),
+      ...delegation,
+    ]
   return {
     id: record.id,
     name: record.name,
     description: record.description,
     order: 50,
     ...(record.hidden ? { hidden: true } : {}),
-    plugins: [
-      { id: 'persona', name: '@deepseek-ai/dsh-persona', config: { prefix } },
-      ...config.basePlugins,
-      ...record.tools.map((key) => {
-        const row = config.allowedTools[key]
-        // Stored tools were validated against this same whitelist at write
-        // time; a narrowed config orphaning a stored key fails loud here.
-        if (row === undefined) throw new Error(`custom-agent-presets: the whitelist no longer carries the '${key}' tool`)
-        return { id: `tool-${key}`, name: row.name, config: row.config }
-      }),
-      ...delegation,
-    ],
+    plugins,
   }
 }

@@ -8,6 +8,7 @@ export type CustomAgentsKey =
   | 'empty' | 'edit' | 'saved' | 'limitReached' | 'invalidInput' | 'conflict' | 'errorUnavailable' | 'charsUsed'
   | 'nameRequired' | 'instructionsRequired'
   | 'orchestrator' | 'orchestratorHint' | 'visible' | 'visibleHint' | 'delegatesTitle' | 'noDelegates' | 'orchestratorBadge' | 'hiddenBadge'
+  | 'orchestratorMaxIterations' | 'orchestratorMaxParallel' | 'orchestratorAutoReport' | 'orchestratorAutoReportHint' | 'orchestratorLimitsHint' | 'orchestratorRange'
 
 /** English copy. */
 export const en: Record<CustomAgentsKey, string> = {
@@ -47,6 +48,12 @@ export const en: Record<CustomAgentsKey, string> = {
   noDelegates: 'No other regular agents yet',
   orchestratorBadge: 'orchestrator',
   hiddenBadge: 'hidden',
+  orchestratorMaxIterations: 'Maximum rounds',
+  orchestratorMaxParallel: 'Parallel workers',
+  orchestratorAutoReport: 'Create a PDF report',
+  orchestratorAutoReportHint: 'Create a PDF report from a successful orchestration.',
+  orchestratorLimitsHint: 'Whole number from 1 to {max}.',
+  orchestratorRange: 'Enter a whole number from 1 to {max}.',
 }
 
 /** Russian copy. */
@@ -87,6 +94,12 @@ export const ru: Record<CustomAgentsKey, string> = {
   noDelegates: 'Других обычных агентов пока нет',
   orchestratorBadge: 'оркестратор',
   hiddenBadge: 'скрыт',
+  orchestratorMaxIterations: 'Максимум раундов',
+  orchestratorMaxParallel: 'Параллельных агентов',
+  orchestratorAutoReport: 'Собирать PDF-отчёт',
+  orchestratorAutoReportHint: 'Собирать PDF-отчёт по результату оркестрации.',
+  orchestratorLimitsHint: 'Целое число от 1 до {max}.',
+  orchestratorRange: 'Введите целое число от 1 до {max}.',
 }
 
 /** Chinese copy. */
@@ -127,4 +140,10 @@ export const zh: Record<CustomAgentsKey, string> = {
   noDelegates: '暂无其他普通智能体',
   orchestratorBadge: '编排者',
   hiddenBadge: '已隐藏',
+  orchestratorMaxIterations: '最大轮次',
+  orchestratorMaxParallel: '并行智能体数',
+  orchestratorAutoReport: '生成 PDF 报告',
+  orchestratorAutoReportHint: '编排成功后生成 PDF 报告。',
+  orchestratorLimitsHint: '1 到 {max} 之间的整数。',
+  orchestratorRange: '请输入 1 到 {max} 之间的整数。',
 }

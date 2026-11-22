@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-11-22-conversational-agent-orchestration.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-22-conversational-agent-orchestration.md
+/agent-note-conversational-agent-orchestration:
+  en: fd330c8c6b8a13ad
+  zh: 3766cd42c48eae51
+/agent-note-conversational-agent-orchestration/problem:
+  en: 40f2104b5946936d
+  zh: 94672d7a2f14da3b
+/agent-note-conversational-agent-orchestration/decision:
+  en: aeca0557c8a99338
+  zh: 77cfe0c28bdf1a50
+/agent-note-conversational-agent-orchestration/alternatives-considered:
+  en: 8caa950121d08716
+  zh: 21ff6db9cf876e33
+/agent-note-conversational-agent-orchestration/consequences:
+  en: bdb5239158572f97
+  zh: ccd1675bc80bd620

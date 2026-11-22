@@ -138,6 +138,29 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-agent-loop -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-agent-orchestrator -->
+<a id="deepseek-aidsh-agent-orchestrator"></a>
+
+## `@deepseek-ai/dsh-agent-orchestrator`
+
+- `inject`: `subagents` · `agents`
+- `source`: [`packages/subagent/agent-orchestrator/src/index.ts:26`](../packages/subagent/agent-orchestrator/src/index.ts)
+
+```ts config-catalog
+/** Deployment-owned orchestration limits and artifact placement. */
+export interface Config {
+  /** Local subagent provider used for workers and evaluator. */
+  readonly provider: string
+  /** Maximum characters in one serialized evaluator handoff. */
+  readonly maxHandoffChars: number
+  /** Maximum process-local settled snapshots retained per scoped service. */
+  readonly maxSettledRuns: number
+  /** Session-relative directory receiving generated PDF files. */
+  readonly reportDirectory: string
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-agent-orchestrator -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-agent-preset -->
 <a id="deepseek-aidsh-agent-preset"></a>
 
@@ -160,19 +183,25 @@ export type Config = PresetDefinition
 
 - `inject`: `agentPresets` · `storageDomain`
 - `refs`: [`PresetDefinition`](../packages/preset/agent-preset-registry/src/index.ts)
-- `source`: [`packages/preset/agent-preset-custom/src/config.ts:45`](../packages/preset/agent-preset-custom/src/config.ts)
+- `source`: [`packages/preset/agent-preset-custom/src/config.ts:80`](../packages/preset/agent-preset-custom/src/config.ts)
 
 ```ts config-catalog
 /** Config of the `agent-preset-custom` service row. */
 export interface Config {
   /** Site persona prepended to every custom agent's instructions. */
   instructionsPrefix: string
-  /** Fixed child rows (agent-instructions, time-context, compaction) the deployment copies from its standard preset, minus persona. */
+  /** Fixed child rows copied from the deployment's standard preset, minus persona. */
   basePlugins: PresetDefinition['plugins']
-  /** Whitelist: entry key → the plugin row a selecting agent mounts; an unchecked entry is a hard block. */
+  /** Whitelist: entry key → the plugin row a selecting agent mounts. */
   allowedTools: Record<string, AllowedToolsEntry>
-  /** Delegation row template for orchestrators; omit or pass `undefined` to disable the orchestrator flag entirely. */
+  /** Legacy prompt-only delegation template. */
   delegation?: DelegationEntry | undefined
+  /** Conversational orchestration template; takes precedence when configured. */
+  orchestration?: OrchestrationEntry | undefined
+  /** Values materialized for legacy records and omitted wire fields. */
+  orchestratorDefaults: OrchestratorDefaults
+  /** Maximum stored iteration and parallelism values. */
+  orchestratorCeilings: OrchestratorCeilings
   /** Name length cap. */
   maxNameChars: number
   /** Description length cap. */
@@ -201,17 +230,42 @@ export interface DelegationEntry {
   name: string
   /** Base row config; the service adds `allowedAgentPresets` from the record. */
   config?: Record<string, unknown>
-  /**
-   * Lead-in text appended to an orchestrator's persona ahead of the rendered
-   * delegate roster (`- <id> «<name>» — <description>` per delegate). Omission
-   * or an empty string keeps the persona free of roster text.
-   */
+  /** Lead-in text appended to an orchestrator's persona ahead of the rendered delegate roster. */
   rosterTemplate?: string | undefined
-  /**
-   * Additional orchestrator-only row, such as the shared subagent control
-   * tools; omission mounts nothing beside the delegation row.
-   */
+  /** Additional orchestrator-only row, such as shared subagent control tools. */
   control?: DelegationControlEntry | undefined
+}
+
+/** Conversational workers/evaluator composition mounted instead of prompt-only delegation. */
+export interface OrchestrationEntry {
+  /** Scoped engine service row. */
+  engine: OrchestrationPluginEntry
+  /** Model-facing orchestrate_agents row. */
+  tool: OrchestrationPluginEntry
+  /** PDF service row, deduplicated by package name. */
+  pdf: OrchestrationPluginEntry
+  /** Interactive delivery service row, deduplicated by package name. */
+  present: OrchestrationPluginEntry
+  /** Evaluator preset; omission uses the orchestrator record itself. */
+  evaluatorPreset?: string | undefined
+}
+
+/** Stored-record defaults published to the manager form. */
+export interface OrchestratorDefaults {
+  /** Rounds a new orchestrator record starts with. */
+  readonly maxIterations: number
+  /** Simultaneously active workers a new orchestrator record starts with. */
+  readonly maxParallel: number
+  /** Whether a new orchestrator record reports through a PDF. */
+  readonly autoReport: boolean
+}
+
+/** Maximum values accepted for one stored record. */
+export interface OrchestratorCeilings {
+  /** Largest stored round count. */
+  readonly maxIterations: number
+  /** Largest stored parallelism count. */
+  readonly maxParallel: number
 }
 
 /** One additional orchestrator-only row, such as the shared subagent control tools. */
@@ -220,6 +274,16 @@ export interface DelegationControlEntry {
   name: string
   /** Row config passed through to the plugin. */
   config?: Record<string, unknown>
+}
+
+/** One plugin row used by the conversational orchestration template. */
+export interface OrchestrationPluginEntry {
+  /** Package name of the mounted plugin row. */
+  name: string
+  /** Row config passed through before stored-record values are applied. */
+  config?: Record<string, unknown>
+  /** Cordis service the row publishes; omission uses the package's known service. */
+  service?: string | undefined
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-agent-preset-custom -->
@@ -3854,7 +3918,7 @@ export type JournalMode = 'wal' | 'delete' | 'truncate' | 'persist'
 
 - `inject`: `workingDirectory` · `sessionProjections`
 - `refs`: `Volatile` (`@deepseek-ai/cordis`)
-- `source`: [`packages/subagent/subagent/src/index.ts:186`](../packages/subagent/subagent/src/index.ts)
+- `source`: [`packages/subagent/subagent/src/index.ts:189`](../packages/subagent/subagent/src/index.ts)
 
 ```ts config-catalog
 /** Host configuration for continuable subagent capacity. */
@@ -4250,6 +4314,47 @@ export type TokenMeterConfig = Record<string, never>
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-token-meter -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-tool-agent-orchestrator -->
+<a id="deepseek-aidsh-tool-agent-orchestrator"></a>
+
+## `@deepseek-ai/dsh-tool-agent-orchestrator`
+
+- `inject`: `tools`
+- `source`: [`packages/subagent/tool-agent-orchestrator/src/index.ts:30`](../packages/subagent/tool-agent-orchestrator/src/index.ts)
+
+```ts config-catalog
+/** Deployment and stored-record settings; none are model-writable. */
+export interface Config {
+  /** Stored delegates this preset may run. */
+  readonly delegates: readonly OrchestrationDelegate[]
+  /** Preset used for the evaluator child; omission uses the orchestrator record. */
+  readonly evaluatorPreset?: string | undefined
+  /** Maximum worker/evaluator rounds, including the first. */
+  readonly maxIterations: number
+  /** Maximum simultaneously active worker Activations. */
+  readonly maxParallel: number
+  /** Whether a successful domain outcome creates a PDF report. */
+  readonly autoReport: boolean
+  /** Maximum characters of the summary returned to the model. */
+  readonly maxSummaryChars: number
+  /** Maximum gap entries returned to the model. */
+  readonly maxGapCount: number
+  /** Maximum characters per gap entry returned to the model. */
+  readonly maxGapChars: number
+}
+
+/** One delegate stored in the owning custom-agent record. */
+export interface OrchestrationDelegate {
+  /** Identifier of the stored delegate; its preset id. */
+  readonly id: string
+  /** Display name of the delegate shown in the model-facing result. */
+  readonly name: string
+  /** One-line role description handed to the worker prompt. */
+  readonly description: string
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-tool-agent-orchestrator -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-tool-agent-team -->
 <a id="deepseek-aidsh-tool-agent-team"></a>
 
@@ -4566,7 +4671,7 @@ export interface Config {
 ## `@deepseek-ai/dsh-tool-pdf`
 
 - `inject`: `tools` · `fs` · `workingDirectory` · `attachments` · `agents`
-- `source`: [`packages/document/tool-pdf/src/index.ts:23`](../packages/document/tool-pdf/src/index.ts)
+- `source`: [`packages/document/tool-pdf/src/index.ts:19`](../packages/document/tool-pdf/src/index.ts)
 
 ```ts config-catalog
 /** Per-call assembly limits. */
@@ -4585,7 +4690,7 @@ export interface Config {
 ## `@deepseek-ai/dsh-tool-present`
 
 - `inject`: `tools` · `fs` · `agents` · `workingDirectory`
-- `source`: [`packages/deliverables/tool-present/src/index.ts:15`](../packages/deliverables/tool-present/src/index.ts)
+- `source`: [`packages/deliverables/tool-present/src/index.ts:13`](../packages/deliverables/tool-present/src/index.ts)
 
 ```ts config-catalog
 /** Per-call delivery limit. */

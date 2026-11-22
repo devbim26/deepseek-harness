@@ -41,6 +41,7 @@ import type {
   ContinuableCreateRequest, ContinuableCreateSpec, SubagentInterruptAuthority,
   SubagentActivationSpec, SubagentActivation, SubagentMemberNames, SubagentStartRequest, SubagentRun,
   SubagentSendMessageOptions, SubagentResult, SubagentRunInfo, ResolvedSubagentStartRequest,
+  SubagentResumeActivationRequest, SubagentActivationSetup,
 } from './types.ts'
 import { attachStructuredRuntime } from './structured.ts'
 import type { StructuredAttachment } from './structured.ts'
@@ -78,6 +79,8 @@ interface MaterializeBase {
   path: string | undefined
   signal: AbortSignal
   delivery?: 'parent' | 'caller' | undefined
+  /** Local caller composition installed before structured capture and prompt admission. */
+  setup?: SubagentActivationSetup | undefined
 }
 
 /** Creation inputs for a local residency or one external backend execution. */
@@ -399,6 +402,7 @@ export class SubagentManager {
           signal,
           delivery: spec.delivery,
           outputSchema: spec.outputSchema,
+          setup: spec.setup,
         })
         established = activation
         const child = requireLocalActivation(activation).handle.agent
@@ -417,6 +421,64 @@ export class SubagentManager {
         )
       })
       return { ...this.receipt(established), childId, messageId }
+    })
+  }
+
+  /**
+   * Start one owned follow-up round on an inactive direct local child.
+   * @param request - exact parent, durable child, new prompt, per-round schema, setup, and signal.
+   * @returns the accepted message and activation owning exactly this follow-up round.
+   */
+  async resumeLocal(
+    request: SubagentResumeActivationRequest,
+  ): Promise<SubagentActivation & { messageId: MessageId }> {
+    const { parent, childId, signal } = request
+    signal.throwIfAborted()
+    const root = this.rootOf(parent)
+    this.assertAdmitting(parent)
+    if (childId === parent.id) {
+      throw new SubagentError('an agent cannot resume itself as a child', 'UNAUTHORIZED')
+    }
+    return this.locks.run(childId, async () => {
+      signal.throwIfAborted()
+      this.assertAdmitting(parent)
+      const current = this.resident.get(childId)
+      if (current !== undefined) {
+        if (current.root !== root || current.ancestors.at(-1) !== parent.id) {
+          throw new SubagentError('target belongs to another parent or subagent tree', 'UNAUTHORIZED')
+        }
+        requireLocalActivation(current)
+        throw new SubagentError(`subagent "${childId}" is still active`, 'ACTIVATION_BUSY')
+      }
+      const restored = await this.restoreTarget(root, childId, signal, {
+        outputSchema: request.outputSchema,
+        setup: request.setup,
+        delivery: 'caller',
+      })
+      try {
+        if (restored.ancestors.at(-1) !== parent.id) {
+          throw new SubagentError('owned continuation requires the durable direct parent', 'UNAUTHORIZED')
+        }
+        const messageId = await this.submitMaterialized(restored, request.prompt, {
+          delivery: 'queue',
+          source: { kind: 'user' },
+          signal,
+          authorize: () => {
+            this.assertAdmitting(parent)
+            if (this.rootOf(parent) !== root || restored.ancestors.at(-1) !== parent.id) {
+              throw new SubagentError('owned continuation parent authority changed during admission', 'UNAUTHORIZED')
+            }
+          },
+        }, root)
+        return { ...this.receipt(restored), childId, messageId }
+      } catch (error: unknown) {
+        try {
+          await this.dispose(restored)
+        } catch (cleanupError: unknown) {
+          this.ctx.logger.warn(`subagent continuation rollback failed: ${failureMessage(cleanupError)}`)
+        }
+        throw error
+      }
     })
   }
 
@@ -454,7 +516,7 @@ export class SubagentManager {
     reservation: SiblingNameReservation | undefined,
     path: string | undefined,
   ): Promise<SubagentActivation> {
-    const { provider, delivery, childId: _childId, name: _name, ...request } = spec
+    const { provider, delivery, childId: _childId, name: _name, setup: _setup, ...request } = spec
     const parent = request.parent
     return this.trackStartup(ancestry.root, spec.signal, async (signal) => {
       let activation: Activation | undefined
@@ -840,6 +902,7 @@ export class SubagentManager {
           await workingDirectory.set(child, create.cwd, inputs.signal)
         }
         if (inputs.composition.agentPreset === undefined) await applyChildComposition(childCtx, create?.parent, inputs.composition)
+        inputs.setup?.(childCtx, child)
         if (inputs.outputSchema !== undefined) {
           structured = attachStructuredRuntime(childCtx, inputs.outputSchema, () =>
             child.inbox.nextStep.length === 0
@@ -1211,7 +1274,12 @@ export class SubagentManager {
   }
 
   /** Reconstruct only the target under its subagent tree root; the caller owns acceptance or rollback. */
-  private async restoreTarget(root: Agent, childId: SessionId, signal: AbortSignal): Promise<Activation> {
+  private async restoreTarget(
+    root: Agent,
+    childId: SessionId,
+    signal: AbortSignal,
+    continuation: Pick<SubagentResumeActivationRequest, 'outputSchema' | 'setup'> & { delivery?: 'caller' } = {},
+  ): Promise<Activation> {
     return this.trackStartup(root, signal, async (signal) => {
       using source = await this.observeContinuation(childId, signal)
       this.assertAdmitting(root)
@@ -1251,6 +1319,9 @@ export class SubagentManager {
             toolFilter: descriptor.toolFilter,
           },
           signal,
+          outputSchema: continuation.outputSchema,
+          setup: continuation.setup,
+          delivery: continuation.delivery,
         })
       } catch (error: unknown) {
         signal.throwIfAborted()

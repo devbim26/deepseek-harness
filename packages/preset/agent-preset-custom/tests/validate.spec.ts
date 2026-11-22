@@ -24,6 +24,25 @@ describe('validateInput', () => {
     await expect(validateInput({ ...base, tools: ['shell'] }, standardConfig)).rejects.toMatchObject({ code: 'custom-agent-presets/invalid' })
   })
 
+  it('resolves omitted orchestration values from deployment defaults', async () => {
+    await expect(validateInput(base, standardConfig)).resolves.toMatchObject({
+      orchestratorMaxIterations: 3,
+      orchestratorMaxParallel: 3,
+      orchestratorAutoReport: true,
+    })
+  })
+
+  it('rejects unsafe or out-of-range orchestration values', async () => {
+    for (const orchestratorMaxIterations of [0, 11, 1.5, Number.POSITIVE_INFINITY]) {
+      await expect(validateInput({ ...base, orchestratorMaxIterations }, standardConfig)).rejects.toMatchObject({ code: 'custom-agent-presets/invalid' })
+    }
+    for (const orchestratorMaxParallel of [0, 11, 1.5, Number.POSITIVE_INFINITY]) {
+      await expect(validateInput({ ...base, orchestratorMaxParallel }, standardConfig)).rejects.toMatchObject({ code: 'custom-agent-presets/invalid' })
+    }
+    // @ts-expect-error -- autoReport must arrive as a boolean on the wire.
+    await expect(validateInput({ ...base, orchestratorAutoReport: 'yes' }, standardConfig)).rejects.toMatchObject({ code: 'custom-agent-presets/invalid' })
+  })
+
   it('passes the delegation fields through, trimming and deduplicating delegates', async () => {
     await expect(validateInput({ ...base, isOrchestrator: true, delegates: ['custom/a', 'custom/a', ' custom/b '] }, standardConfig))
       .resolves.toMatchObject({ isOrchestrator: true, delegates: ['custom/a', 'custom/b'], hidden: false })

@@ -49,11 +49,26 @@
   "license": "MIT",
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:~",
+    "@deepseek-ai/dsh-agent": "workspace:*",
+    "@deepseek-ai/dsh-agent-orchestrator": "workspace:*",
     "@deepseek-ai/dsh-agent-preset-registry": "workspace:*",
+    "@deepseek-ai/dsh-session": "workspace:*",
     "@deepseek-ai/dsh-storage": "workspace:*",
     "@deepseek-ai/dsh-storage-domain": "workspace:*",
+    "@deepseek-ai/dsh-subagent": "workspace:*",
     "@deepseek-ai/dsh-typert-protocol": "workspace:*",
     "@deepseek-ai/schemastery": "workspace:~"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh-agent-orchestrator": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-agent-preset-registry": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-subagent": {
+      "optional": true
+    }
   },
   "dependencies": {
     "zod": "4.6.6"
@@ -61,11 +76,17 @@
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:~",
     "@deepseek-ai/dsh-agent": "workspace:*",
+    "@deepseek-ai/dsh-agent-orchestrator": "workspace:*",
     "@deepseek-ai/dsh-agent-preset-registry": "workspace:*",
+    "@deepseek-ai/dsh-attachment-local": "workspace:*",
+    "@deepseek-ai/dsh-fs-local": "workspace:*",
     "@deepseek-ai/dsh-storage": "workspace:*",
     "@deepseek-ai/dsh-storage-domain": "workspace:*",
     "@deepseek-ai/dsh-subagent": "workspace:*",
     "@deepseek-ai/dsh-subagent-spawn-in-process": "workspace:*",
+    "@deepseek-ai/dsh-tool-agent-orchestrator": "workspace:*",
+    "@deepseek-ai/dsh-tool-pdf": "workspace:*",
+    "@deepseek-ai/dsh-tool-present": "workspace:*",
     "@deepseek-ai/dsh-typert-protocol": "workspace:*",
     "@deepseek-ai/schemastery": "workspace:~"
   }

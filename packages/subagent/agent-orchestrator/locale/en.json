@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Agent orchestration engine",
+    "description": "Runs specialist subagents, an evaluator, targeted follow-ups, and a PDF report."
+  }
+}

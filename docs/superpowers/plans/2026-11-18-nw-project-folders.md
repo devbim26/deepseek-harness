@@ -39,7 +39,7 @@ English | [中文](2026-11-18-nw-project-folders.zh.md)
 
 В `workspace-controller.host.spec.ts` (харнесс `harness()` уже создаёт реальный cordis `Context` + `WorkspaceRegistry` + memory storage; каталог — `mkdtempSync(join(tmpdir(), 'dsh-workspace-controller-'))`; см. строки 54-76) добавьте общий хелпер и describe-блок (хелпер переиспользуют тесты Task 2):
 
-```ts
+```text
 /** Полный стек реестра под контроллером с явным конфигом first-use политики. */
 async function projectHarness(config: { projectBase?: string; documentsDirectory?: string }) {
   const ctx = new Context()
@@ -72,7 +72,7 @@ async function rejectionCode(promise: Promise<unknown>): Promise<string> {
 }
 ```
 
-```ts
+```text
 describe('projectBase configuration', () => {
   it('rejects documentsDirectory and projectBase together', async () => {
     const ctx = new Context()
@@ -108,7 +108,7 @@ Run: `pnpm vitest run packages/api/workspace-controller` Expected: FAIL — св
 
 `src/default-directory.ts` — обобщить валидатор (сообщение для documentsDirectory не меняется):
 
-```ts
+```text
 /**
  * Validate a configured directory path without resolving it against cwd.
  * @param directory - fully qualified directory spelling.
@@ -155,7 +155,7 @@ export interface Config {
 
 В конструкторе после `this.config = WorkspaceController.Config(config)`:
 
-```ts
+```text
     if (this.config.documentsDirectory !== undefined && this.config.projectBase !== undefined) {
       throw new Error('projectBase and documentsDirectory are mutually exclusive; configure one first-use policy')
     }
@@ -166,7 +166,7 @@ export interface Config {
 
 и ветка в `initializeDefault` (замените тело колбэка `initializeDefault`):
 
-```ts
+```text
   @Remote('initializeDefault')
   async initializeDefault(signal: AbortSignal): Promise<WorkspaceValue | undefined> {
     const workspace = await this.ctx.workspaceRegistry.initializeDefault(async () => {
@@ -214,7 +214,7 @@ git commit -m "feat(api): projectBase config with exclusive documentsDirectory p
 
 `tests/project-name.host.spec.ts`:
 
-```ts
+```text
 import { describe, expect, it } from 'vitest'
 import { isValidProjectName } from '../src/project-name.ts'
 
@@ -281,7 +281,7 @@ export function isValidProjectName(name: string): boolean {
 
 - [x] **Step 4: Тесты глагола (в host.spec.ts; `projectHarness`/`rejectionCode` — из Task 1)**
 
-```ts
+```text
 describe('createProject', () => {
   it('creates a project directory and Workspace under projectBase', async () => {
     const root = realpathSync.native(mkdtempSync(join(tmpdir(), 'dsh-workspace-controller-')))
@@ -343,7 +343,7 @@ export interface WorkspaceProjectCreateRequest {
 
 и в существующий `declare module '@deepseek-ai/dsh-typert-protocol'`-блок с `RemoteErrorDetailsMap` (строки 32-62; зеркально соседним записям):
 
-```ts
+```text
     'workspace/project-unavailable': Record<string, never>
     'workspace/project-name-invalid': { readonly name: string }
     'workspace/project-exists': { readonly path: string }
@@ -352,7 +352,7 @@ export interface WorkspaceProjectCreateRequest {
 
 `src/commands.ts` — конструктор принимает базу (найдите `constructor(private readonly ctx: Context)` и замените):
 
-```ts
+```text
   /**
    * @param ctx - Host context carrying the Workspace registry.
    * @param projectBase - configured project base directory; undefined disables
@@ -363,7 +363,7 @@ export interface WorkspaceProjectCreateRequest {
 
 и метод рядом с `create` (строки 40-64):
 
-```ts
+```text
   /**
    * Create one project Workspace: a named child directory under the configured
    * project base, then ordinary adoption of that directory.
@@ -397,7 +397,7 @@ export interface WorkspaceProjectCreateRequest {
 
 `src/index.ts` — проброс и verb (в конструкторе `new WorkspaceCommands(ctx)` → `new WorkspaceCommands(ctx, this.config.projectBase)`; рядом с `@Remote('create')`-методом):
 
-```ts
+```text
   /**
    * Create one project Workspace under the configured project base.
    * @param request - user-supplied project name.
@@ -443,7 +443,7 @@ git commit -m "feat(api): workspace createProject verb with confined name valida
 
 В существующий describe follow-тестов добавьте (стиль — по соседним follow-тестам, использующим `WorkspaceFeed`/`controller.follow`):
 
-```ts
+```text
   it('carries projectBase in the follow baseline', async () => {
     const root = realpathSync.native(mkdtempSync(join(tmpdir(), 'dsh-workspace-controller-')))
     tempDirs.push(root)
@@ -471,7 +471,7 @@ Run: `pnpm vitest run packages/api/workspace-controller`
 
 `types.ts` (WorkspaceBaseline):
 
-```ts
+```text
 /** Complete reconnect baseline for Workspace browser state. */
 export interface WorkspaceBaseline {
   readonly items: readonly WorkspaceView[]
@@ -485,7 +485,7 @@ export interface WorkspaceBaseline {
 
 `feed.ts` — конструктор и baseline:
 
-```ts
+```text
   /**
    * @param ctx - Host context containing the authoritative Workspace registry.
    * @param projectBase - configured project base; null when project creation
@@ -497,7 +497,7 @@ export interface WorkspaceBaseline {
 
 (первую строку существующего конструктора замените; тело не меняется), и в `baseline()` добавьте поле:
 
-```ts
+```text
     return {
       items: this.ctx.workspaceRegistry.list().map(workspaceView),
       archivedSessionIds: [...this.ctx.workspaceRegistry.archivedSessionIds],
@@ -508,7 +508,7 @@ export interface WorkspaceBaseline {
 
 `index.ts`: `this.feed = new WorkspaceFeed(ctx, this.config.projectBase ?? null)`; в `filtered()` (строки 214-223) — проброс (`replace`-кадры тоже собираются через `filtered`, без этого поле потеряется):
 
-```ts
+```text
       return {
         items: items.map(item => ({ ...item, sessionIds: sessions(item.sessionIds) })),
         archivedSessionIds: sessions(value.archivedSessionIds),
@@ -547,7 +547,7 @@ git commit -m "feat(api): projectBase capability field on the workspace follow b
 
 `model.client.spec.ts` — в `FakeWorkspaceRemote` (строки 71-158) добавьте метод по образцу `create`:
 
-```ts
+```text
   onCreateProject = (_request: { name: string }): Promise<RemoteResult<WorkspaceCreateValue>> =>
     Promise.resolve(remoteOk({ workspace: workspace('project'), created: true }))
   async createProject(request: { name: string }): Promise<RemoteResult<WorkspaceCreateValue>> {
@@ -558,7 +558,7 @@ git commit -m "feat(api): projectBase capability field on the workspace follow b
 
 и тесты:
 
-```ts
+```text
   it('creates a project and merges the returned row', async () => {
     const remote = new FakeWorkspaceRemote()
     const model = modelFor(remote)
@@ -591,14 +591,14 @@ Run: `pnpm run generate-typert && pnpm vitest run packages/api/workspace-control
 
 `model.ts`: в `WorkspaceSnapshot` (31-41) после `pinnedSessionIds`:
 
-```ts
+```text
   /** Configured project-creation base from the latest baseline; null when off. */
   readonly projectBase: string | null
 ```
 
 поле класса рядом с прочим состоянием: `private projectBase: string | null = null`; в `replaceBaseline` (260-275) до `this.invalidate()`: `this.projectBase = baseline.projectBase`; в сборке снапшота (348-357, `buildSnapshot`) — добавить строку `projectBase: this.projectBase,`; метод по образцу `create` (93-102):
 
-```ts
+```text
   async createProject(input: { name: string }): Promise<RemoteResult<WorkspaceCreateValue>> {
     const result = await this.remote.createProject(input)
     if (result.ok) this.upsert(result.value.workspace)
@@ -610,7 +610,7 @@ Run: `pnpm run generate-typert && pnpm vitest run packages/api/workspace-control
 
 `service.ts` — класс ошибки по образцу `WorkspaceCreateError` (10-18):
 
-```ts
+```text
 /** createProject wire failure; `rpcError.code` picks the dialog's localized message. */
 export class WorkspaceProjectCreateError extends Error {
   readonly rpcError: RemoteFailure
@@ -627,7 +627,7 @@ export class WorkspaceProjectCreateError extends Error {
 
 в интерфейс `IWorkspaces` (46-115) рядом с `create`:
 
-```ts
+```text
   /**
    * Create one project Workspace under the configured project base.
    * @param input - user-supplied project name.
@@ -638,7 +638,7 @@ export class WorkspaceProjectCreateError extends Error {
 
 и реализация в классе рядом с `create` (130-134):
 
-```ts
+```text
   async createProject(input: { name: string }): Promise<WorkspaceView> {
     const result = await this.model.createProject(input)
     if (!result.ok) throw new WorkspaceProjectCreateError(result.error)
@@ -652,14 +652,14 @@ export class WorkspaceProjectCreateError extends Error {
 
 `tests/remote/workspace.client.ts`: в `workspaceWorld.unary` добавьте:
 
-```ts
+```text
       'workspace/createProject': (request: { name: string }): RemoteResult<WorkspaceCreateValue> =>
         ok({ workspace: workspace('project', { path: `/nw/${request.name}`, title: request.name }), created: true }),
 ```
 
 а в `baseline(...)`-хелпере (69-74) — `projectBase: null` в литерале value. В `transport.client.spec.ts` продлите существующий тест «publishes the model source and exposes successful Workspace commands» (357-388):
 
-```ts
+```text
     await expect(controller.createProject({ name: 'Котельная' })).resolves.toMatchObject({ title: 'Котельная' })
     expect(mock.log.requests('workspace/createProject')).toEqual([{ name: 'Котельная' }])
 ```
@@ -696,7 +696,7 @@ git commit -m "feat(api): client createProject facade and projectBase snapshot f
 В каждый словарь `locales.ts` добавьте по 7 ключей (zh — источник; остальные — `satisfies`):
 
 zh:
-```ts
+```text
   'project.new': '新建项目',
   'project.name': '项目名称',
   'project.create': '创建',
@@ -706,7 +706,7 @@ zh:
   'project.error.failed': '项目创建失败。',
 ```
 en:
-```ts
+```text
   'project.new': 'New project',
   'project.name': 'Project name',
   'project.create': 'Create',
@@ -716,7 +716,7 @@ en:
   'project.error.failed': 'Project creation failed.',
 ```
 ru:
-```ts
+```text
   'project.new': 'Новый проект',
   'project.name': 'Имя проекта',
   'project.create': 'Создать',
@@ -726,7 +726,7 @@ ru:
   'project.error.failed': 'Не удалось создать проект.',
 ```
 ja:
-```ts
+```text
   'project.new': '新規プロジェクト',
   'project.name': 'プロジェクト名',
   'project.create': '作成',
@@ -736,7 +736,7 @@ ja:
   'project.error.failed': 'プロジェクトを作成できませんでした。',
 ```
 es:
-```ts
+```text
   'project.new': 'Proyecto nuevo',
   'project.name': 'Nombre del proyecto',
   'project.create': 'Crear',
@@ -746,7 +746,7 @@ es:
   'project.error.failed': 'No se pudo crear el proyecto.',
 ```
 fr:
-```ts
+```text
   'project.new': 'Nouveau projet',
   'project.name': 'Nom du projet',
   'project.create': 'Créer',
@@ -756,7 +756,7 @@ fr:
   'project.error.failed': 'Échec de la création du projet.',
 ```
 de:
-```ts
+```text
   'project.new': 'Neues Projekt',
   'project.name': 'Projektname',
   'project.create': 'Erstellen',
@@ -766,7 +766,7 @@ de:
   'project.error.failed': 'Projekt konnte nicht erstellt werden.',
 ```
 pt:
-```ts
+```text
   'project.new': 'Projeto novo',
   'project.name': 'Nome do projeto',
   'project.create': 'Criar',
@@ -819,14 +819,14 @@ Run: `pnpm vitest run packages/client/ui-workspace/tests/workspace-browser.clien
 
 `contract/slots.ts`: в `WorkspaceBrowserInjected` (243-302; там, где `renameWorkspace`/`deleteWorkspace`) добавьте:
 
-```ts
+```text
   /** Create one project Workspace under the Host's project base. */
   createProject: (input: { readonly name: string }) => Promise<WorkspaceView>
 ```
 
 (`WorkspaceView` уже импортирован в контракт.) `src/client/index.ts`: в `browserInjected()` (334-357) рядом с `startSession`:
 
-```ts
+```text
     createProject: async (input) => workspaces.createProject(input),
 ```
 

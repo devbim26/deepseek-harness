@@ -45,6 +45,7 @@ This table connects model-visible tool names to the plugin package and service s
 | `@deepseek-ai/dsh-tool-session-query` | `session_event_read`, `session_event_search`, `session_event_trace`, `session_search`, `session_trace` | `ctx.tools`, `ctx.systemPrompt`, `ctx.sessionQuery`, `ctx.agents`, `a calling Agent for workspace authority` | `tool/call`, `tool/result` | - | The five read-only tools hide provider cursors and authorize every result from the immutable calling agent session. The package is opt-in; compositions that need enforced deadlines or bounded inline output also mount the generic timeout or spill policies. |
 | `@deepseek-ai/dsh-experimental-tool-subagent-oar` | `subagent_oar` | `ctx.tools`, `ctx.subagents` | `tool/call`, `tool/result`, `parent subagent catalog and completion notices` | - | The subagent_oar tool selects among configured aliases for external providers. This catalog shows Codex and Claude Code aliases; each deployment chooses its providers. Native model and permission settings belong to the selected provider configuration. |
 | `@deepseek-ai/dsh-tool-subagent` | `list_subagent_models`, `subagent` | `ctx.tools`, `ctx.subagents`, `ctx.systemPrompt`, `ctx.sessionProjections`, `ctx.llm for model discovery and selected-route validation` | `tool/call`, `tool/result`, `child session events through the chosen provider` | `subagent`, `subagent_fork` | The load-time `toolName` selects the delegation name (default `subagent`); `modelSelection` adds optional route fields. `modelDiscovery` defaults off and registers shared discovery on one instance per scope. Web and Desktop presets enable spawn discovery and route fields and leave `subagent_fork` route fields disabled. The Host settings service records authorization for each new top-level Session; child Sessions inherit it. Without a recorded policy, discovery and explicit selection permit only the current parent route. Every delegation returns the child's name promptly; local children accept follow-ups, while external backends report their single execution automatically. |
+| `@deepseek-ai/dsh-tool-agent-orchestrator` | `orchestrate_agents` | `ctx.tools`, `ctx.agentOrchestrator`, `ctx.subagents`, `an exact live root Agent` | `tool/call`, `tool/result`, `child session events through ctx.subagents` | `orchestrate_agents` | The tool runs the stored delegates and the evaluator of one orchestration preset: the model supplies an objective, optional circumstances, and an optional delegate subset, while delegates, limits, evaluator preset, and reporting come from the deployment config and the stored record. Workers and the evaluator keep their own Sessions across rounds, and the engine writes the report itself. Complete, partial, and budget-limited runs are successful outcomes; failed and cancelled runs are errors. |
 | `@deepseek-ai/dsh-tool-subagent-control` | `interrupt_agent`, `list_agents`, `send_message`, `wait_agent` | `ctx.tools`, `ctx.subagents`, `ctx.agents` | `tool/call`, `tool/result`, `child session events through ctx.subagents` | - | The shared control tools discover and contact agents in the subagent tree, interrupt owned descendants, and wait for input in the caller’s inbox. Provider-bound `tool-subagent` instances supply delegation tools. |
 | `@deepseek-ai/dsh-tool-jobs` | `job_kill`, `job_list`, `job_output` | `ctx.tools`, `ctx.jobs`, `ctx.systemPrompt` | `tool/call`, `tool/result`, `user/message via agent.inject() for background completion notices` | - | The kind-agnostic background-job controller: background bash commands and PTY sends are read, listed, and killed through the same three tools. Loading the plugin attaches the controller that arms producers' `ctx.jobs.start()`. |
 | `@deepseek-ai/dsh-tool-agent-team` | `team_task_create`, `team_task_get`, `team_task_list`, `team_task_update` | `ctx.tools`, `ctx.systemPrompt`, `ctx.agentTeams`, `ctx.subagents`, `an exact live Team member Agent` | `tool/call`, `team/task`, `tool/result` | - | Four task-board tools share the subagent tree’s root Session. Enabling Team mode on the root Session adds task-board guidance alongside standard subagent delegation and control tools. Standard subagent controls provide required identity independently of Team mode. |
@@ -2426,6 +2427,59 @@ Delegate a self-contained task to a subagent (a separate agent that works in its
 Source: [`packages/subagent/tool-subagent/src/index.ts`](../packages/subagent/tool-subagent/src/index.ts)
 
 The load-time `toolName` selects the delegation name (default `subagent`); `modelSelection` adds optional route fields. `modelDiscovery` defaults off and registers shared discovery on one instance per scope. Web and Desktop presets enable spawn discovery and route fields and leave `subagent_fork` route fields disabled. The Host settings service records authorization for each new top-level Session; child Sessions inherit it. Without a recorded policy, discovery and explicit selection permit only the current parent route. Every delegation returns the child's name promptly; local children accept follow-ups, while external backends report their single execution automatically.
+
+<a id="deepseek-aidsh-tool-agent-orchestrator"></a>
+
+## `@deepseek-ai/dsh-tool-agent-orchestrator`
+
+### `orchestrate_agents`
+
+Run the configured delegates and evaluator as one autonomous orchestration. The delegates work in parallel up to the stored limit, the evaluator can send targeted follow-ups on the same agent conversations, and the tool returns a consolidated result. Use this for a task that benefits from several specialist reviews; do not use it for a single delegate or a task you can complete directly.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "objective": {
+      "type": "string",
+      "description": "Complete user objective for the orchestration."
+    },
+    "circumstances": {
+      "type": "string",
+      "description": "Optional facts and constraints available at the start. Missing facts belong in the resulting gaps, not in a question to the user."
+    },
+    "assignments": {
+      "type": "array",
+      "description": "Optional subset of the configured delegates with a specific initial task for each. Omit to run every configured delegate.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Identifier of one configured delegate."
+          },
+          "prompt": {
+            "type": "string",
+            "description": "Specific initial task for this delegate within the objective."
+          }
+        },
+        "required": [
+          "id",
+          "prompt"
+        ]
+      }
+    }
+  },
+  "required": [
+    "objective"
+  ]
+}
+```
+
+Source: [`packages/subagent/tool-agent-orchestrator/src/index.ts`](../packages/subagent/tool-agent-orchestrator/src/index.ts)
+
+The tool runs the stored delegates and the evaluator of one orchestration preset: the model supplies an objective, optional circumstances, and an optional delegate subset, while delegates, limits, evaluator preset, and reporting come from the deployment config and the stored record. Workers and the evaluator keep their own Sessions across rounds, and the engine writes the report itself. Complete, partial, and budget-limited runs are successful outcomes; failed and cancelled runs are errors.
 
 <a id="deepseek-aidsh-tool-subagent-control"></a>
 

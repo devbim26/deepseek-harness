@@ -163,6 +163,31 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'agentOrchestrator',
+    summary: 'Scoped local conversational orchestration engine.',
+    description: 'Scoped local conversational orchestration engine.',
+    methods: [
+      {
+        signature: 'start(request: AgentOrchestrationStartRequest): AgentOrchestrationRun',
+        description: 'Start one foreground run after validating root ownership and stored task limits.',
+        parameters: [{ name: 'request', description: 'exact root, delegate tasks, evaluator preset, budgets, report, and cancellation.' }],
+        returns: 'an owned run whose result resolves after full child cleanup.',
+      },
+      {
+        signature: 'status(id: AgentOrchestrationRunId): AgentOrchestrationSnapshot | undefined',
+        description: 'Read one active or retained settled snapshot.',
+        parameters: [{ name: 'id', description: 'orchestration run id.' }],
+        returns: 'the current snapshot, or undefined after eviction/no such run.',
+      },
+      {
+        signature: 'cancel(id: AgentOrchestrationRunId, reason?: string): AgentOrchestrationSnapshot',
+        description: 'Cancel one known run and return its latest snapshot without waiting for settlement.',
+        parameters: [{ name: 'id', description: 'orchestration run id.' }, { name: 'reason', description: 'safe cancellation reason.' }],
+        returns: 'the snapshot after cancellation admission.',
+      },
+    ],
+  },
+  {
     key: 'agentPresets',
     summary: 'Registry of YAML-declared presets and the revisions live Agents retain.',
     description: 'Registry of YAML-declared presets and the revisions live Agents retain.',
@@ -982,6 +1007,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     description: 'Registry-backed CRUD for deployment-constrained, user-created agent presets.',
     methods: [
       {
+        signature: 'record(id: string): CustomAgentRecord | undefined',
+        description: 'Read one stored record by its preset identity.',
+        parameters: [{ name: 'id', description: 'the roster identity of a stored agent.' }],
+        returns: 'the resolved record, or undefined when no record carries that identity.',
+      },
+      {
         signature: '@Remote(\'list\') async remoteExportList(): Promise<CustomAgentCatalog>',
         description: 'Serve the current catalog and the deployment policy.',
         parameters: [],
@@ -1169,6 +1200,19 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Create one child directory for a Remote caller\'s in-app browser.',
         parameters: [{ name: 'path', description: 'absolute existing parent directory.' }, { name: 'name', description: 'single non-blank path segment.' }],
         returns: 'the created directory\'s absolute path.',
+      },
+    ],
+  },
+  {
+    key: 'fileDeliveries',
+    summary: 'Scoped programmatic file-delivery service used by composite tools.',
+    description: 'Scoped programmatic file-delivery service used by composite tools.',
+    methods: [
+      {
+        signature: 'present(agent: Agent, files: readonly PresentedFile[], exec: ToolRunContext): Promise<PresentedFileResult>',
+        description: 'Validate and stage files for delivery after the caller\'s successful final tool result.',
+        parameters: [{ name: 'agent', description: 'exact live Agent owning the open turn.' }, { name: 'files', description: 'existing regular files to declare.' }, { name: 'exec', description: 'the caller\'s own tool execution and cancellation.' }],
+        returns: 'the open turn and canonical file paths.',
       },
     ],
   },
@@ -2397,6 +2441,19 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Create an independent byte-bounded Session-log channel. Authorization and redaction precede reporting; the consumer owns shutdown and its outer deadline.',
         parameters: [{ name: 'options', description: 'transport, scope, resource, queue, and diagnostic settings selected by the consumer.' }],
         returns: 'the caller-owned channel, preserving complete accepted events within the request byte ceiling.',
+      },
+    ],
+  },
+  {
+    key: 'pdfReports',
+    summary: 'Scoped programmatic PDF report writer.',
+    description: 'Scoped programmatic PDF report writer.',
+    methods: [
+      {
+        signature: 'create(agent: Agent, request: PdfReportCreateRequest, signal: AbortSignal): Promise<PdfReportResult>',
+        description: 'Assemble and write one report through the same filesystem and attachment policy as `pdf_report`.',
+        parameters: [{ name: 'agent', description: 'exact live owning Agent.' }, { name: 'request', description: 'output path, title, blocks, and optional policy actor.' }, { name: 'signal', description: 'cancellation for path resolution, image collection, and writing.' }],
+        returns: 'canonical path, size, page count, and image outcomes.',
       },
     ],
   },
@@ -3938,6 +3995,13 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'activation with a message id only for local children.',
       },
       {
+        signature: 'async resumeActivation( request: SubagentResumeActivationRequest, ): Promise<SubagentActivation & { readonly messageId: MessageId }>',
+        description: 'Resume an inactive direct local child as one owned follow-up round. The child retains its durable Session, history, and preset; the returned result and optional output schema belong only to this new activation.',
+        parameters: [{ name: 'request', description: 'exact live direct parent, durable child, prompt, schema, setup, and cancellation.' }],
+        returns: 'the accepted message and owned activation for the new round.',
+        throws: ['ACTIVATION_BUSY when any previous activation is still resident.'],
+      },
+      {
         signature: 'rootOf(caller: Agent): Agent',
         description: 'Resolve the root shared by an Agent and its other agents in its subagent tree.',
         parameters: [{ name: 'caller', description: 'exact live Agent whose subagent ancestry selects the tree.' }],
@@ -4788,6 +4852,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         signature: '@Remote(\'create\') create(request: WorkspaceCreateRequest): Promise<WorkspaceCreateValue>',
         description: 'Create or idempotently resolve one Workspace over an existing directory.',
         parameters: [{ name: 'request', description: 'directory path to register.' }],
+        returns: 'the Workspace and whether this call created it.',
+      },
+      {
+        signature: '@Remote(\'createProject\') createProject(request: WorkspaceProjectCreateRequest): Promise<WorkspaceCreateValue>',
+        description: 'Create one project Workspace under the configured project base.',
+        parameters: [{ name: 'request', description: 'user-supplied project name.' }],
         returns: 'the Workspace and whether this call created it.',
       },
       {
@@ -5876,6 +5946,54 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface AgentOptions {\n    provider?: string;\n    model?: string;\n    reasoningEffort?: ReasoningEffortId | undefined;\n    maxTokens?: number;\n}',
   },
   {
+    name: 'AgentOrchestrationAssignment',
+    declaration: 'export interface AgentOrchestrationAssignment {\n    readonly id: string;\n    readonly agentPreset?: string;\n    readonly prompt: string;\n}',
+  },
+  {
+    name: 'AgentOrchestrationPdf',
+    declaration: 'export interface AgentOrchestrationPdf {\n    readonly path: string;\n    readonly name: string;\n    readonly bytes: number;\n    readonly pages: number;\n}',
+  },
+  {
+    name: 'AgentOrchestrationReportRequest',
+    declaration: 'export interface AgentOrchestrationReportRequest {\n    readonly title: string;\n    readonly details: readonly {\n        readonly label: string;\n        readonly value: string;\n    }[];\n}',
+  },
+  {
+    name: 'AgentOrchestrationResult',
+    declaration: 'export interface AgentOrchestrationResult extends AgentOrchestrationSnapshot {\n    readonly status: AgentOrchestrationTerminalStatus;\n}',
+  },
+  {
+    name: 'AgentOrchestrationRun',
+    declaration: 'export interface AgentOrchestrationRun {\n    readonly id: AgentOrchestrationRunId;\n    readonly result: Promise<AgentOrchestrationResult>;\n    cancel(reason?: string): void;\n    dispose(): Promise<void>;\n}',
+  },
+  {
+    name: 'AgentOrchestrationRunId',
+    declaration: 'export type AgentOrchestrationRunId = Branded<\'AgentOrchestrationRunId\'>;',
+  },
+  {
+    name: 'AgentOrchestrationSnapshot',
+    declaration: 'export interface AgentOrchestrationSnapshot {\n    readonly id: AgentOrchestrationRunId;\n    readonly status: AgentOrchestrationStatus;\n    readonly objective: string;\n    readonly rounds: number;\n    readonly summary: string;\n    readonly workers: readonly AgentOrchestrationWorkerResult[];\n    readonly assumptions: readonly string[];\n    readonly gaps: readonly string[];\n    readonly errors: readonly string[];\n    readonly pdf?: AgentOrchestrationPdf;\n}',
+  },
+  {
+    name: 'AgentOrchestrationStartRequest',
+    declaration: 'export interface AgentOrchestrationStartRequest {\n    readonly parent: Agent;\n    readonly objective: string;\n    readonly circumstances?: string | undefined;\n    readonly assignments: readonly AgentOrchestrationAssignment[];\n    readonly evaluatorPreset?: string;\n    readonly maxIterations: number;\n    readonly maxParallel: number;\n    readonly report?: AgentOrchestrationReportRequest;\n    readonly signal?: AbortSignal;\n}',
+  },
+  {
+    name: 'AgentOrchestrationStatus',
+    declaration: 'export type AgentOrchestrationStatus = \'queued\' | \'running\' | \'complete\' | \'partial\' | \'budget-limited\' | \'failed\' | \'cancelled\';',
+  },
+  {
+    name: 'AgentOrchestrationTerminalStatus',
+    declaration: 'export type AgentOrchestrationTerminalStatus = Exclude<AgentOrchestrationStatus, \'queued\' | \'running\'>;',
+  },
+  {
+    name: 'AgentOrchestrationWorkerReport',
+    declaration: 'export interface AgentOrchestrationWorkerReport {\n    readonly summary: string;\n    readonly evidence: readonly string[];\n    readonly assumptions: readonly string[];\n    readonly gaps: readonly string[];\n}',
+  },
+  {
+    name: 'AgentOrchestrationWorkerResult',
+    declaration: 'export interface AgentOrchestrationWorkerResult {\n    readonly assignmentId: string;\n    readonly childId?: SessionId | undefined;\n    readonly rounds: number;\n    readonly report?: AgentOrchestrationWorkerReport | undefined;\n    readonly error?: string | undefined;\n}',
+  },
+  {
     name: 'AgentPresetComposition',
     declaration: 'export interface AgentPresetComposition {\n    readonly id: string;\n    readonly name?: string;\n    readonly isDefault: boolean;\n    readonly broken?: string;\n    readonly rows: readonly AgentPresetCompositionRow[];\n}',
   },
@@ -6102,6 +6220,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'AuthorizationStatus',
     declaration: 'export type AuthorizationStatus = \'authorized\' | \'cancelled\';',
+  },
+  {
+    name: 'AvailableImageCall',
+    declaration: 'export interface AvailableImageCall {\n    callId: string;\n    images: number;\n}',
   },
   {
     name: 'BackendRegistry',
@@ -6573,15 +6695,15 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'CustomAgentInput',
-    declaration: 'export interface CustomAgentInput {\n    readonly name: string;\n    readonly description: string;\n    readonly instructions: string;\n    readonly tools: readonly string[];\n    readonly isOrchestrator: boolean;\n    readonly delegates: readonly string[];\n    readonly hidden: boolean;\n}',
+    declaration: 'export interface CustomAgentInput {\n    readonly name: string;\n    readonly description: string;\n    readonly instructions: string;\n    readonly tools: readonly string[];\n    readonly isOrchestrator: boolean;\n    readonly delegates: readonly string[];\n    readonly orchestratorMaxIterations?: number | undefined;\n    readonly orchestratorMaxParallel?: number | undefined;\n    readonly orchestratorAutoReport?: boolean | undefined;\n    readonly hidden: boolean;\n}',
   },
   {
     name: 'CustomAgentPolicy',
-    declaration: 'export interface CustomAgentPolicy {\n    readonly allowedTools: readonly CustomAgentToolOption[];\n    readonly delegationAvailable: boolean;\n    readonly maxNameChars: number;\n    readonly maxDescriptionChars: number;\n    readonly maxInstructionsChars: number;\n    readonly maxAgents: number;\n}',
+    declaration: 'export interface CustomAgentPolicy {\n    readonly allowedTools: readonly CustomAgentToolOption[];\n    readonly delegationAvailable: boolean;\n    readonly orchestratorDefaults: OrchestratorDefaults;\n    readonly orchestratorCeilings: OrchestratorCeilings;\n    readonly maxNameChars: number;\n    readonly maxDescriptionChars: number;\n    readonly maxInstructionsChars: number;\n    readonly maxAgents: number;\n}',
   },
   {
     name: 'CustomAgentRecord',
-    declaration: 'export interface CustomAgentRecord {\n    readonly id: string;\n    readonly slug: string;\n    readonly name: string;\n    readonly description: string;\n    readonly instructions: string;\n    readonly tools: readonly string[];\n    readonly isOrchestrator: boolean;\n    readonly delegates: readonly string[];\n    readonly hidden: boolean;\n    readonly version: number;\n    readonly updatedAt: string;\n}',
+    declaration: 'export interface CustomAgentRecord {\n    readonly id: string;\n    readonly slug: string;\n    readonly name: string;\n    readonly description: string;\n    readonly instructions: string;\n    readonly tools: readonly string[];\n    readonly isOrchestrator: boolean;\n    readonly delegates: readonly string[];\n    readonly orchestratorMaxIterations: number;\n    readonly orchestratorMaxParallel: number;\n    readonly orchestratorAutoReport: boolean;\n    readonly hidden: boolean;\n    readonly version: number;\n    readonly updatedAt: string;\n}',
   },
   {
     name: 'CustomAgentToolOption',
@@ -7976,6 +8098,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type OptionalSessionSeq = SessionSeq | null;',
   },
   {
+    name: 'OrchestratorCeilings',
+    declaration: 'export interface OrchestratorCeilings {\n    readonly maxIterations: number;\n    readonly maxParallel: number;\n}',
+  },
+  {
+    name: 'OrchestratorDefaults',
+    declaration: 'export interface OrchestratorDefaults {\n    readonly maxIterations: number;\n    readonly maxParallel: number;\n    readonly autoReport: boolean;\n}',
+  },
+  {
     name: 'OTelEventRecord',
     declaration: 'export interface OTelEventRecord {\n    eventName: string;\n    body: string;\n    timestamp: number;\n    severityNumber?: SeverityNumber;\n    attributes?: Record<string, OTelEventScalar | Record<string, OTelEventScalar>>;\n}',
   },
@@ -8030,6 +8160,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'PatchHunk',
     declaration: 'export interface PatchHunk {\n    lineNumber: number;\n    context?: string;\n    oldLines: string[];\n    newLines: string[];\n    isEndOfFile: boolean;\n}',
+  },
+  {
+    name: 'PdfReportCreateRequest',
+    declaration: 'export interface PdfReportCreateRequest {\n    readonly filePath: string;\n    readonly title?: string;\n    readonly blocks: readonly ReportBlock[];\n    readonly actor?: object | undefined;\n}',
+  },
+  {
+    name: 'PdfReportResult',
+    declaration: 'export interface PdfReportResult {\n    path: string;\n    bytes: number;\n    pages: number;\n    imagesEmbedded: number;\n    imagesSkipped: SkippedImage[];\n    availableImageCalls: AvailableImageCall[];\n}',
   },
   {
     name: 'PeerAdmission',
@@ -8194,6 +8332,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'PrepareSessionOptions',
     declaration: 'export type PrepareSessionOptions = (CreateSessionOptions & {\n    readonly eventState?: undefined;\n}) | RestoredSessionOptions;',
+  },
+  {
+    name: 'PresentedFile',
+    declaration: 'export interface PresentedFile {\n    path: string;\n    description?: string;\n}',
+  },
+  {
+    name: 'PresentedFileResult',
+    declaration: 'export interface PresentedFileResult {\n    readonly turn: number;\n    readonly files: PresentedFile[];\n}',
   },
   {
     name: 'PresetDefinition',
@@ -8522,6 +8668,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ReplayEnvelope',
     declaration: 'export interface ReplayEnvelope {\n    response: unknown;\n    blocks?: readonly unknown[];\n}',
+  },
+  {
+    name: 'ReportBlock',
+    declaration: 'export type ReportBlock = {\n    type: \'text\';\n    heading?: string;\n    text: string;\n} | {\n    type: \'image\';\n    callId: string;\n    caption?: string;\n} | {\n    type: \'table\';\n    header: string[];\n    rows: string[][];\n};',
   },
   {
     name: 'RequestContext',
@@ -9648,6 +9798,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SkillViewOptions extends SkillLookupOptions {\n    readonly scope?: ScopeKey | undefined;\n}',
   },
   {
+    name: 'SkippedImage',
+    declaration: 'export interface SkippedImage {\n    callId: string;\n    reason: string;\n}',
+  },
+  {
     name: 'SpeechCatalog',
     declaration: 'export interface SpeechCatalog extends SpeechSnapshot {\n    readonly maxAudioBytes: number;\n    readonly maxDurationSeconds: number;\n}',
   },
@@ -9772,8 +9926,12 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SubagentActivation {\n    readonly childId: SessionId;\n    readonly name: string;\n    readonly messageId?: MessageId;\n    readonly result: Promise<SubagentResult>;\n    dispose(): Promise<void>;\n}',
   },
   {
+    name: 'SubagentActivationSetup',
+    declaration: 'export type SubagentActivationSetup = (childCtx: Context, child: Agent) => void;',
+  },
+  {
     name: 'SubagentActivationSpec',
-    declaration: 'export interface SubagentActivationSpec extends Omit<SubagentStartRequest, \'label\' | \'signal\'> {\n    readonly provider: string;\n    readonly label: string;\n    readonly name?: string;\n    readonly childId?: SessionId;\n    readonly signal: AbortSignal;\n    readonly delivery: \'parent\' | \'caller\';\n}',
+    declaration: 'export interface SubagentActivationSpec extends Omit<SubagentStartRequest, \'label\' | \'signal\'> {\n    readonly provider: string;\n    readonly label: string;\n    readonly name?: string;\n    readonly childId?: SessionId;\n    readonly signal: AbortSignal;\n    readonly delivery: \'parent\' | \'caller\';\n    readonly setup?: SubagentActivationSetup;\n}',
   },
   {
     name: 'SubagentCapabilities',
@@ -9828,6 +9986,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SubagentResult {\n    readonly output: readonly ContentBlock[];\n    readonly structured?: unknown;\n    readonly diagnostic?: string;\n    readonly stopReason: SubagentStopReason;\n}',
   },
   {
+    name: 'SubagentResumeActivationRequest',
+    declaration: 'export interface SubagentResumeActivationRequest {\n    readonly parent: Agent;\n    readonly childId: SessionId;\n    readonly prompt: ContentBlock[];\n    readonly outputSchema?: ObjectJsonSchema | undefined;\n    readonly setup?: SubagentActivationSetup | undefined;\n    readonly signal: AbortSignal;\n}',
+  },
+  {
     name: 'SubagentRun',
     declaration: 'export interface SubagentRun {\n    readonly id: SessionId;\n    readonly result: Promise<SubagentResult>;\n    dispose(): Promise<void>;\n}',
   },
@@ -9845,7 +10007,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SubagentRuntime',
-    declaration: 'export class SubagentRuntime extends TypertRemoteService {\n    static Config;\n    static inject;\n    constructor(ctx: Context, private config: Config);\n    resolveMaxDepth(configured?: number | \'provider-managed\'): number | undefined;\n    startActivation(spec: SubagentActivationSpec & {\n        readonly childId: SessionId;\n    }): Promise<SubagentActivation & {\n        readonly messageId: MessageId;\n    }>;\n    startActivation(spec: SubagentActivationSpec): Promise<SubagentActivation>;\n    rootOf(caller: Agent): Agent;\n    namesOf(agent: Agent): SubagentMemberNames;\n    async resolveName(caller: Agent, name: string, signal: AbortSignal): Promise<SessionId>;\n    async waitForTreeWork(root: Agent): Promise<boolean>;\n    async sendMessage(sender: Agent, targetId: SessionId, content: ContentBlock[], options: SubagentSendMessageOptions): Promise<MessageId>;\n    interrupt(targetSessionId: SessionId, authority: SubagentInterruptAuthority): void;\n    async drainDescendants(parents: readonly Agent[]): Promise<void>;\n    listDescendants(rootSessionId: SessionId, signal?: AbortSignal): Promise<SubagentDescendantListEntry[]>;\n    @Remote({ name: \'prompt\', resources: { session: request => request.childSessionId } })\n    async prompt(request: SubagentPromptRequest, signal: AbortSignal): Promise<SubagentPromptReceipt>;\n    @Remote({ name: \'interruptByUser\', resources: { session: childSessionId => childSessionId } })\n    interruptByUser(childSessionId: SessionId): SubagentInterruptReceipt;\n  /* …truncated — full shape in source */',
+    declaration: 'export class SubagentRuntime extends TypertRemoteService {\n    static Config;\n    static inject;\n    constructor(ctx: Context, private config: Config);\n    resolveMaxDepth(configured?: number | \'provider-managed\'): number | undefined;\n    startActivation(spec: SubagentActivationSpec & {\n        readonly childId: SessionId;\n    }): Promise<SubagentActivation & {\n        readonly messageId: MessageId;\n    }>;\n    startActivation(spec: SubagentActivationSpec): Promise<SubagentActivation>;\n    async resumeActivation(request: SubagentResumeActivationRequest): Promise<SubagentActivation & {\n        readonly messageId: MessageId;\n    }>;\n    rootOf(caller: Agent): Agent;\n    namesOf(agent: Agent): SubagentMemberNames;\n    async resolveName(caller: Agent, name: string, signal: AbortSignal): Promise<SessionId>;\n    async waitForTreeWork(root: Agent): Promise<boolean>;\n    async sendMessage(sender: Agent, targetId: SessionId, content: ContentBlock[], options: SubagentSendMessageOptions): Promise<MessageId>;\n    interrupt(targetSessionId: SessionId, authority: SubagentInterruptAuthority): void;\n    async drainDescendants(parents: readonly Agent[]): Promise<void>;\n    listDescendants(rootSessionId: SessionId, signal?: AbortSignal): Promise<SubagentDescendantListEntry[]>;\n    @Remote({ name: \'prompt\', resources: { session: request => request.childSessionId } })\n    async prompt(request: SubagentPromptRequest, signal: AbortSignal): Promise<SubagentPromptReceipt>;\n    @Remote({ name: \'inter /* …truncated — full shape in source */',
   },
   {
     name: 'SubagentSendMessageOptions',
@@ -10749,7 +10911,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'WorkspaceBaseline',
-    declaration: 'export interface WorkspaceBaseline {\n    readonly items: readonly WorkspaceView[];\n    readonly archivedSessionIds: readonly SessionId[];\n    readonly pinnedSessionIds: readonly SessionId[];\n}',
+    declaration: 'export interface WorkspaceBaseline {\n    readonly items: readonly WorkspaceView[];\n    readonly archivedSessionIds: readonly SessionId[];\n    readonly pinnedSessionIds: readonly SessionId[];\n    readonly projectBase: string | null;\n}',
   },
   {
     name: 'WorkspaceByteRange',
@@ -10866,6 +11028,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'WorkspacePinValue',
     declaration: 'export interface WorkspacePinValue {\n    readonly pinnedSessionIds: readonly SessionId[];\n}',
+  },
+  {
+    name: 'WorkspaceProjectCreateRequest',
+    declaration: 'export interface WorkspaceProjectCreateRequest {\n    readonly name: string;\n}',
   },
   {
     name: 'WorkspaceRenameRequest',

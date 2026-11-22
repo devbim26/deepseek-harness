@@ -77,6 +77,7 @@
     "@deepseek-ai/cordis-plugin-include": "workspace:~",
     "@deepseek-ai/cordis-plugin-loader": "workspace:~",
     "@deepseek-ai/dsh-agent": "workspace:*",
+    "@deepseek-ai/dsh-agent-orchestrator": "workspace:*",
     "@deepseek-ai/dsh-agent-loop": "workspace:*",
     "@deepseek-ai/dsh-atomic-write": "workspace:*",
     "@deepseek-ai/dsh-llm": "workspace:*",
@@ -99,6 +100,9 @@
     "@deepseek-ai/dsh-user-approval": "workspace:*",
     "@deepseek-ai/dsh-agent-preset": "workspace:*",
     "@deepseek-ai/dsh-persona": "workspace:*",
+    "@deepseek-ai/dsh-tool-agent-orchestrator": "workspace:*",
+    "@deepseek-ai/dsh-tool-pdf": "workspace:*",
+    "@deepseek-ai/dsh-tool-present": "workspace:*",
     "@deepseek-ai/dsh-tool-subagent": "workspace:*",
     "@deepseek-ai/dsh-working-directory": "workspace:*",
     "@types/js-yaml": "^4.0.9"

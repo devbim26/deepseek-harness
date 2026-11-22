@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Conversational agent orchestration",
+    "description": "Run stored delegates and an evaluator with follow-ups and an optional PDF report."
+  }
+}

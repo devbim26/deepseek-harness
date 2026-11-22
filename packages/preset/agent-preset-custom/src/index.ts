@@ -5,7 +5,9 @@ import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typer
 import type {} from '@deepseek-ai/dsh-storage-domain'
 import type { KvTable } from '@deepseek-ai/dsh-storage-domain'
 import { Config } from './config.ts'
-import { customAgentsDomainSpec } from './spec.ts'
+import { customAgentsDomainSpec, resolveRecord } from './spec.ts'
+import { CustomAgentOrchestrations } from './orchestration.ts'
+import type { StoredCustomAgentRecord } from './spec.ts'
 import { synthesizeDefinition } from './definition.ts'
 import { slugForName, validateInput } from './validate.ts'
 import type { CustomAgentCatalog, CustomAgentInput, CustomAgentPolicy, CustomAgentRecord } from './types.ts'
@@ -21,7 +23,7 @@ export class CustomAgentPresets extends TypertRemoteService {
   static inject = ['agentPresets', 'storageDomain']
   static Config = Config
 
-  private table?: KvTable<string, CustomAgentRecord>
+  private table?: KvTable<string, StoredCustomAgentRecord>
   private readonly registrations = new Map<string, () => Promise<void>>()
 
   constructor(ctx: Context, public config: Config) {
@@ -37,24 +39,35 @@ export class CustomAgentPresets extends TypertRemoteService {
       await domain.close()
     }, 'custom-agent-presets.dispose')
     for (const record of [...this.table.entries()].map(([, value]) => value)) {
-      await this.mount(record)
+      await this.mount(resolveRecord(record, this.config))
+    }
+    if (this.config.orchestration !== undefined) {
+      await this.ctx.plugin(CustomAgentOrchestrations, this.config)
     }
   }
 
-  /** Mount one record as a registry definition and remember its disposer. */
+  /**
+   * Read one stored record by its preset identity.
+   * @param id - the roster identity of a stored agent.
+   * @returns the resolved record, or undefined when no record carries that identity.
+   */
+  record(id: string): CustomAgentRecord | undefined {
+    const stored = this.requireTable().get(id)
+    return stored === undefined ? undefined : resolveRecord(stored, this.config)
+  }
+
+  /** Mount one resolved record as a registry definition and remember its disposer. */
   private async mount(record: CustomAgentRecord): Promise<void> {
-    // Delegate records feed the synthesized orchestrator roster; a record
-    // referencing a delegate missing from this table fails loud here.
     const delegateRecords = record.delegates.map((id) => {
       const delegate = this.requireTable().get(id)
       if (delegate === undefined) throw new Error(`custom-agent-presets: the table no longer carries the '${id}' delegate`)
-      return delegate
+      return resolveRecord(delegate, this.config)
     })
     const dispose = await this.ctx.agentPresets.register(synthesizeDefinition(record, this.config, delegateRecords))
     this.registrations.set(record.id, dispose)
   }
 
-  private requireTable(): KvTable<string, CustomAgentRecord> {
+  private requireTable(): KvTable<string, StoredCustomAgentRecord> {
     const table = this.table
     if (table === undefined) throw new Error('custom-agent-presets: the service has not initialized')
     return table
@@ -68,7 +81,9 @@ export class CustomAgentPresets extends TypertRemoteService {
           label: entry.label ?? key,
           ...(entry.description === undefined ? {} : { description: entry.description }),
         })),
-      delegationAvailable: this.config.delegation !== undefined,
+      delegationAvailable: this.config.delegation !== undefined || this.config.orchestration !== undefined,
+      orchestratorDefaults: this.config.orchestratorDefaults,
+      orchestratorCeilings: this.config.orchestratorCeilings,
       maxNameChars: this.config.maxNameChars,
       maxDescriptionChars: this.config.maxDescriptionChars,
       maxInstructionsChars: this.config.maxInstructionsChars,
@@ -83,7 +98,7 @@ export class CustomAgentPresets extends TypertRemoteService {
   @Remote('list')
   async remoteExportList(): Promise<CustomAgentCatalog> {
     const table = this.requireTable()
-    const agents = [...table.entries()].map(([, value]) => value)
+    const agents = [...table.entries()].map(([, value]) => resolveRecord(value, this.config))
     return { agents, policy: this.policy() }
   }
 
@@ -193,7 +208,7 @@ export class CustomAgentPresets extends TypertRemoteService {
       const previousRegistration = this.registrations.get(otherId)
       if (previousRegistration !== undefined) await previousRegistration()
       this.registrations.delete(otherId)
-      await this.mount(other)
+      await this.mount(resolveRecord(other, this.config))
     }
     return record
   }
@@ -221,7 +236,7 @@ export class CustomAgentPresets extends TypertRemoteService {
     // remount the trimmed records; an emptied list unmounts the tool row.
     for (const [otherId, record] of table.entries()) {
       if (!record.delegates.includes(id)) continue
-      const next: CustomAgentRecord = {
+      const next: StoredCustomAgentRecord = {
         ...record,
         delegates: record.delegates.filter(entry => entry !== id),
         version: record.version + 1,
@@ -231,7 +246,7 @@ export class CustomAgentPresets extends TypertRemoteService {
       const previousRegistration = this.registrations.get(otherId)
       if (previousRegistration !== undefined) await previousRegistration()
       this.registrations.delete(otherId)
-      await this.mount(next)
+      await this.mount(resolveRecord(next, this.config))
     }
   }
 }

@@ -94,6 +94,19 @@ async function compose(): Promise<Setup> {
 }
 
 describe('pdf_report', () => {
+  it('exposes the same report assembly as a scoped programmatic service', async () => {
+    const { ctx, owner, root } = await compose()
+    const result = await ctx.pdfReports.create(owner, {
+      filePath: 'direct.pdf',
+      title: 'Прямой запуск',
+      blocks: [{ type: 'text', text: 'Без parent model turn.' }],
+    }, new AbortController().signal)
+    expect(result.pages).toBe(1)
+    expect(result.bytes).toBeGreaterThan(0)
+    const written = await readFile(join(root, 'direct.pdf'))
+    expect(written.subarray(0, 4).toString('latin1')).toBe('%PDF')
+  })
+
   it('writes a text-only report into the workspace and observes the mutation', async () => {
     const { ctx, root, execute } = await compose()
     const observations: unknown[] = []
@@ -106,7 +119,7 @@ describe('pdf_report', () => {
       title: 'Отчёт по чертежам',
       blocks: [{ type: 'text', heading: 'Состав', text: 'Текст отчёта.' }],
     })
-    expect(result.isError).toBe(false)
+    expect(result.isError, JSON.stringify(result)).toBe(false)
     if (result.isError) throw new Error('pdf_report failed')
     const value = result.value as { path: string; pages: number; imagesEmbedded: number; imagesSkipped: unknown[] }
     expect(value.path).toBe(await realpath(join(root, 'отчёт.pdf')))

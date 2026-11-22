@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Motor de orquestração de agentes",
+    "description": "Executa subagentes especializados, um avaliador, acompanhamentos direcionados e um relatório PDF."
+  }
+}

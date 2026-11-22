@@ -82,6 +82,12 @@ flowchart LR
   pkg_llm_deepseek["llm-deepseek"]
   pkg_client_file_upload["client-file-upload"]
   svc_fileUploads["ctx.fileUploads<br/>Agent-scoped staged file uploads"]
+  pkg_tool_present["tool-present"]
+  svc_fileDeliveries["ctx.fileDeliveries<br/>Scoped programmatic file deliveries"]
+  pkg_tool_agent_orchestrator["tool-agent-orchestrator"]
+  pkg_tool_pdf["tool-pdf"]
+  svc_pdfReports["ctx.pdfReports<br/>Scoped PDF report writer"]
+  pkg_agent_orchestrator["agent-orchestrator"]
   pkg_llm["llm"]
   svc_llm["ctx.llm<br/>LLM adapter registry"]
   pkg_llm_replay["llm-replay"]
@@ -193,6 +199,9 @@ flowchart LR
   svc_planMode["ctx.planMode<br/>Plan collaboration state"]
   pkg_agent_preset_registry["agent-preset-registry"]
   svc_agentPresets["ctx.agentPresets<br/>Per-session agent composition"]
+  pkg_agent_preset_custom["agent-preset-custom"]
+  svc_customAgentPresets["ctx.customAgentPresets<br/>User-created agent presets"]
+  pkg_client_ui_custom_agents["client-ui-custom-agents"]
   pkg_commands["commands"]
   svc_commands["ctx.commands<br/>Human command registry"]
   pkg_session_projection["session-projection"]
@@ -268,6 +277,7 @@ flowchart LR
   pkg_subagent_dsh_sdk["subagent-dsh-sdk"]
   pkg_tool_subagent_control["tool-subagent-control"]
   pkg_tool_ralph["tool-ralph"]
+  svc_agentOrchestrator["ctx.agentOrchestrator<br/>Foreground conversational orchestration"]
   pkg_experimental_speech_to_text["experimental-speech-to-text"]
   svc_speechToText["ctx.speechToText<br/>Experimental speech recognition providers"]
   pkg_experimental_speech_to_text_sensevoice["experimental-speech-to-text-sensevoice"]
@@ -321,6 +331,8 @@ flowchart LR
   pkg_agent --> svc_agents
   pkg_agent_default_model --> svc_agentDefaultModel
   pkg_agent_loop --> svc_agentLoop
+  pkg_agent_orchestrator --> svc_agentOrchestrator
+  pkg_agent_preset_custom --> svc_customAgentPresets
   pkg_agent_preset_registry --> svc_agentPresets
   pkg_agent_team --> svc_agentTeams
   pkg_api_gateway --> svc_typertGateway
@@ -467,6 +479,8 @@ flowchart LR
   pkg_terminal_bash --> svc_terminals
   pkg_terminal_panel --> svc_terminals
   pkg_token_meter --> svc_tokenMeter
+  pkg_tool_pdf --> svc_pdfReports
+  pkg_tool_present --> svc_fileDeliveries
   pkg_tool_subagent --> svc_subagentModelSelection
   pkg_tools --> svc_tools
   pkg_typert_registry --> svc_typert
@@ -489,6 +503,8 @@ flowchart LR
   svc_agentDefaultModel --> pkg_headless
   svc_agentLoop --> pkg_base
   svc_agentLoop --> pkg_sdk_minimal
+  svc_agentOrchestrator --> pkg_agent_preset_custom
+  svc_agentOrchestrator --> pkg_tool_agent_orchestrator
   svc_agentTeams --> pkg_tool_agent_team
   svc_agents --> pkg_acp
   svc_agents --> pkg_agent_loop
@@ -517,10 +533,12 @@ flowchart LR
   svc_credentials --> pkg_llm_deepseek
   svc_credentials --> pkg_llm_pi_ai
   svc_cuaAccess --> pkg_cua
+  svc_customAgentPresets --> pkg_client_ui_custom_agents
   svc_deepseekAccount --> pkg_llm_deepseek
   svc_deepseekLlmApiExtensions --> pkg_llm_deepseek
   svc_directoryPicker --> pkg_api_workspace_controller
   svc_dynamicCordisRunner --> pkg_tool_cordis
+  svc_fileDeliveries --> pkg_tool_agent_orchestrator
   svc_fileReferences --> pkg_api_session_controller
   svc_fileUploads --> pkg_api_session_controller
   svc_forge --> pkg_experimental_client_ui_forge
@@ -542,6 +560,8 @@ flowchart LR
   svc_officeKit --> pkg_tool_office
   svc_otel --> pkg_host_product_telemetry_otel
   svc_otel --> pkg_session_telemetry_otel
+  svc_pdfReports --> pkg_agent_orchestrator
+  svc_pdfReports --> pkg_tool_pdf
   svc_pluginManager --> pkg_plugin_manager
   svc_pluginManager --> pkg_ui_settings_plugin_inventory
   svc_pluginMarket --> pkg_client_ui_plugin_market
@@ -676,6 +696,8 @@ flowchart LR
 | `ctx.officeKit` | `core` | [`office-kit`](../packages/document/office-kit) | - | [`client-ui-sidebar-documentpreview`](../packages/client/ui-sidebar-documentpreview), [`tool-office`](../packages/document/tool-office) | - | 已授权的 Office 字节在宿主上使用已声明的原生目标引擎渲染为 PDF 或图片、转换或重算；未声明原生目标时使用 Node WASM。 |
 | `ctx.attachments` | `seam` | [`attachment`](../packages/attachment/attachment) | [`attachment-local`](../packages/attachment/attachment-local) | [`api-session-controller`](../packages/api/session-controller), [`tool-fs`](../packages/fs/tool-fs), [`llm-pi-ai`](../packages/llm/llm-pi-ai), [`llm-deepseek`](../packages/llm/llm-deepseek) | - | 宿主会在会话事件之前提交已接受的图片；提供方适配器将已授权的持久引用解析为提供方原生内容。 |
 | `ctx.fileUploads` | `core` | [`client-file-upload`](../packages/client/file-upload) | - | [`api-session-controller`](../packages/api/session-controller) | - | 负责流式接收、持久存储和暂存回执生命周期；Session Controller 将回执绑定到已接受的提交。 |
+| `ctx.fileDeliveries` | `service` | [`tool-present`](../packages/deliverables/tool-present) | - | [`tool-agent-orchestrator`](../packages/subagent/tool-agent-orchestrator) | - | 暂存复合工具声明的文件，仅在调用方报告工具结果成功后将其提交到 Session。 |
+| `ctx.pdfReports` | `service` | [`tool-pdf`](../packages/document/tool-pdf) | - | [`agent-orchestrator`](../packages/subagent/agent-orchestrator), [`tool-pdf`](../packages/document/tool-pdf) | - | 从类型化块为模型工具和程序化消费方构建并写入 PDF 报告，共享作用域内的文件与附件上下文。 |
 | `ctx.llm` | `seam` | [`llm`](../packages/llm/llm) | [`llm-deepseek`](../packages/llm/llm-deepseek), [`llm-pi-ai`](../packages/llm/llm-pi-ai), [`llm-replay`](../packages/test-support/llm-replay) | [`agent-loop`](../packages/core/agent-loop), [`compaction-basic`](../packages/compaction/compaction-basic) | - | 适配器注册提供方实现；agent loop（智能体循环）与压缩功能调用提供方无关的流服务。 |
 | `ctx.sessionLogDeepSeek` | `core` | [`session-log-deepseek`](../packages/session/session-log-deepseek) | - | - | - | 插件在准备权威 Session 日志请求贡献前注册归调用方所有的排除条件；没有条件匹配的请求应用普通上传资格判断。 |
 | `ctx.deepseekLlmApiExtensions` | `seam` | [`deepseek-llm-api-extensions`](../packages/llm/deepseek-llm-api-extensions) | [`session-log-deepseek`](../packages/session/session-log-deepseek), [`plugin-package-inventory-deepseek`](../packages/llm/plugin-package-inventory-deepseek) | [`llm-deepseek`](../packages/llm/llm-deepseek) | - | 插件准备彼此独立的顶层字段；官方适配器会合并这些字段，并在 HTTP 接受后提交其交付状态。 |
@@ -722,6 +744,7 @@ flowchart LR
 | `ctx.userQuestions` | `seam` | [`user-questions`](../packages/interaction/user-questions) | - | [`tool-ask-user`](../packages/interaction/tool-ask-user) | - | UI 前端提供当前生效的人工回答提供方；tool-ask-user 在提供方无关的 ask() promise 上暂停工具调用。 |
 | `ctx.planMode` | `core` | [`plan-mode`](../packages/plan/plan-mode) | - | - | - | 折叠已记录的计划／模式状态，在轮次边界刷新用户选择，渲染由部署方拥有的指导信息，注册 /plan，并在状态转换期间保持计划退出 schema 稳定。 |
 | `ctx.agentPresets` | `core` | [`agent-preset-registry`](../packages/preset/agent-preset-registry) | - | - | - | 立即挂载 YAML 声明的 preset 版本，把 Agent 和冷读取绑定到作用域内的贡献，并保留已替换的版本，直到最后一个使用者释放它。 |
+| `ctx.customAgentPresets` | `service` | [`agent-preset-custom`](../packages/preset/agent-preset-custom) | - | [`client-ui-custom-agents`](../packages/client/ui-custom-agents) | - | 在存储域中持久化受部署约束的自定义 preset，并把它们挂载进 preset registry；一个 Typert Remote 命名空间服务 Client 的 CRUD。 |
 | `ctx.commands` | `core` | [`commands`](../packages/interaction/commands) | - | - | - | 插件注册直接面向人的命令，而不会把调用发送给模型。 |
 | `ctx.sessionProjections` | `core` | [`session-projection`](../packages/session/session-projection) | - | [`api-session-controller`](../packages/api/session-controller), [`tool-todo`](../packages/todo/tool-todo), [`session-title`](../packages/session/session-title) | - | 各领域注册由状态驱动的折叠单元；主动驱动过程维护每个会话的水位状态，Session controller 提供 baseline 并推送发生变化的值。 |
 | `ctx.sessionProjectionCache` | `core` | [`session-projection-cache`](../packages/session/session-projection-cache) | - | [`api-session-controller`](../packages/api/session-controller), [`session-query`](../packages/session-query/session-query), [`session-reference`](../packages/context/session-reference) | - | 按会话持久保存投影单元状态的检查点（节流检查点，以及轮次／结束／分离时的必选检查点），提供缓存投影视图，并加速 prepared Session 的投影恢复。 |
@@ -745,6 +768,7 @@ flowchart LR
 | `ctx.fs` | `seam` | [`fs`](../packages/fs/fs) | [`fs-local`](../packages/fs/fs-local), [`fs-sandbox`](../packages/fs/fs-sandbox), [`fs-ssh`](../packages/ssh/fs-ssh) | [`tool-fs`](../packages/fs/tool-fs) | [`fs-observation-policy`](../packages/fs/fs-observation-policy) | tool-fs 通过 ctx.fs 执行读取／写入／编辑；fs-sandbox 按共享沙箱模式限制变更；fs-observation-policy 通过 fs/* 事件门禁贡献基于观测状态的检查。 |
 | `ctx.compaction` | `seam` | [`compaction`](../packages/compaction/compaction) | [`compaction-basic`](../packages/compaction/compaction-basic) | [`compaction-basic`](../packages/compaction/compaction-basic) | - | 基础后端消费步骤后的压力事件和请求错误恢复事件；不存在面向模型的压缩工具。 |
 | `ctx.subagents` | `seam` | [`subagent`](../packages/subagent/subagent) | [`subagent-spawn-in-process`](../packages/subagent/subagent-spawn-in-process), [`subagent-fork-in-process`](../packages/subagent/subagent-fork-in-process), [`subagent-acp`](../packages/subagent/subagent-acp), [`subagent-codex`](../packages/subagent/subagent-codex), [`subagent-claude-code`](../packages/subagent/subagent-claude-code), [`subagent-dsh-sdk`](../packages/subagent/subagent-dsh-sdk) | [`tool-subagent`](../packages/subagent/tool-subagent), [`tool-subagent-control`](../packages/subagent/tool-subagent-control), [`tool-ralph`](../packages/experimental/tool-ralph) | - | 提供方准备本地子级或执行外部任务；一个 activation 管理器持有两类生命周期。委派工具选择后端，控制工具投递本地后续消息，工作流等待 activation 结果。 |
+| `ctx.agentOrchestrator` | `service` | [`agent-orchestrator`](../packages/subagent/agent-orchestrator) | - | [`agent-preset-custom`](../packages/preset/agent-preset-custom), [`tool-agent-orchestrator`](../packages/subagent/tool-agent-orchestrator) | - | 在部署方拥有的限额下于前台执行工作者与评估者之间的交接，按作用域服务保留已结束的 run，并通过 pdfReports 服务写入生成的报告。 |
 | `ctx.speechToText` | `seam` | [`experimental-speech-to-text`](../packages/experimental/speech-to-text) | [`experimental-speech-to-text-sensevoice`](../packages/experimental/speech-to-text-sensevoice) | [`experimental-api-speech-to-text`](../packages/experimental/api-speech-to-text) | - | 路由显式选择的识别器；浏览器使用带认证的 Remote，并在提交前将转写保留在草稿中。 |
 | `ctx.agentTeams` | `core` | [`agent-team`](../packages/team/agent-team) | - | [`tool-agent-team`](../packages/team/tool-agent-team) | - | 负责子代理树共享的任务 DAG；tool-agent-team 提供任务控制工具。 |
 | `ctx.claudeCodeMods` | `core` | [`experimental-claude-code-mods`](../packages/experimental/claude-code-mods) | - | - | - | 加载 defineMod 插件添加的模组，从 harness 扩展点触发其钩子链，并通过其 Remote 绘制提示框上方的横幅。 |

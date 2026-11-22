@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Agenten-Orchestrierungs-Engine",
+    "description": "Führt spezialisierte Subagenten, einen Bewerter, gezielte Rückfragen und einen PDF-Bericht aus."
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Motor de orquestación de agentes",
+    "description": "Ejecuta subagentes especializados, un evaluador, seguimientos dirigidos y un informe PDF."
+  }
+}

@@ -66,11 +66,21 @@ describe('custom agent persistence', () => {
       delete record.isOrchestrator
       delete record.delegates
       delete record.hidden
+      delete record.orchestratorMaxIterations
+      delete record.orchestratorMaxParallel
+      delete record.orchestratorAutoReport
       await writeFile(path, `${JSON.stringify(record, null, 2)}\n`, 'utf8')
     }
 
     const second = await harness({}, { jsonRoot: root })
     const catalog = await second.ctx.customAgentPresets.remoteExportList()
-    expect(catalog.agents.find(agent => agent.id === created.id)).toMatchObject({ isOrchestrator: false, delegates: [], hidden: false })
+    expect(catalog.agents.find(agent => agent.id === created.id)).toMatchObject({
+      isOrchestrator: false,
+      delegates: [],
+      hidden: false,
+      orchestratorMaxIterations: 3,
+      orchestratorMaxParallel: 3,
+      orchestratorAutoReport: true,
+    })
   })
 })

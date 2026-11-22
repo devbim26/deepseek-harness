@@ -45,6 +45,8 @@ interface SubagentActivationSpec extends Omit<SubagentStartRequest, 'label' | 's
   readonly signal: AbortSignal
   /** Parent delivery notifies the model; caller delivery only returns the result. Local children always enter the parent catalog. */
   readonly delivery: 'parent' | 'caller'
+  /** Optional local-only setup run after preset composition and before prompt admission. */
+  readonly setup?: SubagentActivationSetup
 }
 ```
 
@@ -178,6 +180,30 @@ interface ContinuableCreateSpec {
   readonly seed?: readonly SessionEvent[]
 }
 ```
+
+## 自己的续跑与对话式编排
+
+`resumeActivation()` 在子级自己的 Session 上继续一次持久化子会话，并返回新一轮的结果，而不是累积的历史。调用方指明子会话、提示、每轮可选的输出 schema 和可选的本地 setup 钩子；钩子在恢复子级预置之后、第一个被接受的提示之前运行，因此调用方可以在子级触达模型之前装好保护。结果投递给调用方，activation 只针对那一轮的资源。
+
+```ts type-equiv
+/** One owned follow-up round on an inactive durable local child. */
+interface SubagentResumeActivationRequest {
+  /** Exact live direct creator of the child. */
+  readonly parent: Agent
+  /** Durable continuable child Session id. */
+  readonly childId: SessionId
+  /** Model-visible prompt for the new round. */
+  readonly prompt: ContentBlock[]
+  /** Optional structured result schema attached only to this activation. */
+  readonly outputSchema?: ObjectJsonSchema | undefined
+  /** Optional setup run after cold composition and before prompt admission. */
+  readonly setup?: SubagentActivationSetup | undefined
+  /** Cancellation before prompt acceptance; later cancellation belongs to the returned activation. */
+  readonly signal: AbortSignal
+}
+```
+
+[编排引擎](../../packages/subagent/agent-orchestrator/README.zh.md) 基于这项操作：它带领工作者和评估者，在同一批工作者 Session 上继续定向追问，并自行写出报告。[模型侧工具](../../packages/subagent/tool-agent-orchestrator/README.zh.md) 将它暴露为 `orchestrate_agents`，[自定义智能体预置服务](../../packages/preset/agent-preset-custom/README.zh.md) 为已保存的编排者记录挂载两者。
 
 ## Agent 名称
 
@@ -428,6 +454,38 @@ type SubagentDescendantListEntry = SubagentListEntry & {
 
 Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.zh.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
 
+<a id="ctxagentorchestrator--agentorchestrator"></a>
+
+### `ctx.agentOrchestrator` — `AgentOrchestrator`
+
+Scoped local conversational orchestration engine.
+
+```ts cordis-catalog
+/**
+ * Start one foreground run after validating root ownership and stored task limits.
+ * @param request - exact root, delegate tasks, evaluator preset, budgets, report, and cancellation.
+ * @returns an owned run whose result resolves after full child cleanup.
+ */
+start(request: AgentOrchestrationStartRequest): AgentOrchestrationRun
+
+/**
+ * Read one active or retained settled snapshot.
+ * @param id - orchestration run id.
+ * @returns the current snapshot, or undefined after eviction/no such run.
+ */
+status(id: AgentOrchestrationRunId): AgentOrchestrationSnapshot | undefined
+
+/**
+ * Cancel one known run and return its latest snapshot without waiting for settlement.
+ * @param id - orchestration run id.
+ * @param reason - safe cancellation reason.
+ * @returns the snapshot after cancellation admission.
+ */
+cancel(id: AgentOrchestrationRunId, reason?: string): AgentOrchestrationSnapshot
+```
+
+Source: [`packages/subagent/agent-orchestrator/src/index.ts`](../../packages/subagent/agent-orchestrator/src/index.ts)
+
 <a id="ctxsubagentmodelselection--subagentmodelselectionconfig"></a>
 
 ### `ctx.subagentModelSelection` — `SubagentModelSelectionConfig`
@@ -463,6 +521,16 @@ startActivation(spec: SubagentActivationSpec & { readonly childId: SessionId }):
  * @returns activation with a message id only for local children.
  */
 startActivation(spec: SubagentActivationSpec): Promise<SubagentActivation>
+
+/**
+ * Resume an inactive direct local child as one owned follow-up round.
+ * The child retains its durable Session, history, and preset; the returned
+ * result and optional output schema belong only to this new activation.
+ * @param request - exact live direct parent, durable child, prompt, schema, setup, and cancellation.
+ * @returns the accepted message and owned activation for the new round.
+ * @throws ACTIVATION_BUSY when any previous activation is still resident.
+ */
+async resumeActivation( request: SubagentResumeActivationRequest, ): Promise<SubagentActivation & { readonly messageId: MessageId }>
 
 /**
  * Resolve the root shared by an Agent and its other agents in its subagent tree.

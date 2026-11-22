@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Moteur d’orchestration d’agents",
+    "description": "Exécute des sous-agents spécialisés, un évaluateur, des relances ciblées et un rapport PDF."
+  }
+}

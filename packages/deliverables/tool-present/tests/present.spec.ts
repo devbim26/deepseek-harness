@@ -77,13 +77,47 @@ async function setup() {
 }
 
 describe('present', () => {
+  it('lets a composite tool stage a delivery through the scoped service', async () => {
+    const { ctx, owner, root } = await setup()
+    await writeFile(join(root, 'direct.pdf'), 'pdf')
+    ctx.tools.register(defineTool({
+      name: 'composite_report',
+      description: 'Composite report fixture.',
+      parameters: {},
+      output: {
+        schema: {
+          type: 'object', additionalProperties: false,
+          properties: {
+            turn: { type: 'integer', required: true },
+            files: {
+              type: 'array', required: true,
+              items: { type: 'object', additionalProperties: false, properties: { path: { type: 'string', required: true } } },
+            },
+          },
+        },
+        render: () => [{ type: 'text', text: 'presented' }],
+      },
+      execute: async (_args, exec) => ctx.get('fileDeliveries')!.present(owner, [{ path: 'direct.pdf' }], exec),
+    }))
+    const result = await executeToolFixture(ctx, {
+      signal: new AbortController().signal,
+      callId: ToolCallId('composite'),
+      name: 'composite_report',
+      arguments: {},
+      agent: owner,
+    })
+    expect(result.isError).toBe(false)
+    expect(owner.session.snapshotEvents().find(event => event.type === 'deliverables/presented')?.data.files)
+      .toEqual([{ path: await realpath(join(root, 'direct.pdf')) }])
+  })
+
   it('declares binary files without reading or copying contents, and records one delivery', async () => {
     const { ctx, owner, root, execute, fiber } = await setup()
     const data = Uint8Array.of(80, 75, 0, 255)
     await writeFile(join(root, '报告.docx'), data)
     const read = vi.spyOn(ctx.fs, 'readBytes')
     const result = await execute([{ path: '报告.docx', description: 'Report' }])
-    expect(result.isError).toBe(false)
+    expect(result.isError, JSON.stringify(result)).toBe(false)
     if (result.isError) throw new Error('present failed')
     const files = (result.value as unknown as { files: PresentedFile[] }).files
     expect(files).toHaveLength(1)

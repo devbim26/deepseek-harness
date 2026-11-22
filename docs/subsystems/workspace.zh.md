@@ -359,6 +359,13 @@ Host service backing the generated `ctx.remote.workspace` namespace.
 @Remote('create') create(request: WorkspaceCreateRequest): Promise<WorkspaceCreateValue>
 
 /**
+ * Create one project Workspace under the configured project base.
+ * @param request - user-supplied project name.
+ * @returns the Workspace and whether this call created it.
+ */
+@Remote('createProject') createProject(request: WorkspaceProjectCreateRequest): Promise<WorkspaceCreateValue>
+
+/**
  * Initialize or reuse the default Workspace during first-use startup. The
  * directory name is fixed, so the Host never renames or relocates an
  * existing default; its initial title is that same name, which browser
