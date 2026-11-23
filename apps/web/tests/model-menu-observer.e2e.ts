@@ -28,7 +28,7 @@ const PROVIDERS = [
     : { id: `${provider.prefix.toLowerCase()}-model-${index + 1}`, name: `${provider.prefix} Model ${index + 1}${index === 6 ? ' with a long name that exceeds the model card width' : ''}` }),
 }))
 const EXPECTED_GROUPS = [
-  { label: 'DeepSeek', rows: ['DeepSeek-V4-Flash', 'DeepSeek-V4-Flash-Vision-Exp'] },
+  { label: 'DeepSeek', rows: ['DeepSeek-V4-Flash', 'DeepSeek-V4-Flash-Vision-Exp', 'DeepSeek-V4-Pro'] },
   ...PROVIDERS.map(provider => ({ label: provider.name, rows: provider.models.map(model => model.name) })),
 ]
 
@@ -119,7 +119,6 @@ describe.skipIf(webSnapshotMode() === 'record').each([
     page = await browser.newPage({ viewport: { width: 1680, height: 1000 }, locale: ZH_BROWSER_LOCALE })
     await page.addInitScript(() => {
       window.__modelMenuRectReads = 0
-      // oxlint-disable-next-line typescript/unbound-method -- The wrapper supplies the original Element receiver below.
       const original = Element.prototype.getBoundingClientRect
       Element.prototype.getBoundingClientRect = function (): DOMRect {
         if (this.hasAttribute('data-menu-group') || [...this.children].some(child => child.hasAttribute('data-menu-group'))) {

@@ -11,6 +11,7 @@ import { presentation } from '@deepseek-ai/dsh-tool-session-query/src/presentati
 import { renderList, renderRead, renderSpawn } from '@deepseek-ai/dsh-tool-terminal/src/render.ts'
 import { formatSpillNotice } from '@deepseek-ai/dsh-spill-policy/notice'
 import { detailBadge, detailJson, detailList, detailRecord, inspectionItems, nonempty } from '../src/client/tool/models/detail-model-shared.ts'
+import { agentOrchestrationCardModel } from '../src/client/tool/models/agent-orchestration-card-model.ts'
 import { detailsCardModel } from '../src/client/tool/models/details-card-model.ts'
 import { SpillLocator } from '@deepseek-ai/dsh-spill'
 import { PartialArguments } from '@deepseek-ai/dsh-util-values'
@@ -314,5 +315,53 @@ describe('detailsCardModel fallback contract', () => {
     expect(model?.items[0]?.fields).toContainEqual({ label: 'Scheduled for', value: scheduledAt })
     const trace = detailsCardModel(output('session_event_trace', 'Session s1 — title\nCreated: 1970-01-01T00:00:00.000Z'), t, 'en_US')
     expect(trace?.items[0]?.fields).toContainEqual({ label: 'Time', value: '1970-01-01T00:00:00.000Z' })
+  })
+})
+
+describe('agent orchestration card', () => {
+  const meta = { kind: 'agent-orchestration', id: 'run-1', status: 'complete', rounds: 2 }
+
+  it('renders the objective, status, rounds, and the recorded report', () => {
+    const block = {
+      ...output('orchestrate_agents', 'orchestration complete', { objective: 'Verify Loader composition', task: 'x' }),
+      meta: { ...meta, pdf: { name: 'report.pdf', path: '/workspace/report.pdf', bytes: 1200, pages: 3 } },
+    }
+    const model = detailsCardModel(block, t, 'en')
+    expect(model?.items[0]).toMatchObject({ title: 'Verify Loader composition', badge: { label: 'Completed', tone: 'success' } })
+    expect(model?.items[0]?.fields).toEqual([{ label: 'Rounds', value: '2' }])
+    expect(model?.items[1]).toMatchObject({ title: 'report.pdf', location: { path: '/workspace/report.pdf' } })
+  })
+
+  it('warns on partial and budget-limited outcomes', () => {
+    const partial = detailsCardModel({ ...output('orchestrate_agents', 'text', { objective: 'Goal' }), meta: { ...meta, status: 'partial' } }, t, 'en')
+    expect(partial?.items[0]?.badge).toEqual({ label: 'Partial', tone: 'warning' })
+    const limited = detailsCardModel({ ...output('orchestrate_agents', 'text', { objective: 'Goal' }), meta: { ...meta, status: 'budget-limited', rounds: 0 } }, t, 'en')
+    expect(limited?.items[0]?.badge).toEqual({ label: 'Budget limited', tone: 'warning' })
+    expect(limited?.items[0]?.fields).toEqual([{ label: 'Rounds', value: '0' }])
+  })
+
+  it('localizes the status and rounds labels', () => {
+    const zhT = makeTranslate(zh, commonZh)
+    const model = detailsCardModel({ ...output('orchestrate_agents', 'text', { objective: 'Goal' }), meta }, zhT, 'zh')
+    expect(model?.items[0]?.badge?.label).toBe('已完成')
+    expect(model?.items[0]?.fields).toEqual([{ label: '执行轮次', value: '2' }])
+  })
+
+  it.each([
+    null, [], {}, { kind: 'other' }, { ...meta, id: '' }, { ...meta, status: 'running' },
+    { ...meta, rounds: 1.5 }, { ...meta, rounds: -1 }, { ...meta, rounds: '2' },
+    { ...meta, pdf: { name: 'r.pdf', path: '/workspace/r.pdf', bytes: 0, pages: 1 } },
+    { ...meta, pdf: { name: 'r.pdf', path: 'relative/r.pdf', bytes: 10, pages: 1 } },
+  ])(
+    'keeps malformed orchestration metadata on the generic result path (%j)', (badMeta) => {
+      const block = { ...output('orchestrate_agents', 'text', { objective: 'Goal' }), meta: badMeta }
+      expect(detailsCardModel(block, t, 'en')).toBeNull()
+    },
+  )
+
+  it('declines foreign tools, errors, and missing objectives', () => {
+    expect(agentOrchestrationCardModel(output('web_fetch', 'text', { objective: 'Goal' }), t)).toBeNull()
+    expect(agentOrchestrationCardModel({ ...output('orchestrate_agents', 'text', { objective: 'Goal' }), isError: true, meta }, t)).toBeNull()
+    expect(agentOrchestrationCardModel({ ...output('orchestrate_agents', 'text', {}), meta }, t)).toBeNull()
   })
 })

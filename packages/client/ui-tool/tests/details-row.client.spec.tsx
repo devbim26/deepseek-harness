@@ -217,9 +217,10 @@ describe('DetailsRow', () => {
       for (const dispose of callback()) dispose()
     })
     detailsToolview.apply({ slots: { inject, register } } as never)
-    expect(register.mock.calls).toHaveLength(40)
+    expect(register.mock.calls).toHaveLength(41)
     const specs = register.mock.calls.map(([spec]) => spec)
     expect(specs).toContainEqual({ name: 'tool.call.toolview', key: 'subagent_fork', locale: 'conversation' })
+    expect(specs).toContainEqual({ name: 'tool.call.toolview', key: 'orchestrate_agents', locale: 'conversation' })
     expect(specs).toContainEqual({ name: 'tool.call.toolview', key: 'cordis_inspect_query', locale: 'conversation' })
     for (const key of ['schedule_create', 'schedule_list', 'schedule_view', 'schedule_edit', 'schedule_update', 'schedule_delete']) {
       expect(specs).toContainEqual({ name: 'tool.call.toolview', key, locale: 'conversation' })

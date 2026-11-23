@@ -166,7 +166,7 @@ present(agent: Agent, files: readonly PresentedFile[], exec: ToolRunContext): Pr
 
 Types: [Agent](core.md) · [ToolRunContext](tools.md)
 
-Source: [`packages/deliverables/tool-present/src/types.ts`](../../packages/deliverables/tool-present/src/types.ts)
+Source: [`packages/deliverables/tool-present/src/deliveries.ts`](../../packages/deliverables/tool-present/src/deliveries.ts)
 
 <a id="ctxpdfreports--pdfreports"></a>
 

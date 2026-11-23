@@ -1,6 +1,8 @@
 /** Client-safe payloads and event declarations owned by the agent-preset domain. */
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 
+export type { PresetDefinition } from './definition.ts'
+
 
 /**
  * One declared preset as a client reads it.

@@ -5,6 +5,8 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import { AgentOrchestrationRunId } from '@deepseek-ai/dsh-agent-orchestrator'
 import type { AgentOrchestrationRun, AgentOrchestrationSnapshot } from '@deepseek-ai/dsh-agent-orchestrator'
 import type {} from '@deepseek-ai/dsh-subagent'
+// Type-only: pulls the preset registry Context merge (ctx.agentPresets).
+import type {} from '@deepseek-ai/dsh-agent-preset-registry'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import type { Config } from './config.ts'
 import type {
@@ -22,6 +24,14 @@ declare module '@deepseek-ai/cordis' {
 
 const invalid = (reason: string) => new RemoteError('custom-agent-orchestrations/invalid', reason, { reason })
 const unavailable = (reason: string) => new RemoteError('custom-agent-orchestrations/unavailable', reason, { reason })
+
+/** Resolve the Session resource shared by every orchestration Remote method.
+ * @param request - Remote request carrying its owning Session id.
+ * @returns The branded Session id used by Remote authorization.
+ */
+export function orchestrationSessionResource(request: { readonly sessionId: string }): SessionId {
+  return SessionId(request.sessionId)
+}
 
 /** Remote facade over the scoped orchestration engine of one stored orchestrator. */
 export class CustomAgentOrchestrations extends TypertRemoteService {
@@ -48,7 +58,7 @@ export class CustomAgentOrchestrations extends TypertRemoteService {
    * @param signal - admission cancellation; the run itself outlives this call.
    * @returns the run identity and its first snapshot.
    */
-  @Remote({ name: 'orchestrationStart', resources: { session: request => SessionId(request.sessionId) } })
+  @Remote({ name: 'orchestrationStart', resources: { session: orchestrationSessionResource } })
   async orchestrationStart(
     request: CustomAgentOrchestrationStartRequest,
     signal: AbortSignal,
@@ -81,7 +91,7 @@ export class CustomAgentOrchestrations extends TypertRemoteService {
    * @param request - Session and run identity.
    * @returns the latest snapshot.
    */
-  @Remote({ name: 'orchestrationStatus', resources: { session: request => SessionId(request.sessionId) } })
+  @Remote({ name: 'orchestrationStatus', resources: { session: orchestrationSessionResource } })
   async orchestrationStatus(request: CustomAgentOrchestrationRunRequest): Promise<CustomAgentOrchestrationStatusValue> {
     const run = this.runs.get(this.key(request.sessionId, request.runId))
     if (run === undefined) throw this.unknownRun(request.runId)
@@ -97,7 +107,7 @@ export class CustomAgentOrchestrations extends TypertRemoteService {
    * @param request - Session and run identity.
    * @returns the snapshot after cancellation admission.
    */
-  @Remote({ name: 'orchestrationCancel', resources: { session: request => SessionId(request.sessionId) } })
+  @Remote({ name: 'orchestrationCancel', resources: { session: orchestrationSessionResource } })
   async orchestrationCancel(request: CustomAgentOrchestrationRunRequest): Promise<CustomAgentOrchestrationStatusValue> {
     const run = this.runs.get(this.key(request.sessionId, request.runId))
     if (run === undefined) throw this.unknownRun(request.runId)

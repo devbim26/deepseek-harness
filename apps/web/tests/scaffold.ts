@@ -223,6 +223,10 @@ const REPLAY_PROVIDERS = [{
       reasoningEfforts: ['off', 'low', 'high', 'max'],
       defaultReasoningEffort: 'high',
     },
+    // The live catalog id record mode can still reach: the experimental pin
+    // above is retired upstream, but committed fixtures recorded with it keep
+    // replaying, so it stays while new recordings target this row.
+    { id: 'deepseek-v4-pro', name: 'DeepSeek-V4-Pro', contextWindow: 1_000_000 },
   ],
 }]
 

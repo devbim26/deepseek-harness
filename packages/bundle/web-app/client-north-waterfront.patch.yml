@@ -5,7 +5,8 @@
 # and narrows the agent's tool set to the drawing5 tools plus read-only
 # workspace access (`read`, `grep`). The model picker
 # stays available but lists only the OpenRouter models named by NW_MODELS,
-# plus the Z.AI coding-plan catalog when the subscription key is set.
+# plus the Z.AI, Kimi, and MiniMax coding-plan catalogs when their
+# subscription keys are set.
 # The permission catalog keeps only workspace-write and pins it as the
 # new-session default, so the client user works inside their own workspace
 # folder with no access switch.
@@ -82,8 +83,20 @@
 # set, because an API-key route lists its catalog even without a credential,
 # which would show clients models every request of theirs would fail on.
 # To wire the international plan instead, rename the env var and the route to
-# `zai`/`ZAI_API_KEY` (api.z.ai; a wider catalog). Both expressions below
-# compute the whole `providers` dict, so the two routes stay one config value.
+# `zai`/`ZAI_API_KEY` (api.z.ai; a wider catalog).
+# A non-empty KIMI_API_KEY adds the `kimi-coding` route the same way: the
+# installed pi-ai catalog supplies the wire protocol (openai-completions) and
+# the K2.7/K3 model entries, while the baseURL pin moves the route from the
+# catalog's China host (api.kimi.com) to the international one
+# (api.kimi.ai), and the models restatement adds K3.1 Pro, which the
+# installed catalog predates. Each expression below
+# computes the whole `providers` dict, so the routes stay one config value.
+# A non-empty MINIMAX_API_KEY adds the `minimax` route the same way and
+# without restatement: the installed pi-ai catalog supplies the coding-plan
+# endpoint (https://api.minimax.io/anthropic), the wire protocol
+# (anthropic-messages), and the model catalog (MiniMax-M2.7,
+# MiniMax-M2.7-highspeed, MiniMax-M3), which the key serves as issued.
+# The China host is the `minimax-cn` route with MINIMAX_CN_API_KEY.
 - id: llm-pi-ai
   name: '@deepseek-ai/dsh-llm-pi-ai'
   config:
@@ -94,6 +107,7 @@
           + ' launcher env (.env.north-waterfront), so the site was started outside dsh-web-north-waterfront.cmd.'
           + ' Launch through the launcher, or set NW_MODELS with nw-models.cmd id1,id2,...');
       }
+      const KIMI_CODING_MODELS = ['k3.1-pro', 'k3.1-pro-highspeed', 'k3', 'k3-256k', 'kimi-for-coding', 'kimi-for-coding-highspeed'];
       return {
         openrouter: {
           apiKeyEnv: 'OPENROUTER_API_KEY',
@@ -103,6 +117,17 @@
         },
         ...((process.env.ZAI_CODING_CN_API_KEY ?? '').trim() === '' ? {} : {
           'zai-coding-cn': { apiKeyEnv: 'ZAI_CODING_CN_API_KEY', displayName: 'Z.AI Coding' },
+        }),
+        ...((process.env.KIMI_API_KEY ?? '').trim() === '' ? {} : {
+          'kimi-coding': {
+            apiKeyEnv: 'KIMI_API_KEY',
+            displayName: 'Kimi Code',
+            baseURL: 'https://api.kimi.ai/coding/v1',
+            models: KIMI_CODING_MODELS.map((id) => ({ id })),
+          },
+        }),
+        ...((process.env.MINIMAX_API_KEY ?? '').trim() === '' ? {} : {
+          'minimax': { apiKeyEnv: 'MINIMAX_API_KEY', displayName: 'MiniMax' },
         }),
       };
     })()"
@@ -507,28 +532,32 @@
               headers:
                 Authorization: !!js '`Bearer ${process.env.DOC6_API_KEY ?? ""}`'
               toolCallTimeoutMs: 300000
-        # Оркестраторы: поле включает флаг «оркестратор» в менеджере; сервис
-        # подставляет в allowedAgentPresets id выбранных агентом записей.
-        # Реестр subagent'ов и spawn-бэкенд уже host-plane (dsh-base), отдельных
-        # строк не нужно. У подчинённых этой строки нет — цепочек не возникает.
-        delegation:
-          name: '@deepseek-ai/dsh-tool-subagent'
-          config:
-            provider: spawn
-            toolName: subagent
-          # Общие инструменты управления детьми: список, ожидание, сообщения
-          # и прерывание зависших субагентов (list_agents, wait_agent,
-          # send_message, interrupt_agent).
-          control:
-            name: '@deepseek-ai/dsh-tool-subagent-control'
+        orchestratorDefaults:
+          maxIterations: 3
+          maxParallel: 3
+          autoReport: true
+        orchestratorCeilings:
+          maxIterations: 10
+          maxParallel: 10
+        # Диалоговый workers → evaluator → targeted follow-ups контур.
+        # Делегаты и лимиты синтезируются из сохранённой записи; evaluator
+        # по умолчанию использует пресет самого оркестратора.
+        orchestration:
+          engine:
+            name: '@deepseek-ai/dsh-agent-orchestrator'
             config:
-              interrupt: true
-          # Подводка перед ростером делегатов, который сервис добавляет в
-          # промпт оркестратора: модель видит id/имя/описание каждого агента
-          # и знает, что agent_preset передавать обязательно.
-          rosterTemplate: >-
-            Твои агенты для запуска через инструмент subagent (всегда передавай
-            agent_preset, запускай несколько агентов одним сообщением, в prompt
-            передавай конкретную задачу и требование структурированного отчёта):
+              provider: spawn
+              reportDirectory: reports
+          tool:
+            name: '@deepseek-ai/dsh-tool-agent-orchestrator'
+          pdf:
+            name: '@deepseek-ai/dsh-tool-pdf'
+          present:
+            name: '@deepseek-ai/dsh-tool-present'
+          evaluatorPreset: standard
+    - id: subagent
+      name: '@deepseek-ai/dsh-subagent'
+      config:
+        maxActiveSubagents: 10
     - id: ui-custom-agents
       name: '@deepseek-ai/dsh-client-ui-custom-agents'

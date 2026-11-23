@@ -1,6 +1,6 @@
 /** Service configuration: deployment templates, whitelist, and orchestration policy. */
 import z from '@deepseek-ai/schemastery'
-import type { PresetDefinition } from '@deepseek-ai/dsh-agent-preset-registry'
+import type { PresetDefinition } from '@deepseek-ai/dsh-agent-preset-registry/types'
 
 /** One whitelisted plugin row that a selecting agent mounts. */
 export interface AllowedToolsEntry {

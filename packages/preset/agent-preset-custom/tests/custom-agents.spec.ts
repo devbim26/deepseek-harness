@@ -174,12 +174,61 @@ describe('custom agent presets service', () => {
     const { ctx } = await harness()
     const worker = await ctx.customAgentPresets.create({ name: 'Worker', description: '', instructions: 'Do the work.', tools: [], isOrchestrator: false, delegates: [], hidden: false })
     const lead = await ctx.customAgentPresets.create({ name: 'Lead', description: '', instructions: 'Run the workers.', tools: [], isOrchestrator: true, delegates: [worker.id], hidden: false })
+    await ctx.customAgentPresets.create({ name: 'Independent', description: '', instructions: 'i', tools: [], isOrchestrator: false, delegates: [], hidden: false })
     await ctx.customAgentPresets.remove(worker.id, worker.version)
     const catalog = await ctx.customAgentPresets.remoteExportList()
     expect(catalog.agents.find(agent => agent.id === lead.id)).toMatchObject({ isOrchestrator: true, delegates: [], version: 2 })
     const document = await ctx.agentPresets.readDocument(lead.id)
     expect(document.content).not.toContain('dsh-tool-subagent')
   })
+
+  it('reads missing records and rejects use before service initialization', async () => {
+    const { ctx } = await harness()
+    expect(ctx.customAgentPresets.record('custom/missing')).toBeUndefined()
+    const { default: CustomAgentPresets } = await import('../src/index.ts')
+    const { Context } = await import('@deepseek-ai/cordis')
+    const { standardConfig } = await import('./harness.ts')
+    expect(() => new CustomAgentPresets(new Context(), standardConfig).record('custom/missing')).toThrow('has not initialized')
+  })
+
+  it('rejects updates for unknown identities', async () => {
+    const { ctx } = await harness()
+    await expect(ctx.customAgentPresets.update('custom/missing', {
+      name: 'Missing', description: '', instructions: 'x', tools: [], isOrchestrator: false, delegates: [], hidden: false,
+    }, 1)).rejects.toMatchObject({ code: 'custom-agent-presets/not-found' })
+  })
+
+  it('rejects stale deletes', async () => {
+    const { ctx } = await harness()
+    const created = await ctx.customAgentPresets.create({ name: 'Helper', description: '', instructions: 'x', tools: [], isOrchestrator: false, delegates: [], hidden: false })
+    await expect(ctx.customAgentPresets.remove(created.id, created.version - 1)).rejects.toMatchObject({ code: 'custom-agent-presets/conflict' })
+  })
+
+  it('remounts and deletes records even when a registration handle was already released', async () => {
+    const { ctx } = await harness()
+    const worker = await ctx.customAgentPresets.create({ name: 'Worker', description: 'v1', instructions: 'i', tools: [], isOrchestrator: false, delegates: [], hidden: false })
+    const lead = await ctx.customAgentPresets.create({ name: 'Lead', description: '', instructions: 'i', tools: [], isOrchestrator: true, delegates: [worker.id], hidden: false })
+    const registrations = Reflect.get(ctx.customAgentPresets, 'registrations') as Map<string, () => Promise<void>>
+    await registrations.get(lead.id)?.()
+    registrations.delete(lead.id)
+    await ctx.customAgentPresets.update(worker.id, { name: 'Worker', description: 'v2', instructions: 'i', tools: [], isOrchestrator: false, delegates: [], hidden: false }, worker.version)
+    await registrations.get(lead.id)?.()
+    registrations.delete(lead.id)
+    await ctx.customAgentPresets.remove(worker.id, worker.version + 1)
+    await registrations.get(lead.id)?.()
+    registrations.delete(lead.id)
+    await ctx.customAgentPresets.remove(lead.id, lead.version + 1)
+    expect((await ctx.customAgentPresets.remoteExportList()).agents).toEqual([])
+  })
+
+  it('fails loudly when every slug candidate is occupied', async () => {
+    const { ctx } = await harness({ maxAgents: 100 })
+    for (let index = 0; index < 99; index++) {
+      await ctx.customAgentPresets.create({ name: 'Same', description: '', instructions: 'i', tools: [], isOrchestrator: false, delegates: [], hidden: false })
+    }
+    await expect(ctx.customAgentPresets.create({ name: 'Same', description: '', instructions: 'i', tools: [], isOrchestrator: false, delegates: [], hidden: false }))
+      .rejects.toMatchObject({ code: 'custom-agent-presets/limit', details: { reason: 'slug-exhausted' } })
+  }, 30000)
 
   it('rejects stale versions, over-cap creates, and unknown identities with coded errors', async () => {
     const { ctx } = await harness({ maxAgents: 1 })

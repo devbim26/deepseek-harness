@@ -180,7 +180,7 @@ export type Config = PresetDefinition
 ## `@deepseek-ai/dsh-agent-preset-custom`
 
 - `inject`: `agentPresets` · `storageDomain`
-- `refs`: [`PresetDefinition`](../packages/preset/agent-preset-registry/src/index.ts)
+- `refs`: `PresetDefinition` (`@deepseek-ai/dsh-agent-preset-registry/types`)
 - `source`: [`packages/preset/agent-preset-custom/src/config.ts:80`](../packages/preset/agent-preset-custom/src/config.ts)
 
 ```ts config-catalog
@@ -4318,7 +4318,7 @@ export type TokenMeterConfig = Record<string, never>
 ## `@deepseek-ai/dsh-tool-agent-orchestrator`
 
 - `inject`: `tools`
-- `source`: [`packages/subagent/tool-agent-orchestrator/src/index.ts:30`](../packages/subagent/tool-agent-orchestrator/src/index.ts)
+- `source`: [`packages/subagent/tool-agent-orchestrator/src/index.ts:32`](../packages/subagent/tool-agent-orchestrator/src/index.ts)
 
 ```ts config-catalog
 /** Deployment and stored-record settings; none are model-writable. */
@@ -4688,7 +4688,7 @@ export interface Config {
 ## `@deepseek-ai/dsh-tool-present`
 
 - `inject`: `tools` · `fs` · `agents` · `workingDirectory`
-- `source`: [`packages/deliverables/tool-present/src/index.ts:13`](../packages/deliverables/tool-present/src/index.ts)
+- `source`: [`packages/deliverables/tool-present/src/index.ts:15`](../packages/deliverables/tool-present/src/index.ts)
 
 ```ts config-catalog
 /** Per-call delivery limit. */

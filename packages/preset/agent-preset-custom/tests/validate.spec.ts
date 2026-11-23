@@ -24,6 +24,11 @@ describe('validateInput', () => {
     await expect(validateInput({ ...base, tools: ['shell'] }, standardConfig)).rejects.toMatchObject({ code: 'custom-agent-presets/invalid' })
   })
 
+  it('rejects over-limit descriptions and empty instructions', async () => {
+    await expect(validateInput({ ...base, description: 'x'.repeat(201) }, standardConfig)).rejects.toMatchObject({ code: 'custom-agent-presets/invalid' })
+    await expect(validateInput({ ...base, instructions: '   ' }, standardConfig)).rejects.toMatchObject({ code: 'custom-agent-presets/invalid' })
+  })
+
   it('resolves omitted orchestration values from deployment defaults', async () => {
     await expect(validateInput(base, standardConfig)).resolves.toMatchObject({
       orchestratorMaxIterations: 3,

@@ -12,6 +12,7 @@
     { "path": "../../util/error" },
     { "path": "../../deliverables/tool-present" },
     { "path": "../../preset/agent-preset-registry" },
-    { "path": "../agent-orchestrator" }
+    { "path": "../agent-orchestrator" },
+    { "path": "../../test-support/loader-smoke" }
   ]
 }

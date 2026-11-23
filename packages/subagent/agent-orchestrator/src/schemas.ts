@@ -66,7 +66,7 @@ export const EVALUATOR_DECISION_SCHEMA: ObjectJsonSchema = {
 export function decodeWorkerReport(value: unknown): AgentOrchestrationWorkerReport {
   const parsed = workerReport.safeParse(value)
   if (!parsed.success) {
-    throw new AgentOrchestratorError(`worker structured report is invalid: ${parsed.error.issues[0]?.message ?? 'schema mismatch'}`, 'ORCHESTRATION_WORKER_FAILED', { cause: parsed.error })
+    throw new AgentOrchestratorError(`worker structured report is invalid: ${parsed.error.issues[0]!.message}`, 'ORCHESTRATION_WORKER_FAILED', { cause: parsed.error })
   }
   return parsed.data
 }
@@ -81,7 +81,7 @@ export function decodeWorkerReport(value: unknown): AgentOrchestrationWorkerRepo
 export function decodeEvaluatorDecision(value: unknown): AgentOrchestrationEvaluatorDecision {
   const parsed = evaluatorDecision.safeParse(value)
   if (!parsed.success) {
-    throw new AgentOrchestratorError(`evaluator structured decision is invalid: ${parsed.error.issues[0]?.message ?? 'schema mismatch'}`, 'ORCHESTRATION_EVALUATOR_FAILED', { cause: parsed.error })
+    throw new AgentOrchestratorError(`evaluator structured decision is invalid: ${parsed.error.issues[0]!.message}`, 'ORCHESTRATION_EVALUATOR_FAILED', { cause: parsed.error })
   }
   return parsed.data
 }

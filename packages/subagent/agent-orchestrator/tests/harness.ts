@@ -20,6 +20,24 @@ import LocalFileSystem from '@deepseek-ai/dsh-fs-local'
 import * as ToolPdf from '@deepseek-ai/dsh-tool-pdf'
 import AgentOrchestrator from '../src/index.ts'
 
+/** Minimal query engine: the orchestrator reads Session projections, never the corpus search. */
+class StubSessionQuery extends SessionQueryEngine {
+  override searchSessions(
+    ..._args: Parameters<SessionQueryEngine['searchSessions']>
+  ): ReturnType<SessionQueryEngine['searchSessions']> {
+    return Promise.resolve({ items: [] })
+  }
+
+  override searchEvents(
+    ...args: Parameters<SessionQueryEngine['searchEvents']>
+  ): ReturnType<SessionQueryEngine['searchEvents']> {
+    return this.readSurface(args[0].sessionId).then(surface => ({
+      session: surface.session,
+      items: [],
+    }))
+  }
+}
+
 class FixtureWorkingDirectory extends Service {
   private readonly directories = new WeakMap<Session, string>()
   constructor(ctx: Context, private readonly root: string) { super(ctx, 'workingDirectory') }
@@ -45,15 +63,25 @@ export interface EngineFixture {
   dispose(): Promise<void>
 }
 
+/** Script shape accepted by the mock model adapter. */
+export type EngineScript = ConstructorParameters<typeof MockAdapter>[0]
+
 export async function engineFixture(
   script: ConstructorParameters<typeof MockAdapter>[0],
-  options: { adapter?: MockAdapter; pdf?: boolean; maxHandoffChars?: number; presets?: readonly string[] } = {},
+  options: {
+    adapter?: MockAdapter
+    pdf?: boolean
+    maxHandoffChars?: number
+    maxSettledRuns?: number
+    reportDirectory?: string
+    presets?: readonly string[]
+  } = {},
 ): Promise<EngineFixture> {
   const root = await mkdtemp(join(tmpdir(), 'dsh-agent-orchestrator-'))
   const ctx = new Context()
   const adapter = options.adapter ?? new MockAdapter(script)
   if (options.presets !== undefined && options.presets.length > 0) {
-    await ctx.plugin(Loader)
+    await ctx.plugin(Loader, {})
     ctx.loader.builtins.group = Group
   }
   const errors: unknown[] = []
@@ -63,25 +91,27 @@ export async function engineFixture(
   await mountAgentLoopTestDependencies(ctx)
   await ctx.plugin(JsonlSessionPersistence, { root: join(root, 'sessions') })
   await ctx.plugin(AgentLoop, { agents: [] })
-  await ctx.plugin(SessionQueryEngine)
+  await ctx.plugin(StubSessionQuery)
   await ctx.plugin(FixtureWorkingDirectory, root)
   await ctx.plugin(SubagentRuntime)
   await ctx.plugin(SubagentSpawn, { providerName: 'spawn' })
   if (options.presets !== undefined && options.presets.length > 0) {
-    await ctx.plugin(AgentPresets, { default: options.presets[0] })
+    await ctx.plugin(AgentPresets, { default: options.presets[0] ?? null })
     for (const id of options.presets) await ctx.agentPresets.register({ id, plugins: [] })
   }
   ctx.llm.registerAdapter(['mock'], adapter)
   const parent = await ctx.agentLoop.create(SessionId('parent'), {
-    provider: 'mock', model: 'mock', meta: { cwd: root },
-  })
+    provider: 'mock', model: 'mock',
+  }, { cwd: root })
   if (options.pdf === true) {
     await ctx.plugin(LocalFileSystem, { cwd: root })
     await ctx.plugin(LocalAttachmentStore, { dshHome: root })
     await ctx.plugin(ToolPdf, { maxImages: 2, maxImageBytes: 1024 })
   }
   await ctx.plugin(AgentOrchestrator, {
-    provider: 'spawn', maxHandoffChars: options.maxHandoffChars ?? 65_536, maxSettledRuns: 8, reportDirectory: 'reports',
+    provider: 'spawn', maxHandoffChars: options.maxHandoffChars ?? 65_536,
+    maxSettledRuns: options.maxSettledRuns ?? 8,
+    reportDirectory: options.reportDirectory ?? 'reports',
   })
   return {
     ctx, parent, adapter, errors, root,

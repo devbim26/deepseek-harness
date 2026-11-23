@@ -226,6 +226,9 @@ export const VIEWER_ENDPOINT_CLASSES = {
   'customAgentPresets/create': 'owner-only', // owner custom agents
   'customAgentPresets/update': 'owner-only', // owner custom agents
   'customAgentPresets/delete': 'owner-only', // owner custom agents
+  'customAgentOrchestrations/orchestrationStart': 'owner-only', // owner orchestration runs
+  'customAgentOrchestrations/orchestrationStatus': 'owner-only', // owner orchestration runs
+  'customAgentOrchestrations/orchestrationCancel': 'owner-only', // owner orchestration runs
   'agentTeams/setEnabled': 'owner-only', // owner Team mode
   'schedule/catalog': 'owner-only', // owner schedules
   'schedule/create': 'owner-only', // owner schedules

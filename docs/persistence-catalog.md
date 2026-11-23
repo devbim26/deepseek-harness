@@ -489,7 +489,7 @@ Source: [`packages/compaction/compaction/src/types.ts:34`](../packages/compactio
 
 Types: [PresentedFile](subsystems/deliverables.md) · [ToolCallId](subsystems/core.md)
 
-Source: [`packages/deliverables/tool-present/src/types.ts:43`](../packages/deliverables/tool-present/src/types.ts)
+Source: [`packages/deliverables/tool-present/src/types.ts:23`](../packages/deliverables/tool-present/src/types.ts)
 
 ### `developer/*`
 
@@ -4478,7 +4478,7 @@ One of:
 
 SHA-256: `b8fc636a2121df9d8423c242e03c9d23b7ab7c6fdce00e45746932c60b730f97`
 
-Sources: [`packages/deliverables/tool-present/src/types.ts:7`](../packages/deliverables/tool-present/src/types.ts)
+Sources: [`packages/deliverables/tool-present/src/types.ts:5`](../packages/deliverables/tool-present/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -5937,7 +5937,7 @@ Sources: [`packages/core/session/src/types.ts:369`](../packages/core/session/src
 
 SHA-256: `1528539c63db8b23506f0209a99ce77d8ad138adfbfcee3d4769b7382d93756c`
 
-Sources: [`packages/deliverables/tool-present/src/types.ts:43`](../packages/deliverables/tool-present/src/types.ts)
+Sources: [`packages/deliverables/tool-present/src/types.ts:23`](../packages/deliverables/tool-present/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|

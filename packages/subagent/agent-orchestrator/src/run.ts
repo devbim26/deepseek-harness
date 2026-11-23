@@ -42,6 +42,7 @@ export class OrchestrationRunController implements AgentOrchestrationRun {
   private readonly controller = new AbortController()
   private readonly activations = new Set<SubagentActivation>()
   private readonly pendingDisposals = new Set<Promise<void>>()
+  private readonly disposalFailures: unknown[] = []
   private readonly workers: AgentOrchestrationWorkerResult[]
   private evaluatorChildId: SessionId | undefined
   private snapshotValue: AgentOrchestrationSnapshot
@@ -92,7 +93,13 @@ export class OrchestrationRunController implements AgentOrchestrationRun {
 
   private trackDisposal(disposal: Promise<void>): void {
     this.pendingDisposals.add(disposal)
-    void disposal.then(() => { this.pendingDisposals.delete(disposal) }, () => { this.pendingDisposals.delete(disposal) })
+    void disposal.then(
+      () => { this.pendingDisposals.delete(disposal) },
+      (error: unknown) => {
+        this.pendingDisposals.delete(disposal)
+        this.disposalFailures.push(error)
+      },
+    )
   }
 
   private update(snapshot: Partial<AgentOrchestrationSnapshot>): void {
@@ -102,10 +109,7 @@ export class OrchestrationRunController implements AgentOrchestrationRun {
 
   private updateWorker(assignmentId: string, patch: Partial<AgentOrchestrationWorkerResult>): void {
     const index = this.workers.findIndex(worker => worker.assignmentId === assignmentId)
-    if (index < 0) throw new AgentOrchestratorError(`unknown worker state "${assignmentId}"`, 'ORCHESTRATION_INVALID_REQUEST')
-    const current = this.workers[index]
-    if (current === undefined) throw new AgentOrchestratorError(`unknown worker state "${assignmentId}"`, 'ORCHESTRATION_INVALID_REQUEST')
-    this.workers[index] = { ...current, ...patch }
+    this.workers[index] = { ...this.workers[index]!, ...patch }
     this.update({ workers: [...this.workers] })
   }
 
@@ -156,8 +160,7 @@ export class OrchestrationRunController implements AgentOrchestrationRun {
   }
 
   private async runWorker(assignmentId: string, followUp?: AgentOrchestrationFollowUp): Promise<void> {
-    const assignment = this.request.assignments.find(candidate => candidate.id === assignmentId)
-    if (assignment === undefined) throw new AgentOrchestratorError(`unknown assignment "${assignmentId}"`, 'ORCHESTRATION_EVALUATOR_FAILED')
+    const assignment = this.request.assignments.find(candidate => candidate.id === assignmentId)!
     const previous = this.workers.find(worker => worker.assignmentId === assignmentId)
     const { childId: activatedChildId, result } = await this.startChild(
       previous?.childId,
@@ -166,7 +169,7 @@ export class OrchestrationRunController implements AgentOrchestrationRun {
       followUp === undefined ? workerPrompt(assignment) : workerFollowUpPrompt(followUp),
       WORKER_REPORT_SCHEMA,
     )
-    this.updateWorker(assignmentId, { childId: activatedChildId, rounds: (previous?.rounds ?? 0) + 1, error: undefined })
+    this.updateWorker(assignmentId, { childId: activatedChildId, rounds: previous!.rounds + 1, error: undefined })
     if (result.stopReason !== 'completed' || result.structured === undefined) {
       this.updateWorker(assignmentId, {
         error: result.diagnostic ?? `worker ended with ${result.stopReason} without a valid structured report`,
@@ -189,10 +192,8 @@ export class OrchestrationRunController implements AgentOrchestrationRun {
       while (!this.controller.signal.aborted) {
         const index = next++
         if (index >= targets.length) return
-        const target = targets[index]
-        if (target === undefined) return
-        if (followUps === undefined) await this.runWorker(target.assignmentId)
-        else if ('question' in target) await this.runWorker(target.assignmentId, target)
+        const target = targets[index]!
+        await this.runWorker(target.assignmentId, followUps === undefined ? undefined : target as AgentOrchestrationFollowUp)
       }
     })
     await Promise.all(lanes)
@@ -236,7 +237,7 @@ export class OrchestrationRunController implements AgentOrchestrationRun {
 
   private async loop(): Promise<AgentOrchestrationResult> {
     let followUps: readonly AgentOrchestrationFollowUp[] | undefined
-    for (let round = 1; round <= this.request.maxIterations; round++) {
+    for (let round = 1; ; round++) {
       this.controller.signal.throwIfAborted()
       await this.runWorkers(followUps)
       this.controller.signal.throwIfAborted()
@@ -263,14 +264,12 @@ export class OrchestrationRunController implements AgentOrchestrationRun {
         }
       }
     }
-    throw new AgentOrchestratorError('orchestration exhausted without a terminal evaluator decision', 'ORCHESTRATION_EVALUATOR_FAILED')
   }
 
   private async settleChildren(): Promise<void> {
-    const failures: unknown[] = []
-    while (this.activations.size > 0 || this.pendingDisposals.size > 0) {
-      const disposals = [...this.activations].map(activation => activation.dispose())
-      const results = await Promise.allSettled([...disposals, ...this.pendingDisposals])
+    const failures: unknown[] = [...this.disposalFailures]
+    while (this.pendingDisposals.size > 0) {
+      const results = await Promise.allSettled([...this.pendingDisposals])
       for (const result of results) if (result.status === 'rejected') failures.push(result.reason)
     }
     if (failures.length > 0) {

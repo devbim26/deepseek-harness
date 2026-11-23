@@ -5,6 +5,8 @@ import type { AgentOrchestrationAssignment, AgentOrchestrationRun } from '@deeps
 import { defineTool, ToolArgsError, ToolContextUnavailableError } from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-agent-preset-registry'
 import type {} from '@deepseek-ai/dsh-tool-present/types'
+// Type-only: pulls the Host delivery service merge (ctx.fileDeliveries).
+import type {} from '@deepseek-ai/dsh-tool-present/deliveries'
 import { ToolAgentOrchestratorError } from './error.ts'
 import type { OrchestrationToolResult } from './types.ts'
 
@@ -179,8 +181,11 @@ export function apply(ctx: Context, config: Config): void {
           ...result.pdf === undefined ? {} : { pdf: result.pdf },
         } satisfies OrchestrationToolResult
       } finally {
-        if (run !== undefined) await run.dispose()
-        liftGuard()
+        try {
+          if (run !== undefined) await run.dispose()
+        } finally {
+          liftGuard()
+        }
       }
     },
   }))

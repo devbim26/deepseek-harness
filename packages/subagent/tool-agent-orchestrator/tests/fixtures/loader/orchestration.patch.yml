@@ -1,0 +1,72 @@
+- id: headless-startup
+  disabled: true
+
+- id: headless-runner
+  disabled: true
+
+- id: agent-loop
+  config:
+    agents:
+      - id: main
+        provider: mock
+        model: orchestrate
+        cwd: !!js process.cwd()
+
+- id: session-persistence-jsonl
+  config:
+    root: './.sessions'
+    compression: none
+
+- id: fs-local
+  config:
+    cwd: !!js process.cwd()
+
+- id: sandbox-policy
+  inject: []
+  config:
+    mode: workspace-write
+    workspaceRoot: !!js process.cwd()
+
+- insert:
+    - id: mock-llm
+      name: './mock-orchestrating-llm.ts'
+
+    - id: agent-preset-registry
+      name: '@deepseek-ai/dsh-agent-preset-registry'
+      config:
+        default: orchestrator
+
+    - id: preset-orchestrator
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: orchestrator
+        name: Orchestrator
+        description: Coordinates the reviewer.
+        plugins: []
+
+    - id: preset-reviewer
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: reviewer
+        name: Reviewer
+        description: Reviews facts.
+        plugins: []
+
+    - id: agent-orchestrator
+      name: '@deepseek-ai/dsh-agent-orchestrator'
+      config:
+        provider: spawn
+        maxHandoffChars: 65536
+        maxSettledRuns: 4
+        reportDirectory: reports
+
+    - id: tool-agent-orchestrator
+      name: '@deepseek-ai/dsh-tool-agent-orchestrator'
+      config:
+        delegates:
+          - id: reviewer
+            name: Reviewer
+            description: Checks facts and missing evidence.
+        maxIterations: 2
+        maxParallel: 1
+        autoReport: false

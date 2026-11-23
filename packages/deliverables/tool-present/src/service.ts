@@ -4,7 +4,8 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import { FsError } from '@deepseek-ai/dsh-fs'
 import { ToolArgsError, ToolContextUnavailableError, type ToolExecution, type ToolRunContext } from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-working-directory'
-import type { FileDeliveries, PresentedFile, PresentedFileResult } from './types.ts'
+import type { FileDeliveries } from './deliveries.ts'
+import type { PresentedFile, PresentedFileResult } from './types.ts'
 import type { Config } from './index.ts'
 
 /** Local file-delivery provider mounted by tool-present. */

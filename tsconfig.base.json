@@ -321,6 +321,7 @@
       "@deepseek-ai/dsh-client-ui-conversation/client": ["./packages/client/ui-conversation/src/client/index.ts"],
       "@deepseek-ai/dsh-client-ui-tool": ["./packages/client/ui-tool/src"],
       "@deepseek-ai/dsh-tool-present/types": ["./packages/deliverables/tool-present/src/types.ts"],
+      "@deepseek-ai/dsh-tool-present/deliveries": ["./packages/deliverables/tool-present/src/deliveries.ts"],
       "@deepseek-ai/dsh-tool-pdf/types": ["./packages/document/tool-pdf/src/types.ts"],
       "@deepseek-ai/dsh-workspace-changes/types": ["./packages/deliverables/workspace-changes/src/types.ts"],
       "@deepseek-ai/dsh-client-ui-deliverables": ["./packages/client/ui-deliverables/src"],

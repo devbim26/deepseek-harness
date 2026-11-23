@@ -108,6 +108,7 @@ const TOOL_TITLE_KEYS: Record<string, ToolTitleKey> = {
   list_subagent_models: 'tool.title.listModels',
   subagent: 'tool.title.subagent',
   subagent_fork: 'tool.title.subagentFork',
+  orchestrate_agents: 'tool.title.orchestrateAgents',
   list_agents: 'tool.title.listAgents',
   send_message: 'tool.title.sendMessage',
   interrupt_agent: 'tool.title.interruptAgent',

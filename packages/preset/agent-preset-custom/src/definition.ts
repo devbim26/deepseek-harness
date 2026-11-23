@@ -1,5 +1,5 @@
 /** Synthesis of one stored record into a registry preset definition. */
-import type { PresetDefinition } from '@deepseek-ai/dsh-agent-preset-registry'
+import type { PresetDefinition } from '@deepseek-ai/dsh-agent-preset-registry/types'
 import type { Config, OrchestrationEntry } from './config.ts'
 import type { CustomAgentRecord } from './types.ts'
 

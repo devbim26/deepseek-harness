@@ -1,6 +1,4 @@
 /** Durable file deliveries produced by the present tool. */
-import type { Agent } from '@deepseek-ai/dsh-agent'
-import type { ToolRunContext } from '@deepseek-ai/dsh-tools'
 import type { ToolCallId } from '@deepseek-ai/dsh-llm/brand'
 
 /** A declared filesystem file whose current contents remain at its source path. */
@@ -17,24 +15,6 @@ export interface PresentedFileResult {
   readonly turn: number
   /** Canonical files declared for delivery. */
   readonly files: PresentedFile[]
-}
-
-/** Scoped programmatic file-delivery service used by composite tools. */
-export interface FileDeliveries {
-  /**
-   * Validate and stage files for delivery after the caller's successful final tool result.
-   * @param agent - exact live Agent owning the open turn.
-   * @param files - existing regular files to declare.
-   * @param exec - the caller's own tool execution and cancellation.
-   * @returns the open turn and canonical file paths.
-   */
-  present(agent: Agent, files: readonly PresentedFile[], exec: ToolRunContext): Promise<PresentedFileResult>
-}
-
-declare module '@deepseek-ai/cordis' {
-  interface Context {
-    fileDeliveries: FileDeliveries
-  }
 }
 
 declare module '@deepseek-ai/dsh-session/types' {

@@ -5,8 +5,11 @@ export const name = 'fake-agent-orchestrator'
 export function apply(ctx) {
   const runs = new Map()
   const requests = []
+  const controls = {}
   ctx.effect(() => ctx.reflect.provide('agentOrchestrator', {
     requests,
+    runs,
+    controls,
     start(request) {
       requests.push(request)
       const id = `orchestration-${String(runs.size + 1)}`
@@ -22,9 +25,11 @@ export function apply(ctx) {
       }
       const run = {
         id,
-        result: Promise.resolve(snapshot),
+        result: controls.rejectResult === true ? Promise.reject(new Error('fake run failed')) : Promise.resolve(snapshot),
         cancel() { snapshot.status = 'cancelled' },
-        async dispose() {},
+        async dispose() {
+          if (controls.disposeError !== undefined) throw controls.disposeError
+        },
       }
       runs.set(id, { run, snapshot })
       return run

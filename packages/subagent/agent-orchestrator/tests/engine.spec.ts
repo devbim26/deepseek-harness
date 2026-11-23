@@ -52,7 +52,7 @@ class ParallelAdapter extends MockAdapter {
   maxActive = 0
 
   override async * stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
-    const iterator = super.stream(options)
+    const iterator = super.stream(options) as AsyncGenerator<StreamChunk>
     const first = await iterator.next()
     if (first.done === true) return
     this.active += 1

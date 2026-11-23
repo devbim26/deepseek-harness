@@ -4,6 +4,8 @@ import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { ToolContextUnavailableError, defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-agent'
+// Type-only: pulls the delivery service merge (ctx.fileDeliveries).
+import type {} from './deliveries.ts'
 import { FileDeliveryRuntime } from './service.ts'
 
 /** Stable Loader identity. */

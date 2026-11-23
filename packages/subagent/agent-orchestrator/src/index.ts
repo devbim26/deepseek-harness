@@ -36,12 +36,6 @@ export interface Config {
 /** Resolve direct and Loader configuration through one explicit validation step. */
 function resolveConfig(config: Config): Config {
   const resolved = AgentOrchestrator.Config(config)
-  if (!Number.isSafeInteger(resolved.maxHandoffChars) || resolved.maxHandoffChars < 1024 || resolved.maxHandoffChars > 1_000_000) {
-    throw new AgentOrchestratorError('maxHandoffChars must be a safe integer from 1024 to 1000000', 'ORCHESTRATION_INVALID_REQUEST')
-  }
-  if (!Number.isSafeInteger(resolved.maxSettledRuns) || resolved.maxSettledRuns < 1 || resolved.maxSettledRuns > 64) {
-    throw new AgentOrchestratorError('maxSettledRuns must be a safe integer from 1 to 64', 'ORCHESTRATION_INVALID_REQUEST')
-  }
   if (resolved.provider.trim() === '' || resolved.reportDirectory.trim() === ''
     || isAbsolute(resolved.reportDirectory) || resolved.reportDirectory.split(/[\\/]/).includes('..')) {
     throw new AgentOrchestratorError('provider must be non-empty and reportDirectory must be a safe Session-relative path', 'ORCHESTRATION_INVALID_REQUEST')

@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+// Type-only: pulls the delivery service merge (ctx.fileDeliveries).
+import type {} from '@deepseek-ai/dsh-tool-present/deliveries'
 import { harness } from './harness.ts'
 import { agentOn } from '../../agent-preset-registry/tests/harness.ts'
 import type { OrchestrationEntry } from '../src/config.ts'

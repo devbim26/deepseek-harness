@@ -3,6 +3,8 @@ import { Context, Service } from '@deepseek-ai/cordis'
 import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 // Type-only: pulls the storageDomain Context merge (ctx.storageDomain).
 import type {} from '@deepseek-ai/dsh-storage-domain'
+// Type-only: pulls the preset registry Context merge (ctx.agentPresets).
+import type {} from '@deepseek-ai/dsh-agent-preset-registry'
 import type { KvTable } from '@deepseek-ai/dsh-storage-domain'
 import { Config } from './config.ts'
 import { customAgentsDomainSpec, resolveRecord } from './spec.ts'
