@@ -26,7 +26,8 @@
 # задаёт деплой-адрес и токен. Вставка с тем же serverName вместо этого
 # добавила бы вторую строку и откатила весь набор инструментов агента.
 # Инструменты mcp__drawing5__*: list_developments, list_houses,
-# list_documents, upload_pdf, get_document, list_sheets, search, get_sheet,
+# list_documents, create_development, create_house, upload_pdf,
+# get_document, list_sheets, search, get_sheet,
 # get_sheet_images, extract_stamps, get_health.
 # Токен — из launcher-окружения (Harness/.env), в конфиг не коммится.
 - id: drawing5-mcp
@@ -49,23 +50,25 @@
     token: !!js process.env.DRAWING5_KEY ?? ''
 
 # dsh-plugin-smeta подключает сметный ассистент БелЕНиР (скилл smeta-mcp и
-# окно «Сметы»). Плагин по умолчанию смотрит на https://smeta.dev-bim.com;
-# на деплой-машине MCP-сервер локальный (python -m smeta mcp :8021), поэтому
+# окно «Сметы»). Сметный сервер живёт на отдельной машине за туннелем
+# smeta.dev-bim.com; локального MCP-сервера на деплой-машине больше нет, поэтому
 # обе строки плагина переопределяются — верхнеуровневые, без insert:, с теми
-# же id: smeta-mcp и smeta-skill. Авторизации нет. Инструменты mcp__smeta__*:
-# search_rascenki, get_rascenka, calc_position, get_stats, get_health.
+# же id: smeta-mcp и smeta-skill. Адрес берётся из SMETA_SERVER_URL
+# (launcher-окружение, Harness/.env) и по умолчанию совпадает с дефолтом
+# плагина. Авторизации нет. Инструменты mcp__smeta__*: search_rascenki,
+# get_rascenka, calc_position, get_stats, get_health.
 - id: smeta-mcp
   name: '@deepseek-ai/dsh-mcp-client'
   config:
     serverName: smeta
     transport: streamable-http
-    url: http://127.0.0.1:8021/mcp
+    url: !!js (process.env.SMETA_SERVER_URL ?? "https://smeta.dev-bim.com") + "/mcp"
     toolCallTimeoutMs: 120000
 
 - id: smeta-skill
   name: dsh-plugin-smeta
   config:
-    serverUrl: http://127.0.0.1:8021
+    serverUrl: !!js process.env.SMETA_SERVER_URL ?? "https://smeta.dev-bim.com"
 
 # The public tunnel authority joins the /api Host/Origin trust fence. The
 # bundle's connection row injects `webStartup`; this overlay restates the
