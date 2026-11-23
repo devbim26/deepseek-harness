@@ -77,11 +77,11 @@ function orchestrationChildren(
   if (!owned.has(config.present.name)) {
     children.push({ id: 'orchestration-present', name: config.present.name, config: config.present.config ?? {} })
   }
-  const rows = [...grouped, ...children]
-  return rows.map((row) => {
-    const service = SERVICE_ISOLATION[row.name]
-    return service === undefined ? row : { ...row, isolate: { ...row.isolate, [service]: true } }
-  })
+  // The group row owns the realms for these services; a child row that
+  // declared its own realm would publish the service under a private symbol
+  // the group's other rows cannot see, and the engine would find no report
+  // service to write the orchestration PDF with.
+  return [...grouped, ...children]
 }
 
 /**

@@ -181,3 +181,8 @@
 
 - id: present
   name: '@deepseek-ai/dsh-tool-present'
+  # The row publishes the fileDeliveries service; a preset row that publishes
+  # a service must hold it in an isolate realm, or the registry refuses to
+  # mount the preset.
+  isolate:
+    fileDeliveries: true

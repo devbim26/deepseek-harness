@@ -384,10 +384,17 @@
       # PDF reports without shell or Python: the tool embeds images from the
       # Session's durable attachments (drawing5 sheet results) and writes the
       # file into the client workspace; present shows the delivery card.
+      # Both rows publish a service (pdfReports, fileDeliveries); a preset row
+      # that publishes one must hold it in an isolate realm, or the registry
+      # refuses to mount the preset ("Preset services require isolate realms").
       - id: tool-pdf
         name: '@deepseek-ai/dsh-tool-pdf'
+        isolate:
+          pdfReports: true
       - id: present
         name: '@deepseek-ai/dsh-tool-present'
+        isolate:
+          fileDeliveries: true
 
 # -- Custom agents: user-created presets within this deployment's whitelist. --
 # The service stores records as data in the site DSH_HOME (json backend) and
