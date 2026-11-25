@@ -4,4 +4,3 @@
   - menuitem "Minimal mode The agent uses a terminal and image reading, with context compaction. Useful for testing and comparing its basic performance."
   - menuitem "Creator mode Customize DSH through conversation. Let the agent write plugins that add features or UI, or combine tools and prompts to create your own mode."
   - menuitem "Сметчик Считает объёмы по чертежам."
-  - menuitem "New custom agent"

@@ -1,7 +1,7 @@
 /**
  * Custom-agent manager plugin, node half. The empty apply exists so the plugin
- * appears in the host cordis.yml / Loader; the browser half ships the
- * preset-picker manager entry through exports["./client"], discovered from
+ * appears in the host cordis.yml / Loader; the browser half ships the create
+ * button and the dialog host through exports["./client"], discovered from
  * the package.json dsh.client declaration.
  */
 

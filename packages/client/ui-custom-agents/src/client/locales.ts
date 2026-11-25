@@ -6,7 +6,7 @@ export type CustomAgentsKey =
   | 'name' | 'namePlaceholder' | 'description' | 'descriptionPlaceholder'
   | 'instructions' | 'instructionsPlaceholder' | 'save' | 'cancel' | 'remove' | 'removeConfirm'
   | 'empty' | 'edit' | 'saved' | 'limitReached' | 'invalidInput' | 'conflict' | 'errorUnavailable' | 'charsUsed'
-  | 'nameRequired' | 'instructionsRequired'
+  | 'nameRequired' | 'instructionsRequired' | 'removeFailed'
   | 'orchestrator' | 'orchestratorHint' | 'visible' | 'visibleHint' | 'delegatesTitle' | 'noDelegates' | 'orchestratorBadge' | 'hiddenBadge'
   | 'orchestratorMaxIterations' | 'orchestratorMaxParallel' | 'orchestratorAutoReport' | 'orchestratorAutoReportHint' | 'orchestratorLimitsHint' | 'orchestratorRange'
 
@@ -40,6 +40,7 @@ export const en: Record<CustomAgentsKey, string> = {
   charsUsed: '{used} / {limit} characters',
   nameRequired: 'Enter a name for the agent',
   instructionsRequired: 'Enter the instructions',
+  removeFailed: 'The agent could not be removed',
   orchestrator: 'Orchestrator',
   orchestratorHint: 'The agent launches the checked agents as its subagents.',
   visible: 'Show in the mode picker',
@@ -86,6 +87,7 @@ export const ru: Record<CustomAgentsKey, string> = {
   charsUsed: '{used} / {limit} символов',
   nameRequired: 'Введите название агента',
   instructionsRequired: 'Введите инструкцию',
+  removeFailed: 'Не удалось удалить агента',
   orchestrator: 'Оркестратор',
   orchestratorHint: 'Агент запускает отмеченных агентов как своих субагентов.',
   visible: 'Показывать в выборе режима',
@@ -132,6 +134,7 @@ export const zh: Record<CustomAgentsKey, string> = {
   charsUsed: '{used} / {limit} 个字符',
   nameRequired: '请输入智能体名称',
   instructionsRequired: '请输入指令',
+  removeFailed: '无法删除该智能体',
   orchestrator: '编排者',
   orchestratorHint: '该智能体将选中的智能体作为子智能体启动。',
   visible: '在选择器中显示',

@@ -1,0 +1,3 @@
+- insert:
+    - id: fixture-custom-agents-host
+      name: '@fixture/custom-agents-host'

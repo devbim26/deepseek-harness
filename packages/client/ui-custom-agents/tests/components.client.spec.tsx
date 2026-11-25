@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
-import { allowAllAccess, bindSnapshotSelector, contextMenuHook } from '@deepseek-ai/dsh-client-test-runtime'
-import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { allowAllAccess, bindSnapshotSelector, contextMenuHook, RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
+import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { afterEach, describe, expect, it } from 'vitest'
+import { AgentActions } from '../src/client/AgentActions.tsx'
 import { CreateCustomAgentButton } from '../src/client/CreateCustomAgentButton.tsx'
 import { CustomAgentsOverlay } from '../src/client/CustomAgentsOverlay.tsx'
 import { CustomAgentsController, type CustomAgentsState } from '../src/client/custom-agents-store.ts'
@@ -13,6 +14,16 @@ import { en } from '../src/client/locales.ts'
 afterEach(() => { document.body.textContent = '' })
 
 const translations: ReadonlyMap<string, string> = new Map(Object.entries(en))
+
+/** The locale seat as the framework types it; resolves from the English dictionary. */
+const t: TranslateNS<'customAgents'> = (key, params) => {
+  const raw = translations.get(key) ?? key
+  if (params === undefined) return raw
+  return raw.replace(/\{(\w+)\}/g, (_, name) => {
+    const value = Object.entries(params).find(([entryName]) => entryName === name)?.[1]
+    return typeof value === 'string' || typeof value === 'number' ? String(value) : ''
+  })
+}
 
 const seededAgent: CustomAgentRecord = { id: 'custom/agent', slug: 'agent', name: 'Сметчик', description: 'Считает', instructions: 'i', tools: [], isOrchestrator: false, delegates: [], orchestratorMaxIterations: 3, orchestratorMaxParallel: 3, orchestratorAutoReport: true, hidden: false, version: 1, updatedAt: '2026-11-15T00:00:00.000Z' }
 
@@ -46,18 +57,34 @@ const unusedHook = (): never => {
   throw new Error('this spec does not read that slot source')
 }
 
-/** The scripted remote context; records emitted cordis events and create inputs. */
-function fakeCtx(events: string[], creates: CustomAgentInput[] = [], catalogOverride?: CustomAgentCatalog): ClientContext {
+/** Every remote write the manager performs, in call order. */
+interface Writes {
+  creates: CustomAgentInput[]
+  updates: [id: string, input: CustomAgentInput, version: number][]
+  deletes: [id: string, version: number][]
+}
+
+/** The scripted remote context; records emitted cordis events and the three write kinds. */
+function fakeCtx(events: string[], writes: Writes, catalogOverride?: CustomAgentCatalog, deleteFails = false): ClientContext {
   // Member-typed stubs keep every provided face assignable from the real
   // Context, so the final cast stays within comparable types.
   const customAgentPresets: ClientContext['remote']['customAgentPresets'] = {
     list: () => Promise.resolve({ ok: true as const, value: catalogOverride ?? catalog }),
     create: (input: CustomAgentInput) => {
-      creates.push(input)
+      writes.creates.push(input)
       return Promise.resolve({ ok: true as const, value: seededAgent })
     },
-    update: () => Promise.resolve({ ok: true as const, value: seededAgent }),
-    delete: () => Promise.resolve({ ok: true as const, value: undefined }),
+    update: (id: string, input: CustomAgentInput, version: number) => {
+      writes.updates.push([id, input, version])
+      return Promise.resolve({ ok: true as const, value: seededAgent })
+    },
+    delete: (id: string, version: number) => {
+      writes.deletes.push([id, version])
+      if (deleteFails) {
+        return Promise.resolve({ ok: false as const, error: new RemoteError('custom-agent-presets/conflict', 'The record changed elsewhere; reload and retry', { expectedVersion: 2 }) })
+      }
+      return Promise.resolve({ ok: true as const, value: undefined })
+    },
   }
   const partial = {
     remote: { customAgentPresets },
@@ -66,22 +93,11 @@ function fakeCtx(events: string[], creates: CustomAgentInput[] = [], catalogOver
   return partial as ClientContext
 }
 
-/** The manager surfaces composed with the framework seats a slot entry receives. */
-function view(state: Partial<CustomAgentsState> = {}, catalogOverride?: CustomAgentCatalog) {
-  const events: string[] = []
-  const creates: CustomAgentInput[] = []
-  const controller = new CustomAgentsController(fakeCtx(events, creates, catalogOverride))
-  // Seed the controller's own store: the overlay subscribes to the same store
-  // instance the injected face hands out.
-  controller.store.set({ ...READY, ...state })
-  const load = vi.fn(async () => {})
-  const onDismiss = vi.fn()
-  const shared = {
-    t: (key: keyof typeof en, params?: Record<string, unknown>): string => {
-      const raw = translations.get(key) ?? key
-      return params === undefined ? raw : raw.replace(/\{(\w+)\}/g, (_, name) => String(params[name]))
-    },
-    useCustomAgents: bindSnapshotSelector(controller.store as SnapshotStore<CustomAgentsState>),
+/** The framework seats the manager surfaces receive, bound to one controller's store. */
+function seatsFor(controller: CustomAgentsController) {
+  return {
+    t,
+    useCustomAgents: bindSnapshotSelector(controller.store),
     ...allowAllAccess,
     usePanelInfo: unusedHook,
     useSessions: unusedHook,
@@ -90,40 +106,104 @@ function view(state: Partial<CustomAgentsState> = {}, catalogOverride?: CustomAg
     useWorkspaces: unusedHook,
     useResource: unusedHook,
     useContextMenu: contextMenuHook(),
+    renderFactorySlot: unusedHook,
+    useFactorySlot: unusedHook,
   }
-  render(
-    <>
-      <CreateCustomAgentButton {...shared} controller={controller} load={load} onDismiss={onDismiss} />
-      <CustomAgentsOverlay {...shared} controller={controller} />
-    </>,
-  )
-  return { store: controller.store, load, onDismiss, events, creates, controller }
+}
+
+/** The manager surfaces composed with the framework seats a slot entry receives. */
+function view(state: Partial<CustomAgentsState> = {}, catalogOverride?: CustomAgentCatalog, options: { deleteFails?: boolean } = {}) {
+  const events: string[] = []
+  const writes: Writes = { creates: [], updates: [], deletes: [] }
+  const controller = new CustomAgentsController(fakeCtx(events, writes, catalogOverride, options.deleteFails === true))
+  // Seed the controller's own store: the overlay subscribes to the same store
+  // instance the injected face hands out.
+  controller.store.set({ ...READY, ...state })
+  const shared = seatsFor(controller)
+  // The entry and the dialog host render apart, as they do in the application:
+  // the entry sits in a page, the dialog in the frame-wide overlay.
+  const entryRender = render(<CreateCustomAgentButton {...shared} controller={controller} />)
+  render(<CustomAgentsOverlay {...shared} controller={controller} />)
+  return { store: controller.store, events, creates: writes.creates, writes, controller, unmountEntry: entryRender.unmount }
 }
 
 function entry(): HTMLElement {
-  return screen.getByRole('menuitem', { name: new RegExp(en.open) })
+  return screen.getByRole('button', { name: new RegExp(en.open) })
 }
 
-describe('custom agent picker entry', () => {
-  it('opens the manager dialog through the overlay and lists the site agents', () => {
-    const view_ = view()
+describe('custom agent create entry', () => {
+  it('opens the manager dialog through the overlay and lists the site agents', async () => {
+    // The seeded roster is empty: the dialog lists what opening reads from the remote.
+    view({ agents: [] })
     expect(screen.queryByRole('dialog')).toBeNull()
     fireEvent.click(entry())
-    expect(view_.onDismiss).toHaveBeenCalledOnce()
-    expect(view_.load).toHaveBeenCalledOnce()
     expect(screen.getByRole('dialog')).not.toBeNull()
     // The roster lists both seeded agents; the delegate checklist repeats the regular one's name.
-    expect(screen.getAllByText('Сметчик').length).toBeGreaterThan(0)
+    expect((await screen.findAllByText('Сметчик')).length).toBeGreaterThan(0)
     expect(screen.getByText('Ведущий')).not.toBeNull()
   })
 
-  it('keeps the dialog open after the menu entry unmounts', () => {
+  it('keeps the dialog open after the create entry unmounts', () => {
     const view_ = view()
     fireEvent.click(entry())
     expect(screen.getByRole('dialog')).not.toBeNull()
-    // The menu closing unmounts the entry; the dialog lives in the overlay.
+    // The page hosting the entry can go away; the dialog lives in the overlay.
+    view_.unmountEntry()
+    expect(screen.getByRole('dialog')).not.toBeNull()
     act(() => { view_.controller.closeManager() })
     expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('gives every roster agent its own edit and remove buttons', () => {
+    view()
+    fireEvent.click(entry())
+    // The row controls are buttons a person recognizes, one pair per agent.
+    expect(screen.getAllByRole('button', { name: en.edit })).toHaveLength(catalog.agents.length)
+    expect(screen.getAllByRole('button', { name: en.remove })).toHaveLength(catalog.agents.length)
+  })
+
+  it('opens editing the agent a page asked the dialog to open on', () => {
+    const view_ = view()
+    act(() => { view_.controller.openManager('custom/agent') })
+    expect(screen.getByRole('heading', { name: en.editTitle })).not.toBeNull()
+    expect(screen.getByLabelText(en.name)).toHaveProperty('value', 'Сметчик')
+  })
+
+  it('opens a blank create when the asked agent is no longer in the catalog', () => {
+    const view_ = view()
+    act(() => { view_.controller.openManager('custom/gone') })
+    expect(screen.getByRole('heading', { name: en.createTitle })).not.toBeNull()
+    expect(screen.getByLabelText(en.name)).toHaveProperty('value', '')
+  })
+
+  it('saves an edited agent under the version the roster showed', async () => {
+    const view_ = view()
+    fireEvent.click(entry())
+    fireEvent.click(screen.getAllByRole('button', { name: en.edit })[0]!)
+    fireEvent.change(screen.getByLabelText(en.description), { target: { value: 'Считает быстрее' } })
+    fireEvent.click(screen.getByRole('button', { name: en.save }))
+    await waitFor(() => { expect(view_.writes.updates).toHaveLength(1) })
+    // The first roster row is the seeded regular agent, stored at version 1.
+    expect(view_.writes.updates[0]).toEqual([
+      'custom/agent',
+      expect.objectContaining({ name: 'Сметчик', description: 'Считает быстрее', isOrchestrator: false, hidden: false }),
+      1,
+    ])
+    expect(view_.events).toContain('custom-agents/changed')
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('removes an agent only after the confirming press', async () => {
+    const view_ = view()
+    fireEvent.click(entry())
+    fireEvent.click(screen.getAllByRole('button', { name: en.remove })[0]!)
+    // The first press asks; nothing reaches the remote yet.
+    const confirm = screen.getByText(en.removeConfirm).parentElement as HTMLElement
+    expect(view_.writes.deletes).toEqual([])
+    fireEvent.click(within(confirm).getByRole('button', { name: en.remove }))
+    await waitFor(() => { expect(view_.writes.deletes).toEqual([['custom/agent', 1]]) })
+    expect(view_.events).toContain('custom-agents/changed')
+    await waitFor(() => { expect(screen.queryByText(en.removeConfirm)).toBeNull() })
   })
 
   it('submits the form, closes the dialog, and emits custom-agents/changed', async () => {
@@ -132,7 +212,7 @@ describe('custom agent picker entry', () => {
     fireEvent.change(screen.getByLabelText(en.name), { target: { value: 'Отчётчик' } })
     fireEvent.change(screen.getByLabelText(en.instructions), { target: { value: 'Собирай отчёт.' } })
     fireEvent.click(screen.getByRole('button', { name: en.save }))
-    await waitFor(() => expect(view_.events).toContain('custom-agents/changed'))
+    await waitFor(() => { expect(view_.events).toContain('custom-agents/changed') })
     expect(view_.store.getSnapshot().modalOpen).toBe(false)
     expect(screen.queryByRole('dialog')).toBeNull()
   })
@@ -180,7 +260,7 @@ describe('custom agent picker entry', () => {
     fireEvent.change(screen.getByLabelText(en.instructions), { target: { value: 'Работай с чертежами.' } })
     fireEvent.click(screen.getByRole('checkbox', { name: 'Чертежи (drawing5)' }))
     fireEvent.click(screen.getByRole('button', { name: en.save }))
-    await waitFor(() => expect(view_.events).toContain('custom-agents/changed'))
+    await waitFor(() => { expect(view_.events).toContain('custom-agents/changed') })
     expect(view_.creates).toEqual([{ name: 'Чертёжник', description: '', instructions: 'Работай с чертежами.', tools: ['drawing5'], isOrchestrator: false, delegates: [], hidden: false }])
   })
 
@@ -219,7 +299,7 @@ describe('custom agent picker entry', () => {
     fireEvent.change(screen.getByLabelText(en.name), { target: { value: 'Диспетчер' } })
     fireEvent.change(screen.getByLabelText(en.instructions), { target: { value: 'Раздавай задачи.' } })
     fireEvent.click(screen.getByRole('button', { name: en.save }))
-    await waitFor(() => expect(view_.events).toContain('custom-agents/changed'))
+    await waitFor(() => { expect(view_.events).toContain('custom-agents/changed') })
     expect(view_.creates[0]).toMatchObject({ isOrchestrator: true, delegates: ['custom/agent'], hidden: false })
   })
 
@@ -247,7 +327,7 @@ describe('custom agent picker entry', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: en.visible }))
     expect(screen.getByRole('checkbox', { name: en.visible })).toHaveProperty('checked', false)
     fireEvent.click(screen.getByRole('button', { name: en.save }))
-    await waitFor(() => expect(view_.events).toContain('custom-agents/changed'))
+    await waitFor(() => { expect(view_.events).toContain('custom-agents/changed') })
     expect(view_.creates[0]).toMatchObject({ isOrchestrator: false, delegates: [], hidden: true })
   })
 
@@ -278,7 +358,7 @@ describe('custom agent picker entry', () => {
     fireEvent.change(screen.getByLabelText(en.name), { target: { value: 'Диспетчер' } })
     fireEvent.change(screen.getByLabelText(en.instructions), { target: { value: 'Раздавай задачи.' } })
     fireEvent.click(screen.getByRole('button', { name: en.save }))
-    await waitFor(() => expect(view_.events).toContain('custom-agents/changed'))
+    await waitFor(() => { expect(view_.events).toContain('custom-agents/changed') })
     expect(view_.creates[0]).toMatchObject({
       isOrchestrator: true,
       orchestratorMaxIterations: 4,
@@ -307,5 +387,37 @@ describe('custom agent picker entry', () => {
     expect(view_.creates).toEqual([])
     expect(screen.getByRole('alert').textContent).toContain('1')
     expect(document.activeElement).toBe(screen.getByRole('spinbutton', { name: en.orchestratorMaxIterations }))
+  })
+})
+
+describe('agent row actions factory', () => {
+  it('renders the icon pair and opens the manager on the row agent', () => {
+    const view_ = view()
+    render(<AgentActions {...seatsFor(view_.controller)} controller={view_.controller} id="custom/agent" version={1} name="Сметчик" />)
+    fireEvent.click(screen.getByRole('button', { name: `${en.edit}: Сметчик` }))
+    const state = view_.store.getSnapshot()
+    expect(state.modalOpen).toBe(true)
+    expect(state.editId).toBe('custom/agent')
+  })
+
+  it('arms on the first press and removes on the confirming press, stamping the caller version', async () => {
+    const view_ = view()
+    render(<AgentActions {...seatsFor(view_.controller)} controller={view_.controller} id="custom/agent" version={3} name="Сметчик" />)
+    const remove = screen.getByRole('button', { name: `${en.remove}: Сметчик` })
+    fireEvent.click(remove)
+    // The first press only arms; nothing reaches the remote yet.
+    expect(view_.writes.deletes).toEqual([])
+    fireEvent.click(screen.getByRole('button', { name: `${en.remove}: Сметчик` }))
+    await waitFor(() => { expect(view_.writes.deletes).toEqual([['custom/agent', 3]]) })
+    expect(view_.events).toContain('custom-agents/changed')
+  })
+
+  it('reports a refused remove in place instead of the buttons', async () => {
+    const view_ = view({}, catalog, { deleteFails: true })
+    render(<AgentActions {...seatsFor(view_.controller)} controller={view_.controller} id="custom/agent" version={1} name="Сметчик" />)
+    const remove = screen.getByRole('button', { name: `${en.remove}: Сметчик` })
+    fireEvent.click(remove)
+    fireEvent.click(remove)
+    await waitFor(() => { expect(screen.getByRole('alert').textContent).toBe(en.conflict) })
   })
 })

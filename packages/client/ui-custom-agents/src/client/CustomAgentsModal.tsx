@@ -8,7 +8,7 @@
 import { useId, useRef, useState } from 'react'
 import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-ui-slots'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
-import { Button, Checkbox, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, Checkbox, IconEditOutlineRegular, IconTrashOutlineRegular, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { CustomAgentInput, CustomAgentRecord } from '@deepseek-ai/dsh-agent-preset-custom/types'
 import type { CustomAgentsController, CustomAgentsState, WriteOutcome } from './custom-agents-store.ts'
 import css from './CustomAgentsModal.module.css'
@@ -28,6 +28,22 @@ export interface CustomAgentsModalProps {
 /** Blank form fields for a create. */
 const BLANK: CustomAgentInput = { name: '', description: '', instructions: '', tools: [], isOrchestrator: false, delegates: [], hidden: false }
 
+/** Form fields seeded from one stored record. */
+function fieldsOf(record: CustomAgentRecord): CustomAgentInput {
+  return {
+    name: record.name,
+    description: record.description,
+    instructions: record.instructions,
+    tools: [...record.tools],
+    isOrchestrator: record.isOrchestrator,
+    delegates: [...record.delegates],
+    orchestratorMaxIterations: record.orchestratorMaxIterations,
+    orchestratorMaxParallel: record.orchestratorMaxParallel,
+    orchestratorAutoReport: record.orchestratorAutoReport,
+    hidden: record.hidden,
+  }
+}
+
 /** Whether one orchestration limit is a whole number inside the deployment ceiling. */
 function validLimit(value: number | undefined, ceiling: number): boolean {
   return value !== undefined && Number.isSafeInteger(value) && value >= 1 && value <= ceiling
@@ -40,8 +56,11 @@ function validLimit(value: number | undefined, ceiling: number): boolean {
  */
 export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: CustomAgentsModalProps) {
   const state = useCustomAgents(value => value)
-  const [editing, setEditing] = useState<CustomAgentRecord | undefined>(undefined)
-  const [fields, setFields] = useState<CustomAgentInput>(BLANK)
+  // An open request may name an agent to edit (a page's row actions); the
+  // dialog mounts fresh per open, so the seed reads the store snapshot once.
+  const requested = state.editId === undefined ? undefined : state.agents.find(agent => agent.id === state.editId)
+  const [editing, setEditing] = useState<CustomAgentRecord | undefined>(requested)
+  const [fields, setFields] = useState<CustomAgentInput>(() => requested === undefined ? BLANK : fieldsOf(requested))
   const [deleting, setDeleting] = useState<CustomAgentRecord | undefined>(undefined)
   const [failure, setFailure] = useState<string | undefined>(undefined)
   const listTitleId = useId()
@@ -62,18 +81,7 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
   }
   const startEdit = (record: CustomAgentRecord): void => {
     setEditing(record)
-    setFields({
-      name: record.name,
-      description: record.description,
-      instructions: record.instructions,
-      tools: [...record.tools],
-      isOrchestrator: record.isOrchestrator,
-      delegates: [...record.delegates],
-      orchestratorMaxIterations: record.orchestratorMaxIterations,
-      orchestratorMaxParallel: record.orchestratorMaxParallel,
-      orchestratorAutoReport: record.orchestratorAutoReport,
-      hidden: record.hidden,
-    })
+    setFields(fieldsOf(record))
     setDeleting(undefined)
     setFailure(undefined)
   }
@@ -174,8 +182,23 @@ export function CustomAgentsModal({ t, useCustomAgents, controller, onClose }: C
                   </span>
                 ) : (
                   <span className={css.rowActions}>
-                    <Button size="sm" onClick={() => { startEdit(agent) }}>{t('edit')}</Button>
-                    <Button size="sm" className={css.removeButton} onClick={() => { setDeleting(agent) }}>{t('remove')}</Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      icon={<IconEditOutlineRegular size={13} />}
+                      onClick={() => { startEdit(agent) }}
+                    >
+                      {t('edit')}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className={css.removeButton}
+                      icon={<IconTrashOutlineRegular size={13} />}
+                      onClick={() => { setDeleting(agent) }}
+                    >
+                      {t('remove')}
+                    </Button>
                   </span>
                 )}
               </div>

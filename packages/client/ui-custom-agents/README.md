@@ -1,5 +1,5 @@
 ---
-description: "Custom-agent manager: create, edit, and remove user-defined agent presets from the preset picker. The dialog lives outside the menu tree so it survives the menu closing. The form also offers the deployment-gated orchestrator flag with its delegate checklist and the picker-visibility toggle."
+description: "Custom-agent manager: create, edit, and remove user-defined agent presets through a create button a page renders. The dialog mounts in the frame-wide overlay, so it opens over any page and outlives the page that opened it. The form also offers the deployment-gated orchestrator flag with its delegate checklist and the picker-visibility toggle."
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Custom-agent manager: create, edit, and remove user-defined agent presets from the preset picker. The dialog lives outside the menu tree so it survives the menu closing. The form also offers the deployment-gated orchestrator flag with its delegate checklist and the picker-visibility toggle.
+Custom-agent manager: create, edit, and remove user-defined agent presets through a create button a page renders. The dialog mounts in the frame-wide overlay, so it opens over any page and outlives the page that opened it. The form also offers the deployment-gated orchestrator flag with its delegate checklist and the picker-visibility toggle.
 
 ## Table of Contents
 
@@ -30,7 +30,7 @@ Custom-agent manager: create, edit, and remove user-defined agent presets from t
   name: '@deepseek-ai/dsh-client-ui-custom-agents'
 ```
 
-The row mounts two entries over the agent-preset picker's child slots: the `agentPreset.picker.actions` menu row ("New custom agent") and the `agentPreset.picker.overlays` dialog host. The owner (`ui-agent-preset`) renders overlays beside the menu, outside it, so a dialog opened from the menu row survives the menu closing. Copy is locale-owned (`customAgents` namespace; zh, en, ru).
+The row contributes two reusable Component Factories. `customAgents.createButton` is the "New custom agent" button: a page renders it wherever people create agents with `renderFactorySlot('customAgents.createButton', {})`. `customAgents.agentActions` is the icon-only edit and remove pair for one roster row, stacked: a page renders it beside each listed agent with the row's `id`, `version`, and `name`; edit opens the manager dialog on that agent, remove arms on the first press and deletes on the confirming press through the same controller. The preset picker adds no row of its own. The button opens the manager dialog, which the row hosts in `shell.overlay`, so the dialog opens over any main panel and outlives the page that opened it. Copy is locale-owned (`customAgents` namespace; zh, en, ru).
 
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
@@ -38,7 +38,7 @@ The row mounts two entries over the agent-preset picker's child slots: the `agen
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-[custom-agents-store.ts](src/client/custom-agents-store.ts) holds the catalog state and the dialog's open flag; the menu entry and the overlay both read the one store, so state survives either surface unmounting. Writes go through the typed `customAgentPresets` remote and emit the client-side `custom-agents/changed` event, which `ui-agent-preset`'s roster refresh subscribes to. [CustomAgentsModal.tsx](src/client/CustomAgentsModal.tsx) renders the roster in a scrollable left pane, the fields — including the deployment-gated orchestrator flag and the picker-visibility toggle — in the center, and the tool checkboxes plus the delegate checklist in the right pane strictly from the service-reported policy — the form can only offer what the deployment whitelist carries.
+[custom-agents-store.ts](src/client/custom-agents-store.ts) holds the catalog state and the dialog's open flag; the dialog host reads the one store, so an open dialog survives the page that opened it unmounting. Writes go through the typed `customAgentPresets` remote and emit the client-side `custom-agents/changed` event, which `ui-agent-preset`'s roster refresh subscribes to. [CustomAgentsModal.tsx](src/client/CustomAgentsModal.tsx) renders the roster in a scrollable left pane, the fields — including the deployment-gated orchestrator flag and the picker-visibility toggle — in the center, and the tool checkboxes plus the delegate checklist in the right pane strictly from the service-reported policy — the form can only offer what the deployment whitelist carries.
 
 </details>
 
@@ -46,7 +46,7 @@ The row mounts two entries over the agent-preset picker's child slots: the `agen
 ## Further Exploration
 
 - [Custom preset service](../../preset/agent-preset-custom/README.md) — the durable records and validation behind this surface.
-- [Agent-preset surfaces](../ui-agent-preset/README.md) — the picker that hosts this manager's entries.
+- [Agent-preset surfaces](../ui-agent-preset/README.md) — the picker that offers the agents this manager creates.
 - [Slots](../ui-slots/README.md) — the slot contracts this package fills.
 
 <a id="model-experience"></a>
@@ -70,6 +70,6 @@ None from this package; each synthesized preset's plugins own their prompt secti
 <details>
 <summary>Working context for maintainers — click to expand</summary>
 
-The dialog cannot be opened from a component mounted inside the picker menu: closing the menu unmounts the menu's children. Keep any future write path that opens a dialog through `openManager()` on the controller, which lives in the plugin scope.
+A page hosts the entry by rendering the Factory; it never mounts the dialog itself. Keep any path that opens a dialog through `openManager()` on the controller, which lives in the plugin scope; the overlay entry reads the same store.
 
 </details>

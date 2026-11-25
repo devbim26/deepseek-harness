@@ -13,6 +13,7 @@
     { "path": "../store" },
     { "path": "../../test-support/client-runtime" },
     { "path": "../ui-agent-preset" },
+    { "path": "../ui-layout" },
     { "path": "../ui-primitives" },
     { "path": "../ui-renderer" },
     { "path": "../ui-slots" },

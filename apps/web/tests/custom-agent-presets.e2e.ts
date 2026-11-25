@@ -1,5 +1,7 @@
 // Web e2e scenario: user-created custom agent presets. The service mounts the
 // seeded record before the page loads; the manager writes go through the UI.
+// The manager entry is a Factory a page renders; the host fixture plays a page
+// such as a plugin's main panel.
 //
 // Zero model calls: no replay fixture mounts, so a stray stream fails loud.
 import { join } from 'node:path'
@@ -12,6 +14,7 @@ import { newEnglishPage, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./expected/custom-agent-presets', import.meta.url))
 const MENU_EXPECTED = join(SNAPSHOT_DIR, 'menu.expected.md')
+const HOST = fileURLToPath(new URL('./fixtures/plugins/fixture-custom-agents-host', import.meta.url))
 const MODE = webSnapshotMode()
 
 let scaffold: WebScaffold
@@ -26,10 +29,12 @@ beforeAll(async () => {
       instructionsPrefix: 'You are the drawings assistant.',
       allowedTools: { 'ask-user': { name: '@deepseek-ai/dsh-tool-ask-user' } },
     },
+    profile: { packages: [{ dir: HOST, enabled: true }] },
   })
   // Seeded before the page loads: the roster carries it on first render.
   await scaffold.ctx.customAgentPresets.create({
-    name: 'Сметчик', description: 'Считает объёмы по чертежам.', instructions: 'Считай объёмы работ и материалов.', tools: [],
+    name: 'Сметчик', description: 'Считает объёмы по чертежам.', instructions: 'Считай объёмы работ и материалов.',
+    tools: [], isOrchestrator: false, delegates: [], hidden: false,
   })
   browser = await chromium.launch()
   page = await newEnglishPage(browser)
@@ -44,7 +49,7 @@ afterAll(async () => {
 })
 
 describe('custom agent presets', () => {
-  it('lists the seeded custom agent and the manager entry in the preset menu', async () => {
+  it('lists the seeded custom agent in the preset menu, which carries no manager row', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-custom-agent-menu'))
     await page.getByRole('button', { name: 'Standard mode' }).click()
     const menu = page.getByRole('menu')
@@ -52,20 +57,24 @@ describe('custom agent presets', () => {
     const snapshot = await captureStableAria(page, '[role="menu"]', scaffold.workspaceCwd)
     await compareOrRefreshGolden(MENU_EXPECTED, snapshot, MODE)
     expect(snapshot).toContain('Сметчик')
-    expect(snapshot).toContain('New custom agent')
     await page.keyboard.press('Escape')
   })
 
-  it('creates a custom agent through the manager and offers it in the menu', async () => {
+  it('opens the manager from a page-hosted entry and offers the created agent in the menu', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-custom-agent-create'))
-    await page.getByRole('button', { name: 'Standard mode' }).click()
-    await page.getByRole('menuitem', { name: /New custom agent/ }).click()
+    await page.getByRole('button', { name: 'Agents host', exact: true }).click()
+    const create = page.locator('[data-fixture-agents-host]').getByRole('button', { name: 'New custom agent', exact: true })
+    await create.waitFor({ timeout: 10_000 })
+    await create.click()
     await page.getByRole('dialog').waitFor({ timeout: 10_000 })
     await page.getByLabel('Name').fill('Отчётчик')
     await page.getByLabel('Instructions').fill('Собирай отчёт по выполненным работам.')
     await page.getByRole('button', { name: 'Save' }).click()
     // Saved: the dialog closes itself; the next open starts a fresh form.
     await page.getByRole('dialog').waitFor({ state: 'detached', timeout: 10_000 })
+    // Back on the conversation: the roster offers the agent the page created.
+    // The brand row carries a second New session button; the list's own is last.
+    await page.getByRole('button', { name: 'New session', exact: true }).last().click()
     await page.getByRole('button', { name: 'Standard mode' }).click()
     const menu = page.getByRole('menu')
     await menu.waitFor({ timeout: 10_000 })

@@ -1,8 +1,8 @@
 /** The persistent manager-dialog host: renders the modal while the store says open. */
+// Type-only: pulls the ui-layout SlotMap merge (the shell.overlay entry).
+import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-// Type-only: pulls the ui-agent-preset SlotMap merge (the picker overlay slot).
-import type {} from '@deepseek-ai/dsh-client-ui-agent-preset/client'
 import { CustomAgentsModal } from './CustomAgentsModal.tsx'
 import type { CustomAgentsController, CustomAgentsState } from './custom-agents-store.ts'
 
@@ -16,12 +16,12 @@ export interface CustomAgentsOverlayInjected {
   controller: CustomAgentsController
 }
 
-type CustomAgentsOverlayProps = PropsRuntime<'agentPreset.picker.overlays'>
+type CustomAgentsOverlayProps = PropsRuntime<'shell.overlay'>
   & PropsLocale<'customAgents'> & InjectFace<CustomAgentsOverlayInjected>
 
 /**
- * Mount the manager dialog beside the picker. Lives outside the menu tree, so
- * the dialog survives the menu closing.
+ * Mount the manager dialog in the frame-wide overlay. The layer sits outside
+ * every main panel, so the dialog outlives the page that opened it.
  * @param props - locale, manager store, and the controller.
  * @returns the modal while open, otherwise nothing.
  */

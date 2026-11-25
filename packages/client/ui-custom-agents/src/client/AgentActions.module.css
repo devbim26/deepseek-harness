@@ -1,0 +1,54 @@
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: none;
+}
+
+/* Icon-only row pair, sized like the schedule catalog's per-row delete. */
+.action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.action:hover {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.action:focus-visible {
+  outline: 2px solid var(--dsw-alias-accent);
+  outline-offset: -2px;
+}
+
+.actionRemove {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.actionRemove:hover {
+  color: var(--dsw-alias-state-error-primary);
+  background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 12%, transparent);
+}
+
+/* The armed press must read without hover: the fill flips to the error color. */
+.actionArmed,
+.actionArmed:hover {
+  color: var(--dsw-alias-label-on-accent, #fff);
+  background: var(--dsw-alias-state-error-primary);
+}
+
+.failure {
+  max-width: 150px;
+  color: var(--dsw-alias-state-error-primary);
+  font-size: 12px;
+  line-height: 18px;
+}

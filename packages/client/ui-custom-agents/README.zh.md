@@ -1,5 +1,5 @@
 ---
-description: "自定义智能体管理器：从 preset 选择器创建、编辑和删除用户自定义的 agent preset。对话框位于菜单树之外，因此菜单关闭后仍然存活。表单还提供受部署门控的编排者开关及其委派清单与选择器可见性开关。"
+description: "自定义智能体管理器：通过由页面渲染的创建按钮来创建、编辑和删除用户自定义的 agent preset。对话框挂载在全框架覆盖层中，因此可在任何页面上方打开，并且比打开它的页面存活得更久。表单还提供受部署门控的编排者开关及其委派清单与选择器可见性开关。"
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-自定义智能体管理器：从 preset 选择器创建、编辑和删除用户自定义的 agent preset。对话框位于菜单树之外，因此菜单关闭后仍然存活。表单还提供受部署门控的编排者开关及其委派清单与选择器可见性开关。
+自定义智能体管理器：通过由页面渲染的创建按钮来创建、编辑和删除用户自定义的 agent preset。对话框挂载在全框架覆盖层中，因此可在任何页面上方打开，并且比打开它的页面存活得更久。表单还提供受部署门控的编排者开关及其委派清单与选择器可见性开关。
 
 ## 目录
 
@@ -30,7 +30,7 @@ kind: "package-reference"
   name: '@deepseek-ai/dsh-client-ui-custom-agents'
 ```
 
-该行在 agent-preset 选择器的子插槽上挂载两个条目：`agentPreset.picker.actions` 菜单行（“新建自定义智能体”）和 `agentPreset.picker.overlays` 对话框宿主。属主（`ui-agent-preset`）在菜单旁边、菜单树之外渲染覆盖层，因此从菜单行打开的对话框能在菜单关闭后存活。文案归 locale 所有（`customAgents` 命名空间；zh、en、ru）。
+该行贡献两个可复用的 Component Factory。`customAgents.createButton` 是“新建自定义智能体”按钮：页面在需要创建智能体的位置用 `renderFactorySlot('customAgents.createButton', {})` 渲染它。`customAgents.agentActions` 是一行名册的图标操作对（纵向排列）：页面在列出的每个智能体旁用它渲染该行的 `id`、`version` 与 `name`；编辑会在管理器对话框中打开该智能体，删除第一次按下进入待确认状态，再次按下经同一控制器执行。preset 选择器自身不再添加菜单行。按钮打开管理器对话框，该行把对话框托管在 `shell.overlay` 中，因此对话框可在任何主面板上方打开，并且比打开它的页面存活得更久。文案归 locale 所有（`customAgents` 命名空间；zh、en、ru）。
 
 <a id="understand-the-implementation"></a>
 ## 理解实现
@@ -38,7 +38,7 @@ kind: "package-reference"
 <details>
 <summary>实现内部 — 点击展开</summary>
 
-[custom-agents-store.ts](src/client/custom-agents-store.ts) 保存目录状态与对话框的打开标志；菜单条目与覆盖层读取同一个 store，因此任一表面卸载后状态仍然存活。写入通过类型化的 `customAgentPresets` remote 进行，并发出客户端 `custom-agents/changed` 事件，`ui-agent-preset` 的名册刷新订阅了该事件。[CustomAgentsModal.tsx](src/client/CustomAgentsModal.tsx) 在左侧可滚动窗格中渲染名册，中间渲染字段（含受部署门控的编排者开关与选择器可见性开关），右侧严格根据服务上报的 policy 渲染工具复选框与委派清单——表单只能提供部署白名单携带的内容。
+[custom-agents-store.ts](src/client/custom-agents-store.ts) 保存目录状态与对话框的打开标志；对话框宿主读取这一个 store，因此打开对话框的页面卸载后状态仍然存活。写入通过类型化的 `customAgentPresets` remote 进行，并发出客户端 `custom-agents/changed` 事件，`ui-agent-preset` 的名册刷新订阅了该事件。[CustomAgentsModal.tsx](src/client/CustomAgentsModal.tsx) 在左侧可滚动窗格中渲染名册，中间渲染字段（含受部署门控的编排者开关与选择器可见性开关），右侧严格根据服务上报的 policy 渲染工具复选框与委派清单——表单只能提供部署白名单携带的内容。
 
 </details>
 
@@ -46,7 +46,7 @@ kind: "package-reference"
 ## 进一步探索
 
 - [自定义 preset 服务](../../preset/agent-preset-custom/README.zh.md) — 该表面背后的持久化记录与校验。
-- [Agent-preset 表面](../ui-agent-preset/README.zh.md) — 承载本管理器条目的选择器。
+- [Agent-preset 表面](../ui-agent-preset/README.zh.md) — 提供本管理器所创建智能体的选择器。
 - [Slots](../ui-slots/README.zh.md) — 本包填充的插槽契约。
 
 <a id="model-experience"></a>
@@ -71,6 +71,6 @@ kind: "package-reference"
 <details>
 <summary>维护者工作上下文 — 点击展开</summary>
 
-对话框不能由挂载在选择器菜单内部的组件打开：关闭菜单会卸载菜单的子节点。今后任何打开对话框的写入路径都必须经过插件作用域中 controller 的 `openManager()`。
+页面通过渲染该 Factory 来承载入口，绝不自行挂载对话框。任何打开对话框的路径都必须经过插件作用域中 controller 的 `openManager()`；覆盖层条目读取同一个 store。
 
 </details>

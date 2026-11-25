@@ -1,6 +1,6 @@
 /** Client store for the custom-agent manager: one catalog load and CRUD writes. */
-// Type-only: pulls the ui-agent-preset merges (the picker action slot and the
-// custom-agents/changed event) into this program.
+// Type-only: pulls the ui-agent-preset Events merge (the custom-agents/changed
+// event) into this program.
 import type {} from '@deepseek-ai/dsh-client-ui-agent-preset/client'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
@@ -13,13 +13,15 @@ export interface CustomAgentsState {
   policy: CustomAgentPolicy | undefined
   saving: boolean
   error: string | undefined
-  /** Whether the manager dialog is showing; lives here so it outlives the picker menu. */
+  /** Whether the manager dialog is showing; lives here so it outlives the entry that opened it. */
   modalOpen: boolean
   /** Bumped on every open; keys the dialog so each open mounts a fresh form. */
   openSeq: number
+  /** The agent a page asked the dialog to open on; undefined opens a blank create. */
+  editId?: string | undefined
 }
 
-const INITIAL: CustomAgentsState = { status: 'idle', agents: [], policy: undefined, saving: false, error: undefined, modalOpen: false, openSeq: 0 }
+const INITIAL: CustomAgentsState = { status: 'idle', agents: [], policy: undefined, saving: false, error: undefined, modalOpen: false, openSeq: 0, editId: undefined }
 
 /** Outcome of one write, for the form's error surface. */
 export type WriteOutcome =
@@ -28,21 +30,24 @@ export type WriteOutcome =
 
 /** Loads the catalog and performs CRUD through the typed remote. */
 export class CustomAgentsController {
-  /** Manager snapshot the menu entry and the overlay both subscribe to. */
+  /** Manager snapshot the overlay subscribes to. */
   readonly store: SnapshotStore<CustomAgentsState> = createSnapshotStore(INITIAL)
 
   constructor(private readonly ctx: ClientContext) {}
 
-  /** Show the manager dialog with a fresh form; the picker menu entry calls this before dismissing itself. */
-  openManager(): void {
+  /**
+   * Show the manager dialog with a fresh form and read the catalog behind it.
+   * @param editId - roster id of the agent to open in edit mode; omitted opens a blank create.
+   */
+  openManager(editId?: string): void {
     const previous = this.store.getSnapshot()
-    this.store.set({ ...previous, modalOpen: true, openSeq: previous.openSeq + 1 })
+    this.store.set({ ...previous, modalOpen: true, openSeq: previous.openSeq + 1, editId })
     void this.load()
   }
 
-  /** Hide the manager dialog. */
+  /** Hide the manager dialog and drop the edit request that came with it. */
   closeManager(): void {
-    this.store.set({ ...this.store.getSnapshot(), modalOpen: false })
+    this.store.set({ ...this.store.getSnapshot(), modalOpen: false, editId: undefined })
   }
 
   /** Read the catalog; an unreachable remote marks the manager unavailable, not empty. */

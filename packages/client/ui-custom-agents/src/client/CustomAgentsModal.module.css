@@ -151,9 +151,11 @@
   line-height: 18px;
 }
 
+/* The destructive outline: red ink, a lighter red stroke, a faint red hover fill. */
 .removeButton {
   color: var(--dsw-alias-state-error-primary);
-  --dsh-button-outline-color: var(--dsw-alias-state-error-primary);
+  --dsh-button-outline-color: color-mix(in srgb, var(--dsw-alias-state-error-primary) 30%, transparent);
+  --dsh-alias-interactive-bg-hover: color-mix(in srgb, var(--dsw-alias-state-error-primary) 8%, transparent);
 }
 
 .form {
