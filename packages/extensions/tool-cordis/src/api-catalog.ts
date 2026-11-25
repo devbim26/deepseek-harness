@@ -2452,7 +2452,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       {
         signature: 'create(agent: Agent, request: PdfReportCreateRequest, signal: AbortSignal): Promise<PdfReportResult>',
         description: 'Assemble and write one report through the same filesystem and attachment policy as `pdf_report`.',
-        parameters: [{ name: 'agent', description: 'exact live owning Agent.' }, { name: 'request', description: 'output path, title, blocks, and optional policy actor.' }, { name: 'signal', description: 'cancellation for path resolution, image collection, and writing.' }],
+        parameters: [{ name: 'agent', description: 'exact live owning Agent.' }, { name: 'request', description: 'output path, title, blocks, optional skipped-image appendix, and optional policy actor.' }, { name: 'signal', description: 'cancellation for path resolution, image collection, and writing.' }],
         returns: 'canonical path, size, page count, and image outcomes.',
       },
     ],
@@ -6342,6 +6342,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface ClientArtifactBaseline {\n    readonly path: string;\n    readonly mtimeMs: number;\n    readonly ctimeMs: number;\n    readonly size: number;\n}',
   },
   {
+    name: 'CodeBlock',
+    declaration: 'export interface CodeBlock {\n    type: \'code\';\n    text: string;\n}',
+  },
+  {
     name: 'CollectedOutput',
     declaration: 'export interface CollectedOutput {\n    text: string;\n    truncated: boolean;\n    spillPath?: string;\n}',
   },
@@ -8163,7 +8167,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'PdfReportCreateRequest',
-    declaration: 'export interface PdfReportCreateRequest {\n    readonly filePath: string;\n    readonly title?: string;\n    readonly blocks: readonly ReportBlock[];\n    readonly actor?: object | undefined;\n}',
+    declaration: 'export interface PdfReportCreateRequest {\n    readonly filePath: string;\n    readonly title?: string;\n    readonly blocks: readonly ReportBlock[];\n    readonly includeSkippedImagesAppendix?: boolean;\n    readonly actor?: object | undefined;\n}',
   },
   {
     name: 'PdfReportResult',
@@ -8671,7 +8675,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'ReportBlock',
-    declaration: 'export type ReportBlock = {\n    type: \'text\';\n    heading?: string;\n    text: string;\n} | {\n    type: \'image\';\n    callId: string;\n    caption?: string;\n} | {\n    type: \'table\';\n    header: string[];\n    rows: string[][];\n};',
+    declaration: 'export type ReportBlock = {\n    type: \'text\';\n    heading?: string;\n    text: string;\n} | CodeBlock | {\n    type: \'image\';\n    callId: string;\n    caption?: string;\n} | {\n    type: \'table\';\n    header: string[];\n    rows: string[][];\n};',
   },
   {
     name: 'RequestContext',

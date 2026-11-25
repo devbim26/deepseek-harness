@@ -2,15 +2,20 @@
 
 import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import { SESSION_LOG_EXPORT_ROUTE } from '../routes.ts'
+import { SESSION_LOG_EXPORT_ROUTE, SESSION_PDF_REPORT_ROUTE } from '../routes.ts'
 
 /** Download phases presented by the shared modal. */
 export type SessionLogDownloadStatus = 'downloading' | 'success' | 'error'
+
+/** Document kinds the Session Header can export. */
+export type SessionDocumentKind = 'zip' | 'pdf'
 
 /** One Session's current download-dialog state. */
 export interface SessionLogDownloadEntry {
   /** Initiation order of this operation; repeated in-flight requests keep it. */
   readonly order: number
+  /** Document kind this operation produces. */
+  readonly kind: SessionDocumentKind
   readonly open: boolean
   readonly status: SessionLogDownloadStatus
   readonly error: string | null
@@ -34,6 +39,15 @@ const INITIAL: SessionLogDownloadState = { bySession: {} }
  */
 export function sessionLogZipFilename(sessionId: SessionId): string {
   return `dsh-session-${String(sessionId).replace(/[^A-Za-z0-9_-]/g, '_')}.zip`
+}
+
+/**
+ * Build the browser download filename of one Session report.
+ * @param sessionId - Session whose report is downloaded.
+ * @returns one safe browser download filename.
+ */
+export function sessionPdfFilename(sessionId: SessionId): string {
+  return `dsh-session-${String(sessionId).replace(/[^A-Za-z0-9_-]/g, '_')}-report.pdf`
 }
 
 /**
@@ -63,7 +77,7 @@ export class SessionLogDownloadController {
   private nextOrder = 0
 
   /**
-   * @param fetcher - HTTP carrier used to read the host-streamed ZIP.
+   * @param fetcher - HTTP carrier used to read the host-streamed document.
    * @param save - browser save operation.
    */
   constructor(
@@ -78,19 +92,21 @@ export class SessionLogDownloadController {
    * @returns after the browser save starts, an error state is published, or a late post-disposal request is ignored.
    */
   download(sessionId: SessionId): Promise<void> {
-    const existing = this.active.get(sessionId)
-    if (existing !== undefined) return existing.done
-    if (this.disposed) return Promise.resolve()
-    const abort = new AbortController()
-    const done = this.run(sessionId, abort.signal, this.nextOrder++).finally(() => {
-      this.active.delete(sessionId)
-    })
-    this.active.set(sessionId, { abort, done })
-    return done
+    return this.start(sessionId, 'zip')
   }
 
   /**
-   * Close one Session's dialog without cancelling an in-flight browser download.
+   * Download one PDF report of the live Session; concurrent gestures for the same
+   * Session share the running operation, whatever document kind it produces.
+   * @param sessionId - Session whose report is downloaded.
+   * @returns after the browser save starts, an error state is published, or a late post-disposal request is ignored.
+   */
+  downloadPdf(sessionId: SessionId): Promise<void> {
+    return this.start(sessionId, 'pdf')
+  }
+
+  /**
+   * Close one Session's dialog without cancelling its in-flight browser download.
    * @param sessionId - Session whose modal closes.
    */
   dismiss(sessionId: SessionId): void {
@@ -110,24 +126,42 @@ export class SessionLogDownloadController {
     await Promise.allSettled(active.map(operation => operation.done))
   }
 
-  private async run(sessionId: SessionId, signal: AbortSignal, order: number): Promise<void> {
-    this.publish(sessionId, { order, open: true, status: 'downloading', error: null })
+  private start(sessionId: SessionId, kind: SessionDocumentKind): Promise<void> {
+    const existing = this.active.get(sessionId)
+    if (existing !== undefined) return existing.done
+    if (this.disposed) return Promise.resolve()
+    const abort = new AbortController()
+    const done = this.run(sessionId, kind, abort.signal, this.nextOrder++).finally(() => {
+      this.active.delete(sessionId)
+    })
+    this.active.set(sessionId, { abort, done })
+    return done
+  }
+
+  private async run(
+    sessionId: SessionId,
+    kind: SessionDocumentKind,
+    signal: AbortSignal,
+    order: number,
+  ): Promise<void> {
+    this.publish(sessionId, { order, kind, open: true, status: 'downloading', error: null })
     try {
-      const query = new URLSearchParams({ sessionId, includeDescendants: 'true' })
-      const route = `${SESSION_LOG_EXPORT_ROUTE}?${query.toString()}`
+      const route = kind === 'zip'
+        ? `${SESSION_LOG_EXPORT_ROUTE}?${new URLSearchParams({ sessionId, includeDescendants: 'true' }).toString()}`
+        : `${SESSION_PDF_REPORT_ROUTE}?${new URLSearchParams({ sessionId }).toString()}`
       const response = await this.fetcher(route, { method: 'HEAD', signal })
       if (!response.ok) {
         const detail = await response.text().catch(() => '')
         throw new Error(`Export failed: HTTP ${response.status}${detail === '' ? '' : ` ${detail}`}`)
       }
       if (signal.aborted) return
-      this.save(route, sessionLogZipFilename(sessionId))
+      this.save(route, kind === 'zip' ? sessionLogZipFilename(sessionId) : sessionPdfFilename(sessionId))
       const open = this.store.getSnapshot().bySession[String(sessionId)]?.open ?? true
-      this.publish(sessionId, { order, open, status: 'success', error: null })
+      this.publish(sessionId, { order, kind, open, status: 'success', error: null })
     } catch (error: unknown) {
       if (signal.aborted) return
       const open = this.store.getSnapshot().bySession[String(sessionId)]?.open ?? true
-      this.publish(sessionId, { order, open, status: 'error', error: messageOf(error) })
+      this.publish(sessionId, { order, kind, open, status: 'error', error: messageOf(error) })
     }
   }
 

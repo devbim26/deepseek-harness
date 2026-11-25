@@ -909,7 +909,7 @@ Declared to an Agent from the step after it successfully loads an Office skill, 
 
 ### `pdf_report`
 
-Assemble a PDF report file in the working directory from text sections, tables, and images that earlier tool calls returned, such as drawing sheet images. Blocks render in order. Every image block carries the call id of your own earlier tool call whose result showed the image: the id attached to that tool call entry in this conversation, for example a drawing get_crop call. If you no longer see which call carried an image, request the crop again and pass the fresh call id. Pass tabular data as table blocks: they render as styled tables with a header row, zebra rows, and column widths fitted to the content, never as plain text. After the file is written, declare it to the user with the present tool. Use it when the user asks for a PDF document; prefer your final response when plain text suffices.
+Assemble a PDF report file in the working directory from text sections, tables, and images that earlier tool calls returned, such as drawing sheet images. Blocks render in order. Every image block carries the call id of your own earlier tool call whose result showed the image: the id attached to that tool call entry in this conversation, for example a drawing get_crop call. If you no longer see which call carried an image, request the crop again and pass the fresh call id. Pass tabular data as table blocks: they render as styled tables with a header row, zebra rows, and column widths fitted to the content, never as plain text. Mark the key facts, figures, and conclusions with ==...== so they print on a yellow band: inside text, or in a table cell, which then takes the band as a whole. Mark sparingly and never a whole sentence. After the file is written, declare it to the user with the present tool. Use it when the user asks for a PDF document; prefer your final response when plain text suffices.
 
 ```json
 {
@@ -942,7 +942,7 @@ Assemble a PDF report file in the working directory from text sections, tables, 
               },
               "text": {
                 "type": "string",
-                "description": "Body text; newlines start new paragraphs."
+                "description": "Body text. Every line is its own paragraph and an empty line separates paragraphs. It renders a small Markdown subset: #, ##, and ### headings, \"- \" and \"1. \" list items, pipe tables with a --- separator row, **bold**, and ==text== on a yellow band."
               }
             },
             "required": [
@@ -960,7 +960,7 @@ Assemble a PDF report file in the working directory from text sections, tables, 
               },
               "header": {
                 "type": "array",
-                "description": "Column titles; their count fixes the column layout.",
+                "description": "Column titles without inline markers; their count fixes the column layout.",
                 "items": {
                   "type": "string"
                 }
@@ -971,7 +971,8 @@ Assemble a PDF report file in the working directory from text sections, tables, 
                 "items": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Cell text without inline markers; a cell that carries ==...== prints on the yellow band."
                   }
                 }
               }

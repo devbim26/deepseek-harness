@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "Exportação de log de sessão",
-    "description": "Fornece comandos de exportação de log de sessão e funções de download."
+    "description": "Fornece comandos de exportação e downloads: um arquivo ZIP, uma transcrição Markdown e um relatório PDF da sessão ativa."
   }
 }

@@ -913,7 +913,7 @@ Agent 成功加载 Office 技能后，从下一步起向其声明这些工具；
 
 ### `pdf_report`
 
-把 PDF 报告文件组装到工作目录中，内容为文本小节、表格和先前工具调用返回的图像，例如图纸页图像。块按顺序渲染。每个图像块携带你自己先前工具调用的 call id——该调用的结果展示了这张图像：即本对话中附加在该工具调用条目上的 id，例如图纸 get_crop 调用。如果已看不到哪个调用携带了图像，请重新请求裁剪并传递新的 call id。把表格数据作为 table 块传递：它们渲染为带表头行、斑马纹行和按内容适配列宽的样式化表格，而不是纯文本。文件写入后，用 present 工具向用户声明它。当用户要求 PDF 文档时使用它；如果纯文本已足够，优先使用最终回复。
+把 PDF 报告文件组装到工作目录中，内容为文本小节、表格和先前工具调用返回的图像，例如图纸页图像。块按顺序渲染。每个图像块携带你自己先前工具调用的 call id——该调用的结果展示了这张图像：即本对话中附加在该工具调用条目上的 id，例如图纸 get_crop 调用。如果已看不到哪个调用携带了图像，请重新请求裁剪并传递新的 call id。把表格数据作为 table 块传递：它们渲染为带表头行、斑马纹行和按内容适配列宽的样式化表格，而不是纯文本。用 ==...== 标记关键事实、数字和结论，使它们打印在黄色底带上：可以在文本内部，或在表格单元格中（该单元格随之整格使用黄色底带）。少量标记，绝不标记整句。文件写入后，用 present 工具向用户声明它。当用户要求 PDF 文档时使用它；如果纯文本已足够，优先使用最终回复。
 
 ```json
 {
@@ -946,7 +946,7 @@ Agent 成功加载 Office 技能后，从下一步起向其声明这些工具；
               },
               "text": {
                 "type": "string",
-                "description": "Body text; newlines start new paragraphs."
+                "description": "Body text. Every line is its own paragraph and an empty line separates paragraphs. It renders a small Markdown subset: #, ##, and ### headings, \"- \" and \"1. \" list items, pipe tables with a --- separator row, **bold**, and ==text== on a yellow band."
               }
             },
             "required": [
@@ -964,7 +964,7 @@ Agent 成功加载 Office 技能后，从下一步起向其声明这些工具；
               },
               "header": {
                 "type": "array",
-                "description": "Column titles; their count fixes the column layout.",
+                "description": "Column titles without inline markers; their count fixes the column layout.",
                 "items": {
                   "type": "string"
                 }
@@ -975,7 +975,8 @@ Agent 成功加载 Office 技能后，从下一步起向其声明这些工具；
                 "items": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Cell text without inline markers; a cell that carries ==...== prints on the yellow band."
                   }
                 }
               }

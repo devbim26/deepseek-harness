@@ -15,3 +15,9 @@ export const SESSION_MARKDOWN_EXPORT_PATH = '/api/session.markdown'
 
 /** Browser-relative form of {@link SESSION_MARKDOWN_EXPORT_PATH}. */
 export const SESSION_MARKDOWN_EXPORT_ROUTE = SESSION_MARKDOWN_EXPORT_PATH.slice(1)
+
+/** Absolute registration path for the PDF report route. */
+export const SESSION_PDF_REPORT_PATH = '/api/session.report.pdf'
+
+/** Browser-relative form of {@link SESSION_PDF_REPORT_PATH}. */
+export const SESSION_PDF_REPORT_ROUTE = SESSION_PDF_REPORT_PATH.slice(1)

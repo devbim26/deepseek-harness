@@ -9,14 +9,19 @@
     "src/archive.ts",
     "src/index.ts",
     "src/markdown.ts",
-    "src/routes.ts"
+    "src/report-route.ts",
+    "src/routes.ts",
+    "src/session-report.ts",
+    "src/transcript.ts"
   ],
   "references": [
     { "path": "../../../vendor/cordis" },
     { "path": "../../../vendor/schemastery" },
     { "path": "../../attachment/attachment" },
     { "path": "../../util/brand" },
+    { "path": "../../core/agent" },
     { "path": "../../core/session" },
+    { "path": "../../document/tool-pdf" },
     { "path": "../../interaction/commands" },
     { "path": "../../session/session-format" },
     { "path": "../../session/session-persistence" },

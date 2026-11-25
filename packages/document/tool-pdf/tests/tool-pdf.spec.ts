@@ -205,6 +205,42 @@ describe('pdf_report', () => {
     })
   })
 
+  it('names an available call that carries one image in the singular', async () => {
+    const { ctx, owner, execute } = await compose()
+    const attachments = ctx.get('attachments')
+    if (attachments === undefined) throw new Error('attachment store missing')
+    const ref: ImageAttachmentRef = await attachments.saveImage({
+      data: PNG_1X1, mediaType: 'image/png', name: 'sheet.png',
+    })
+    owner.session.append('tool/result', {
+      turn: 1, step: 1, message: createToolResultMessage({
+        callId: ToolCallId('call-single'),
+        content: [{ type: 'image', attachment: ref }] satisfies ContentBlock[],
+        isError: false,
+      }),
+    }, { surfaceOp: 'append' })
+    const result = await execute({
+      file_path: 'report.pdf',
+      blocks: [{ type: 'image', call_id: 'call-missing' }],
+    })
+    expect(result.isError).toBe(false)
+    if (result.isError) throw new Error('pdf_report failed')
+    expect(result.value).toMatchObject({ availableImageCalls: [{ callId: 'call-single', images: 1 }] })
+    const rendered = result.content.flatMap(block => block.type === 'text' ? [block.text] : []).join('\n')
+    expect(rendered).toContain('Available image calls: call-single (1 image)')
+  })
+
+  it('fails when the report service is no longer provided', async () => {
+    const { fiber, execute } = await compose()
+    // Hide the writer from the tool's own context, as an unloaded service would.
+    const pluginCtx = Reflect.get(fiber as object, 'ctx') as { get: (name: string) => unknown }
+    const realGet: (name: string) => unknown = pluginCtx.get.bind(pluginCtx)
+    vi.spyOn(pluginCtx, 'get').mockImplementation(
+      (name: string) => name === 'pdfReports' ? undefined : realGet(name))
+    const result = await execute({ file_path: 'a.pdf', blocks: [{ type: 'text', text: 'x' }] })
+    expect(result.isError).toBe(true)
+  })
+
   it('creates nested output folders before writing', async () => {
     const { root, execute } = await compose()
     const result = await execute({
@@ -247,8 +283,11 @@ describe('pdf_report', () => {
   })
 
   it('validates assembly limits loudly at apply time', () => {
-    expect(() => ToolPdf.apply(new Context(), { maxImages: 0, maxImageBytes: 1 })).toThrow('positive integer maxImages')
-    expect(() => ToolPdf.apply(new Context(), { maxImages: 1, maxImageBytes: 0 })).toThrow('positive integer maxImageBytes')
+    const mount = (limits: { maxImages: number; maxImageBytes: number }): void => {
+      ToolPdf.apply(new Context(), limits)
+    }
+    expect(() => { mount({ maxImages: 0, maxImageBytes: 1 }) }).toThrow('positive integer maxImages')
+    expect(() => { mount({ maxImages: 1, maxImageBytes: 0 }) }).toThrow('positive integer maxImageBytes')
   })
 
   it('rejects blank call ids and unsupported block discriminants', async () => {

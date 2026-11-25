@@ -18,7 +18,12 @@ import {
   type SessionLogExportReady,
 } from './archive.ts'
 import { formatSessionMarkdown } from './markdown.ts'
-import { SESSION_LOG_EXPORT_PATH, SESSION_MARKDOWN_EXPORT_PATH } from './routes.ts'
+import { resolveReportDirectory, sessionPdfResponse } from './report-route.ts'
+import {
+  SESSION_LOG_EXPORT_PATH,
+  SESSION_MARKDOWN_EXPORT_PATH,
+  SESSION_PDF_REPORT_PATH,
+} from './routes.ts'
 
 export {
   DEFAULT_SESSION_LOG_COMPRESSION_LEVEL,
@@ -44,16 +49,27 @@ export const inject = ['commands', 'connection']
 
 export { SESSION_LOG_EXPORT_PATH } from './routes.ts'
 
-/** Session-log archive policy. */
+/** Session-relative directory receiving generated PDF reports. */
+const DEFAULT_REPORT_DIRECTORY = 'reports'
+/** Maximum number of text characters one PDF report may carry. */
+const DEFAULT_MAX_REPORT_CHARS = 200_000
+
+/** Session-log archive and report policy. */
 export interface Config {
   /** DEFLATE level for each ZIP entry. @default 6 */
   readonly compressionLevel?: SessionLogCompressionLevel
+  /** Session-relative directory receiving generated PDF reports. @default reports */
+  readonly reportDirectory?: string
+  /** Maximum number of text characters one PDF report may carry. @default 200000 */
+  readonly maxReportChars?: number
 }
 
 /** Validate Session-log archive configuration. */
 export const Config: Schema<Config> = Schema.object({
   compressionLevel: Schema.number().step(1).min(0).max(9)
     .default(DEFAULT_SESSION_LOG_COMPRESSION_LEVEL) as Schema<SessionLogCompressionLevel>,
+  reportDirectory: Schema.string().default(DEFAULT_REPORT_DIRECTORY),
+  maxReportChars: Schema.number().step(1).min(1).max(10_000_000).default(DEFAULT_MAX_REPORT_CHARS),
 })
 
 interface SessionLogConnection {
@@ -72,12 +88,20 @@ const REQUESTED: CommandResult = {
   text: 'Session log download requested.',
 }
 
+const REPORT_REQUESTED: CommandResult = {
+  kind: 'success',
+  text: 'Session PDF report download requested.',
+}
+
 /**
- * Register the `/export` command and authenticated ZIP download and Markdown copy routes.
+ * Register the `/export` and `/report` commands and the authenticated ZIP,
+ * Markdown, and PDF report Fetch routes.
  * @param ctx - Host context carrying the human-command registry.
- * @param config - resolved compression policy.
+ * @param config - resolved archive and report policy.
  */
 export function apply(ctx: Context, config: Config = {}): void {
+  const reportDirectory = resolveReportDirectory(config.reportDirectory ?? DEFAULT_REPORT_DIRECTORY)
+  const maxReportChars = config.maxReportChars ?? DEFAULT_MAX_REPORT_CHARS
   ctx.effect(() => ctx.commands.register({
     definitionId: brandString<CommandDefinitionId>('@deepseek-ai/dsh-session-log-export'),
     name: 'export',
@@ -86,6 +110,14 @@ export function apply(ctx: Context, config: Config = {}): void {
       ? REQUESTED
       : { kind: 'error', text: 'The Web /export command does not accept a path.' }),
   }), 'session-log-download: command')
+  ctx.effect(() => ctx.commands.register({
+    definitionId: brandString<CommandDefinitionId>('@deepseek-ai/dsh-session-log-export/report'),
+    name: 'report',
+    description: 'Download a PDF report of this Session',
+    handler: invocation => Promise.resolve(invocation.rawInput.trim() === ''
+      ? REPORT_REQUESTED
+      : { kind: 'error', text: 'The Web /report command does not accept arguments.' }),
+  }), 'session-log-download: report command')
   connectionOf(ctx).fetch.register({
     path: SESSION_LOG_EXPORT_PATH,
     methods: ['GET', 'HEAD'],
@@ -107,6 +139,17 @@ export function apply(ctx: Context, config: Config = {}): void {
     requestBody: 'buffered',
     fetch: async (request) => {
       const response = await sessionMarkdownResponse(ctx, request)
+      if (request.method === 'GET') return response
+      await response.body?.cancel()
+      return new Response(null, { status: response.status, headers: response.headers })
+    },
+  })
+  connectionOf(ctx).fetch.register({
+    path: SESSION_PDF_REPORT_PATH,
+    methods: ['GET', 'HEAD'],
+    requestBody: 'buffered',
+    fetch: async (request) => {
+      const response = await sessionPdfResponse(ctx, request, { reportDirectory, maxReportChars })
       if (request.method === 'GET') return response
       await response.body?.cancel()
       return new Response(null, { status: response.status, headers: response.headers })

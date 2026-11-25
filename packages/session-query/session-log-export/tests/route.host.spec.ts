@@ -96,12 +96,21 @@ describe('Session log export Fetch route', () => {
     await dispose()
   })
 
-  it('validates the compression level', () => {
-    expect(Config({})).toEqual({ compressionLevel: 6 })
-    expect(Config({ compressionLevel: 0 })).toEqual({ compressionLevel: 0 })
-    expect(Config({ compressionLevel: 9 })).toEqual({ compressionLevel: 9 })
+  it('validates the compression level and the report limits', () => {
+    expect(Config({})).toEqual({
+      compressionLevel: 6,
+      reportDirectory: 'reports',
+      maxReportChars: 200000,
+    })
+    expect(Config({ compressionLevel: 0 })).toMatchObject({ compressionLevel: 0 })
+    expect(Config({ compressionLevel: 9 })).toMatchObject({ compressionLevel: 9 })
     for (const compressionLevel of [-1, 10, 1.5]) {
       expect(() => Config({ compressionLevel } as never)).toThrow()
+    }
+    expect(Config({ reportDirectory: 'out' })).toMatchObject({ reportDirectory: 'out' })
+    expect(Config({ maxReportChars: 10 })).toMatchObject({ maxReportChars: 10 })
+    for (const maxReportChars of [0, -1, 1.5]) {
+      expect(() => Config({ maxReportChars })).toThrow()
     }
   })
 })

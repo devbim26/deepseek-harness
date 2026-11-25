@@ -1,5 +1,6 @@
 {
   "meta": {
-    "title": "session-log-export"
+    "title": "session-log-export",
+    "description": "Session export commands and downloads: a ZIP archive, a Markdown transcript, and a PDF report of the live session."
   }
 }

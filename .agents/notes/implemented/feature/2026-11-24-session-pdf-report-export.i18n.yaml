@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-24-session-pdf-report-export.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-11-24-session-pdf-report-export.md
+/agent-note-interactive-session-pdf-report:
+  en: 59c6f4e59d390d56
+  zh: 508f484f7a8df5ad
+/agent-note-interactive-session-pdf-report/problem:
+  en: 20e3503fd27d0f5a
+  zh: fb74b29751627259
+/agent-note-interactive-session-pdf-report/decision:
+  en: 0ebd67cc24f28176
+  zh: 860f0c99b952cc14
+/agent-note-interactive-session-pdf-report/alternatives-considered:
+  en: 4e4af248916c2918
+  zh: 55baba234f90fe46
+/agent-note-interactive-session-pdf-report/consequences:
+  en: 36da749a29340c2f
+  zh: a0e88aeb546b18b5
+/agent-note-interactive-session-pdf-report/testing:
+  en: 34126c6c3c38f992
+  zh: f11b53c1e151bbf2

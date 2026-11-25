@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "PDF-Berichtswerkzeug",
-    "description": "Stellt PDF-Berichtsdateien im Arbeitsverzeichnis aus Textabschnitten und Bildern zusammen, die frühere Werkzeugaufrufe erfasst haben."
+    "description": "Stellt PDF-Berichtsdateien im Arbeitsverzeichnis aus Textabschnitten und Bildern früherer Werkzeugaufrufe zusammen und stellt denselben Writer als programmatische Laufzeit bereit."
   }
 }

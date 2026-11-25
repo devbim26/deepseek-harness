@@ -123,12 +123,37 @@ describe('SessionLogDownloadDialog', () => {
     act(() => {
       b.controller.store.set({ bySession: {
         missing: undefined,
-        [SID]: { order: 0, open: true, status: 'error', error: '' },
+        [SID]: { order: 0, kind: 'zip', open: true, status: 'error', error: '' },
       } })
     })
     expect(b.view.getByRole('dialog').textContent).toContain('Could not start the Session export.')
     b.view.rerender(<SessionLogDownloadDialog {...b.props} t={makeTranslate(zh)} />)
     expect(b.view.getByRole('dialog').textContent).toContain(`Session：${SID}`)
     expect(b.view.getByRole('dialog').textContent).toContain(zh['dialog.commandFailed'])
+  })
+
+  it('shows the report copy for a PDF operation in every phase', () => {
+    const b = bench()
+    act(() => {
+      b.controller.store.set({ bySession: {
+        [SID]: { order: 0, kind: 'pdf', open: true, status: 'downloading', error: null },
+      } })
+    })
+    expect(b.view.getByRole('dialog', { name: 'Preparing PDF report' }).textContent).toContain(SID)
+
+    act(() => {
+      b.controller.store.set({ bySession: {
+        [SID]: { order: 0, kind: 'pdf', open: true, status: 'success', error: null },
+      } })
+    })
+    expect(b.view.getByRole('dialog', { name: 'PDF report download started' }).textContent).toContain(SID)
+
+    act(() => {
+      b.controller.store.set({ bySession: {
+        [SID]: { order: 0, kind: 'pdf', open: true, status: 'error', error: '' },
+      } })
+    })
+    expect(b.view.getByRole('dialog', { name: 'PDF report export failed' }).textContent)
+      .toContain('Could not start the PDF report export.')
   })
 })

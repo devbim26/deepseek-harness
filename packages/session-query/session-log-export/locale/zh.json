@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "会话日志导出",
-    "description": "提供会话日志导出命令和下载功能。"
+    "description": "提供会话导出命令和下载功能：ZIP 压缩包、Markdown 记录和当前会话的 PDF 报告。"
   }
 }

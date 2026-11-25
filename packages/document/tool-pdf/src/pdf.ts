@@ -1,15 +1,19 @@
 /**
  * Pure A4 PDF assembly: ordered text, table, and image blocks on paginated
- * pages with embedded Cyrillic-capable fonts. No filesystem, service, or
- * Session access.
+ * pages with embedded Cyrillic-capable fonts. A text block takes the Markdown
+ * subset of `./markdown.ts`; a code block prints its lines as written. No
+ * filesystem, service, or Session access.
  * @module @deepseek-ai/dsh-tool-pdf/pdf
  */
 
+import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import fontkit from '@pdf-lib/fontkit'
 import {
   PDFDocument, rgb, type Color, type PDFFont, type PDFImage, type PDFPage,
 } from 'pdf-lib'
+import { codeLines } from './code.ts'
+import { isHighlightedCell, parseTextBlock, stripInlineMarks, type InlineRun } from './markdown.ts'
 import type { ReportBlock, ReportImage } from './types.ts'
 
 /** A4 portrait in PDF points. */
@@ -55,10 +59,50 @@ const GRID_COLOR = rgb(0.60, 0.60, 0.60)
 const GRID_WIDTH = 0.5
 /** Content length cap per measured cell, so one long cell cannot hog the width. */
 const MEASURE_CAP = 80
+/** Yellow band drawn under `==…==` text in a text block and the fill of a table cell that carries such a mark. */
+export const HIGHLIGHT_FILL = rgb(1, 0.93, 0.42)
+/** Horizontal padding of a highlight band beyond its marked words. */
+const HIGHLIGHT_PAD_X = 1.5
+/** A highlight band's extent below the baseline, as a fraction of the font size. */
+const HIGHLIGHT_DESCENT = 0.2
+/** A highlight band's height, as a fraction of the font size. */
+const HIGHLIGHT_HEIGHT = 1.05
+/** Bold size of each Markdown heading level inside a text block. */
+export const HEADING_SIZES = { 1: 15, 2: 13, 3: 12 } as const
+/** Indent of a list item's text from the margin; a wider marker pushes it further. */
+const LIST_INDENT = 18
+/** Least space between a list marker and the item text. */
+const LIST_MARKER_GAP = 4
+/** Vertical space between a list and the fragments above and below it. */
+const LIST_GAP = 6
 
 type FontFile = 'NotoSans-Regular.ttf' | 'NotoSans-Bold.ttf'
 
 const fontCache = new Map<FontFile, Promise<Uint8Array>>()
+
+/**
+ * Locate one vendored font from the calling module's layout. The fonts ship at
+ * the package root (`assets/fonts`), while the calling module may be a source
+ * file (`src`), Host tsc output one level deeper (`lib/types`), or the bundled
+ * loader entry (`lib`) — so climb to the nearest ancestor holding the fonts
+ * rather than fixing a relative hop.
+ * @param file - vendored Noto Sans face.
+ * @param moduleUrl - `import.meta.url` of the calling module.
+ * @returns the font's URL.
+ * @throws Error when no ancestor carries `assets/fonts`.
+ */
+export function fontUrlFrom(file: FontFile, moduleUrl: string | URL): URL {
+  let directory = new URL('.', moduleUrl)
+  for (;;) {
+    const font = new URL(`assets/fonts/${file}`, directory)
+    if (existsSync(font)) return font
+    const parent = new URL('..', directory)
+    if (parent.href === directory.href) {
+      throw new Error(`pdf_report font ${file} is missing: no ancestor of ${decodeURI(String(moduleUrl))} carries assets/fonts`)
+    }
+    directory = parent
+  }
+}
 
 /**
  * Read one vendored font once per process.
@@ -68,7 +112,7 @@ const fontCache = new Map<FontFile, Promise<Uint8Array>>()
 function fontBytes(file: FontFile): Promise<Uint8Array> {
   let cached = fontCache.get(file)
   if (cached === undefined) {
-    cached = readFile(new URL(`../assets/fonts/${file}`, import.meta.url))
+    cached = readFile(fontUrlFrom(file, import.meta.url))
     fontCache.set(file, cached)
   }
   return cached
@@ -106,6 +150,40 @@ class PageCursor {
   }
 
   /**
+   * Draw one wrapped line of styled words, starting a new page when the line
+   * leaves the margin. The highlight bands are drawn first, so the words lie
+   * on them.
+   * @param words - One line as `wrapWords` returned it.
+   * @param regular - Embedded regular face for non-bold words and for the marker.
+   * @param bold - Embedded bold face for bold words.
+   * @param size - Point size.
+   * @param leading - Vertical advance consumed even when a page breaks first.
+   * @param line - A marker drawn at the margin beside the words, and the words' indent from the margin.
+   */
+  drawWords(
+    words: readonly StyledWord[],
+    regular: PDFFont,
+    bold: PDFFont,
+    size: number,
+    leading: number,
+    line: { marker?: string; indent?: number } = {},
+  ): void {
+    if (this.y - leading < MARGIN) this.newPage()
+    const baseline = this.y - size
+    const placed = placeWords(words, regular, bold, size, MARGIN + (line.indent ?? 0))
+    for (const band of highlightBands(placed, baseline, size)) {
+      this.page.drawRectangle({ ...band, color: HIGHLIGHT_FILL })
+    }
+    if (line.marker !== undefined) {
+      this.page.drawText(line.marker, { x: MARGIN, y: baseline, size, font: regular, color: TEXT_COLOR })
+    }
+    for (const { word, x } of placed) {
+      this.page.drawText(word.text, { x, y: baseline, size, font: word.bold ? bold : regular, color: TEXT_COLOR })
+    }
+    this.y -= leading
+  }
+
+  /**
    * Draw one embedded image fit into its computed box, breaking the page first.
    * @param embedded - the embedded image.
    * @param width - drawn width.
@@ -132,7 +210,8 @@ class PageCursor {
       for (const cell of row.cells) {
         this.page.drawRectangle({
           x, y: top - row.height, width: cell.width, height: row.height,
-          color: fill, borderColor: GRID_COLOR, borderWidth: GRID_WIDTH,
+          color: cell.highlight && row !== layout.header ? HIGHLIGHT_FILL : fill,
+          borderColor: GRID_COLOR, borderWidth: GRID_WIDTH,
         })
         for (const [k, line] of cell.lines.entries()) {
           this.page.drawText(line, {
@@ -243,10 +322,173 @@ function hardBreak(word: string, font: PDFFont, size: number, width: number): st
   return chunks
 }
 
+/** One wrappable word of a styled line, carrying the emphasis of the run it came from. */
+export interface StyledWord {
+  /** The word's text without whitespace. */
+  text: string
+  /** The word renders in the bold face. */
+  bold: boolean
+  /** The word renders on a highlight band. */
+  mark: boolean
+  /** Whitespace separated this word from the previous one in the source line. */
+  gapBefore: boolean
+}
+
+/** A word placed on its line. */
+export interface PlacedWord {
+  readonly word: StyledWord
+  /** Distance from the line's left edge to the word's first glyph. */
+  readonly x: number
+  /** The word's advance width in its own face. */
+  readonly width: number
+}
+
+/** A highlight band rectangle in page coordinates. */
+export interface HighlightBand {
+  readonly x: number
+  readonly y: number
+  readonly width: number
+  readonly height: number
+}
+
+/** Split inline runs into words, keeping where the source line had whitespace. */
+function wordsOf(runs: readonly InlineRun[]): StyledWord[] {
+  const words: StyledWord[] = []
+  let spaced = false
+  for (const run of runs) {
+    for (const [index, piece] of run.text.split(/(\s+)/).entries()) {
+      if (index % 2 === 1) spaced = true
+      else if (piece.length > 0) {
+        words.push({ text: piece, bold: run.bold, mark: run.mark, gapBefore: spaced })
+        spaced = false
+      }
+    }
+  }
+  return words
+}
+
+/**
+ * Wrap styled words into lines that fit the given width. A word wider than a
+ * full line is hard-broken by character, and every chunk keeps the word's
+ * emphasis on a line of its own.
+ * @param words - The words of one paragraph, heading, or list item.
+ * @param regular - Embedded regular face; a non-bold word is measured in it.
+ * @param bold - Embedded bold face; a bold word is measured in it.
+ * @param size - Point size.
+ * @param width - Maximum line width in points.
+ * @returns The lines of words; no words yield one empty line.
+ */
+export function wrapWords(
+  words: readonly StyledWord[],
+  regular: PDFFont,
+  bold: PDFFont,
+  size: number,
+  width: number,
+): StyledWord[][] {
+  const space = regular.widthOfTextAtSize(' ', size)
+  const lines: StyledWord[][] = []
+  let line: StyledWord[] = []
+  let used = 0
+  for (const word of words) {
+    const font = word.bold ? bold : regular
+    const wordWidth = font.widthOfTextAtSize(word.text, size)
+    if (line.length > 0) {
+      const candidate = used + (word.gapBefore ? space : 0) + wordWidth
+      if (candidate <= width) {
+        line.push(word)
+        used = candidate
+        continue
+      }
+      lines.push(line)
+      line = []
+      used = 0
+    }
+    if (wordWidth <= width) {
+      line = [word]
+      used = wordWidth
+      continue
+    }
+    for (const chunk of hardBreak(word.text, font, size, width)) {
+      lines.push([{ ...word, text: chunk }])
+    }
+  }
+  if (line.length > 0 || lines.length === 0) lines.push(line)
+  return lines
+}
+
+/**
+ * Place the words of one line from a left edge. Every word is measured in its
+ * own face, and neighbors keep one regular space only where the source had
+ * whitespace.
+ * @param words - The words of one wrapped line.
+ * @param regular - Embedded regular face; a non-bold word is measured in it.
+ * @param bold - Embedded bold face; a bold word is measured in it.
+ * @param size - Point size.
+ * @param x - Left edge of the first word in page coordinates.
+ * @returns The placed words from left to right.
+ */
+export function placeWords(
+  words: readonly StyledWord[],
+  regular: PDFFont,
+  bold: PDFFont,
+  size: number,
+  x: number,
+): PlacedWord[] {
+  const space = regular.widthOfTextAtSize(' ', size)
+  const placed: PlacedWord[] = []
+  let cursor = x
+  for (const [index, word] of words.entries()) {
+    if (index > 0 && word.gapBefore) cursor += space
+    const width = (word.bold ? bold : regular).widthOfTextAtSize(word.text, size)
+    placed.push({ word, x: cursor, width })
+    cursor += width
+  }
+  return placed
+}
+
+/**
+ * Merge the marked words of one placed line into highlight bands: neighboring
+ * marked words, with the spaces between them, form one band.
+ * @param placed - The words of one line as `placeWords` returned them.
+ * @param baseline - The line's text baseline in page coordinates.
+ * @param size - Point size of the line.
+ * @returns The bands from left to right; an unmarked line yields none.
+ */
+export function highlightBands(
+  placed: readonly PlacedWord[],
+  baseline: number,
+  size: number,
+): HighlightBand[] {
+  const band = (start: number, end: number): HighlightBand => ({
+    x: start - HIGHLIGHT_PAD_X,
+    width: end - start + HIGHLIGHT_PAD_X * 2,
+    y: baseline - size * HIGHLIGHT_DESCENT,
+    height: size * HIGHLIGHT_HEIGHT,
+  })
+  const bands: HighlightBand[] = []
+  let start: number | undefined
+  let end = 0
+  for (const { word, x, width } of placed) {
+    if (word.mark) {
+      if (start === undefined) start = x
+      end = x + width
+      continue
+    }
+    if (start === undefined) continue
+    bands.push(band(start, end))
+    start = undefined
+  }
+  if (start !== undefined) bands.push(band(start, end))
+  return bands
+}
+
 /** One laid-out table row: wrapped cell lines per column and the drawn height. */
 export interface TableRowLayout {
-  /** Per column: the wrapped lines of one cell and the column's resolved width. */
-  cells: Array<{ lines: string[]; width: number }>
+  /**
+   * Per column: the wrapped lines of one cell, the column's resolved width,
+   * and whether the cell takes the highlight fill.
+   */
+  cells: Array<{ lines: string[]; width: number; highlight: boolean }>
   /** Drawn height in points. */
   height: number
 }
@@ -263,7 +505,9 @@ export interface TableLayout {
  * Measure a table for drawing: fit column widths to the content weights and
  * wrap every cell into lines that fit its column. Ragged rows pad with empty
  * cells to the column count, which the header and the longest row fix. The
- * column widths sum to the content width.
+ * column widths sum to the content width. The inline markers of a cell are
+ * removed from its lines, and a cell that carries a `==…==` mark takes the
+ * highlight fill as a whole.
  * @param header - column titles; at least one.
  * @param rows - body rows of cell text.
  * @param bold - embedded bold face for header measurement.
@@ -290,10 +534,14 @@ export function measureTable(
     CELL_PAD_Y * 2 + CELL_SIZE
     + CELL_LEADING * (Math.max(...cells.map(lines => lines.length)) - 1)
   const rowLayout = (cells: readonly string[], font: PDFFont): TableRowLayout => {
-    const wrapped = fitted.map((width, j) => ({
-      lines: wrapToWidth(column(cells, j), font, CELL_SIZE, width - CELL_PAD_X * 2),
-      width,
-    }))
+    const wrapped = fitted.map((width, j) => {
+      const cell = column(cells, j)
+      return {
+        lines: wrapToWidth(stripInlineMarks(cell), font, CELL_SIZE, width - CELL_PAD_X * 2),
+        width,
+        highlight: isHighlightedCell(cell),
+      }
+    })
     return { cells: wrapped, height: rowHeight(wrapped.map(cell => cell.lines)) }
   }
   return {
@@ -331,9 +579,13 @@ async function drawImage(
 
 /**
  * Assemble the report PDF: the optional title, every block in document order,
- * embedded Noto Sans faces for Cyrillic text.
+ * embedded Noto Sans faces for Cyrillic text. The title, a block heading, and
+ * the table cells print without inline markers. Inside a text block every
+ * fragment after the first leaves the gap of its kind above it, and an empty
+ * line separates only two paragraphs. A code block prints every line in the
+ * regular body face as it is written, leading indentation included.
  * @param title - first-page title; omitted starts with the first block.
- * @param blocks - ordered text, table, and image blocks.
+ * @param blocks - ordered text, code, table, and image blocks.
  * @param images - decoded images in requested order; an image block embeds
  *   every entry carrying its call id, in this order.
  * @returns the encoded PDF and its page count.
@@ -349,23 +601,59 @@ export async function buildPdfReport(
   const bold = await doc.embedFont(await fontBytes('NotoSans-Bold.ttf'), { subset: true })
   const cursor = new PageCursor(doc, doc.addPage([A4.width, A4.height]), A4.height - MARGIN)
   if (title !== undefined && title.trim().length > 0) {
-    for (const line of wrapText(title, bold, TITLE_SIZE)) {
+    for (const line of wrapText(stripInlineMarks(title), bold, TITLE_SIZE)) {
       cursor.drawLine(line, bold, TITLE_SIZE, TITLE_SIZE + 6)
     }
     cursor.reserve(BLOCK_GAP)
   }
   for (const block of blocks) {
-    if (block.type === 'text') {
-      if (block.heading !== undefined && block.heading.trim().length > 0) {
-        cursor.reserve(BLOCK_GAP)
-        for (const line of wrapText(block.heading, bold, HEADING_SIZE)) {
-          cursor.drawLine(line, bold, HEADING_SIZE, HEADING_SIZE + 5)
+    if (block.type === 'code') {
+      for (const line of codeLines(block.text)) {
+        for (const wrapped of wrapWords(line, regular, bold, BODY_SIZE, CONTENT_WIDTH)) {
+          cursor.drawWords(wrapped, regular, bold, BODY_SIZE, BODY_LEADING)
         }
       }
-      for (const paragraph of block.text.split(/\r?\n/)) {
-        for (const line of wrapText(paragraph, regular, BODY_SIZE)) {
-          cursor.drawLine(line, regular, BODY_SIZE, BODY_LEADING)
+      continue
+    }
+    if (block.type === 'text') {
+      let started = false
+      if (block.heading !== undefined && block.heading.trim().length > 0) {
+        cursor.reserve(BLOCK_GAP)
+        for (const line of wrapText(stripInlineMarks(block.heading), bold, HEADING_SIZE)) {
+          cursor.drawLine(line, bold, HEADING_SIZE, HEADING_SIZE + 5)
         }
+        started = true
+      }
+      for (const fragment of parseTextBlock(block.text)) {
+        if (fragment.kind === 'heading') {
+          if (started) cursor.reserve(BLOCK_GAP)
+          const size = HEADING_SIZES[fragment.level]
+          const words = wordsOf(fragment.runs).map(word => ({ ...word, bold: true }))
+          for (const line of wrapWords(words, regular, bold, size, CONTENT_WIDTH)) {
+            cursor.drawWords(line, regular, bold, size, size + 5)
+          }
+        } else if (fragment.kind === 'paragraph') {
+          if (fragment.spaced) cursor.reserve(BODY_LEADING)
+          for (const line of wrapWords(wordsOf(fragment.runs), regular, bold, BODY_SIZE, CONTENT_WIDTH)) {
+            cursor.drawWords(line, regular, bold, BODY_SIZE, BODY_LEADING)
+          }
+        } else if (fragment.kind === 'list') {
+          if (started) cursor.reserve(LIST_GAP)
+          const indent = Math.max(LIST_INDENT, ...fragment.items.map(item =>
+            regular.widthOfTextAtSize(item.marker, BODY_SIZE) + LIST_MARKER_GAP))
+          for (const item of fragment.items) {
+            const lines = wrapWords(wordsOf(item.runs), regular, bold, BODY_SIZE, CONTENT_WIDTH - indent)
+            for (const [index, line] of lines.entries()) {
+              cursor.drawWords(line, regular, bold, BODY_SIZE, BODY_LEADING,
+                { indent, ...index === 0 ? { marker: item.marker } : {} })
+            }
+          }
+          cursor.reserve(LIST_GAP)
+        } else {
+          if (started) cursor.reserve(BLOCK_GAP)
+          cursor.drawTable(measureTable(fragment.header, fragment.rows, bold, regular), bold, regular)
+        }
+        started = true
       }
       continue
     }

@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "Outil de rapport PDF",
-    "description": "Assemble des fichiers de rapport PDF dans le répertoire de travail à partir de sections de texte et d'images capturées par des appels d'outils précédents."
+    "description": "Assemble des fichiers de rapport PDF dans le répertoire de travail à partir de sections de texte et d’images d’appels d’outils précédents, et expose le même écrivain comme runtime programmatique."
   }
 }

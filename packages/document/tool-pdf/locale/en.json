@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "PDF report tool",
-    "description": "Assembles PDF report files in the working directory from text sections and images captured by earlier tool calls."
+    "description": "Assembles PDF report files in the working directory from text sections and images captured by earlier tool calls, and provides the same writer as a programmatic runtime."
   }
 }

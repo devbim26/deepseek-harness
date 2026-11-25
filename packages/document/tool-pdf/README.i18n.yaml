@@ -3,23 +3,26 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/document/tool-pdf/README.md
 /:
-  en: 266ac1e50a39081a
-  zh: 52f935a449537673
+  en: a288aaf194e2f3d7
+  zh: 1cd0f45725018b78
 /deepseek-ai-dsh-tool-pdf:
   en: 65fc396074b3ec1d
   zh: c375bc982ea79ef4
 /deepseek-ai-dsh-tool-pdf/summary:
-  en: a6154f74a7b9d7ff
-  zh: bf5fe7a7679a3a8a
+  en: e7d6cdfd7459d31b
+  zh: f5ff90dcb3dd18d5
 /deepseek-ai-dsh-tool-pdf/table-of-contents:
   en: d152484eb41ac6b4
   zh: 09388d293f9be9cb
 /deepseek-ai-dsh-tool-pdf/use-this-package:
-  en: ff6d1fece2f5b5a8
-  zh: cb6b0266f87f3614
+  en: ef96c59a395d0ab4
+  zh: ed880014c1bb52d0
+/deepseek-ai-dsh-tool-pdf/use-this-package/programmatic-runtime:
+  en: ff9967a2a85901fa
+  zh: 3e94dd6fa0e5790e
 /deepseek-ai-dsh-tool-pdf/understand-the-implementation:
-  en: 51766bdeba053a7d
-  zh: a00f9952be2297de
+  en: 95a6ca654d429aa6
+  zh: 9255db79c39c5517
 /deepseek-ai-dsh-tool-pdf/further-exploration:
   en: a2c867d133544d5b
   zh: 0a630078a794ca23
@@ -38,9 +41,21 @@
 /deepseek-ai-dsh-tool-pdf/model-experience/pdf-report/kv-cache-effect:
   en: 6092014253f102c6
   zh: 50416a0332a5c9be
+/deepseek-ai-dsh-tool-pdf/model-experience/programmatic-runtime:
+  en: 12a4e2421580dadd
+  zh: fb50f3c169156595
+/deepseek-ai-dsh-tool-pdf/model-experience/programmatic-runtime/what-the-model-sees:
+  en: 755c671f23905b98
+  zh: ccf8dca2b87a5f0b
+/deepseek-ai-dsh-tool-pdf/model-experience/programmatic-runtime/token-effect:
+  en: 7efeb41ee1f35621
+  zh: 3e3edd21a6dfbce0
+/deepseek-ai-dsh-tool-pdf/model-experience/programmatic-runtime/kv-cache-effect:
+  en: 056db6bcdabe9af2
+  zh: 275518c7763f2ffc
 /deepseek-ai-dsh-tool-pdf/known-limitations-and-deferred-work:
-  en: ddcc0e7b9a3f94db
-  zh: b10f1c85bb20d656
+  en: c407fadbe9eb0351
+  zh: 07f92673cc9ea024
 /deepseek-ai-dsh-tool-pdf/known-limitations-and-deferred-work/dev-note:
   en: 7d4f9c787de7287b
   zh: 135bfe9e74304cf8

@@ -8,8 +8,13 @@ export interface PdfReportCreateRequest {
   readonly filePath: string
   /** Optional title printed at the top of the first page. */
   readonly title?: string
-  /** Ordered text, table, and image blocks. */
+  /** Ordered text, code, table, and image blocks. */
   readonly blocks: readonly ReportBlock[]
+  /**
+   * Append a section naming every requested image the report could not embed
+   * and the reason. Without it the document keeps exactly the requested blocks.
+   */
+  readonly includeSkippedImagesAppendix?: boolean
   /** Opaque filesystem-policy actor; omitted uses an actor bound to this Agent. */
   readonly actor?: object | undefined
 }
@@ -19,7 +24,7 @@ export interface PdfReports {
   /**
    * Assemble and write one report through the same filesystem and attachment policy as `pdf_report`.
    * @param agent - exact live owning Agent.
-   * @param request - output path, title, blocks, and optional policy actor.
+   * @param request - output path, title, blocks, optional skipped-image appendix, and optional policy actor.
    * @param signal - cancellation for path resolution, image collection, and writing.
    * @returns canonical path, size, page count, and image outcomes.
    */
@@ -60,9 +65,22 @@ export interface AvailableImageCall {
   images: number
 }
 
+/**
+ * One verbatim code block. Every line prints as it is written, so no heading,
+ * list, table, or inline mark is read from the code. Only programmatic callers
+ * pass it; the `pdf_report` tool schema does not offer it.
+ */
+export interface CodeBlock {
+  /** Discriminant: a code block. */
+  type: 'code'
+  /** Code text; `\n` or `\r\n` separates lines. */
+  text: string
+}
+
 /** One ordered report block; the document renders blocks in array order. */
 export type ReportBlock =
   | { type: 'text'; heading?: string; text: string }
+  | CodeBlock
   | { type: 'image'; callId: string; caption?: string }
   | { type: 'table'; header: string[]; rows: string[][] }
 

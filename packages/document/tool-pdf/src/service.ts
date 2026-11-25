@@ -9,28 +9,53 @@ import type {} from '@deepseek-ai/dsh-working-directory'
 import { buildPdfReport } from './pdf.ts'
 import { collectReportImages, type RequestedImage } from './session-images.ts'
 import type {
-  AvailableImageCall, PdfReportCreateRequest, PdfReportResult, PdfReports,
-  ReportBlock, SkippedImage,
+  PdfReportCreateRequest, PdfReportResult, PdfReports, ReportBlock, SkippedImage,
 } from './types.ts'
-import type { Config } from './index.ts'
+import type { PdfReportLimits } from './config.ts'
 
 /** Resolve the observation actor explicitly for tool and direct-host callers. */
 function reportActor(agent: Agent, actor: object | undefined): object {
   return actor === undefined ? { agent } : actor
 }
 
+/**
+ * Append the skipped-image appendix to the report blocks.
+ *
+ * The appendix names every requested call id the report could not embed and
+ * the reason, so a report never hides a missing crop behind an empty section.
+ * @param blocks - the blocks the caller requested.
+ * @param skipped - images absent from the document.
+ * @param include - whether the caller asked for the appendix.
+ * @returns the blocks to render.
+ */
+export function blocksWithSkippedImages(
+  blocks: readonly ReportBlock[],
+  skipped: readonly SkippedImage[],
+  include: boolean,
+): readonly ReportBlock[] {
+  if (!include || skipped.length === 0) return blocks
+  return [
+    ...blocks,
+    {
+      type: 'text',
+      heading: 'Images not included',
+      text: skipped.map(image => `${image.callId}: ${image.reason}`).join('\n'),
+    },
+  ]
+}
+
 /** Local PDF report provider mounted by the tool-pdf function plugin. */
 export class PdfReportRuntime extends Service implements PdfReports {
   static inject = ['fs', 'workingDirectory', 'attachments', 'agents']
 
-  constructor(ctx: Context, private readonly config: Config) {
+  constructor(ctx: Context, private readonly config: PdfReportLimits) {
     super(ctx, 'pdfReports')
   }
 
   /**
    * Assemble and write one PDF report.
    * @param agent - exact live owning Agent.
-   * @param request - report path, optional title, typed blocks, and policy actor.
+   * @param request - report path, optional title, typed blocks, optional skipped-image appendix, and policy actor.
    * @param signal - operation cancellation.
    * @returns written file metadata and image diagnostics.
    */
@@ -59,7 +84,8 @@ export class PdfReportRuntime extends Service implements PdfReports {
     const { images, skipped, available } = await collectReportImages(
       this.ctx, agent.session, requested, this.config.maxImages, this.config.maxImageBytes, signal,
     )
-    const document = await buildPdfReport(request.title, request.blocks, images)
+    const blocks = blocksWithSkippedImages(request.blocks, skipped, request.includeSkippedImagesAppendix === true)
+    const document = await buildPdfReport(request.title, blocks, images)
     signal.throwIfAborted()
     const outPath = this.ctx.fs.processPath(target)
     await mkdir(dirname(outPath), { recursive: true })
@@ -74,8 +100,8 @@ export class PdfReportRuntime extends Service implements PdfReports {
       bytes: document.bytes.byteLength,
       pages: document.pages,
       imagesEmbedded: images.length,
-      imagesSkipped: skipped as SkippedImage[],
-      availableImageCalls: available as AvailableImageCall[],
+      imagesSkipped: skipped,
+      availableImageCalls: available,
     }
   }
 }

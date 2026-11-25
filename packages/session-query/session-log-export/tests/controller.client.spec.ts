@@ -30,7 +30,7 @@ describe('SessionLogDownloadController', () => {
       'dsh-session-session-export-controller.zip',
     )
     expect(controller.store.getSnapshot().bySession[SID]).toEqual({
-      order: 0, open: true, status: 'success', error: null,
+      order: 0, kind: 'zip', open: true, status: 'success', error: null,
     })
   })
 
@@ -58,6 +58,7 @@ describe('SessionLogDownloadController', () => {
     await http.download(SID)
     expect(http.store.getSnapshot().bySession[SID]).toEqual({
       order: 0,
+      kind: 'zip',
       open: true,
       status: 'error',
       error: 'Export failed: HTTP 500 backend unavailable',
@@ -189,5 +190,55 @@ describe('browser download helpers', () => {
     const anchor = click.mock.instances[0] as HTMLAnchorElement
     expect(anchor.getAttribute('href')).toBe('api/session.export?sessionId=a')
     expect(anchor.download).toBe('archive.zip')
+  })
+})
+
+describe('SessionLogDownloadController PDF reports', () => {
+  it('downloads the report through its own route and filename', async () => {
+    const fetcher = vi.fn(async (_input: string | URL, _init?: RequestInit) => new Response('pdf'))
+    const save = vi.fn()
+    const controller = new SessionLogDownloadController(fetcher, save)
+
+    await controller.downloadPdf(SID)
+
+    const route = `api/session.report.pdf?sessionId=${SID}`
+    expect(fetcher.mock.calls[0]?.[0]).toBe(route)
+    expect(fetcher.mock.calls[0]?.[1]).toMatchObject({ method: 'HEAD' })
+    expect(save).toHaveBeenCalledWith(route, 'dsh-session-session-export-controller-report.pdf')
+    expect(controller.store.getSnapshot().bySession[SID]).toEqual({
+      order: 0, kind: 'pdf', open: true, status: 'success', error: null,
+    })
+  })
+
+  it('shares one operation between the ZIP and the PDF request of one Session', async () => {
+    const response = Promise.withResolvers<Response>()
+    const fetcher = vi.fn(() => response.promise)
+    const save = vi.fn()
+    const controller = new SessionLogDownloadController(fetcher, save)
+
+    const first = controller.download(SID)
+    const second = controller.downloadPdf(SID)
+    expect(second).toBe(first)
+    expect(fetcher).toHaveBeenCalledOnce()
+
+    response.resolve(new Response('zip'))
+    await first
+    expect(save).toHaveBeenCalledTimes(1)
+    expect(controller.store.getSnapshot().bySession[SID]?.kind).toBe('zip')
+  })
+
+  it('publishes a failed report without leaking the rejection', async () => {
+    const controller = new SessionLogDownloadController(
+      async () => new Response('session PDF report requires a live Session', { status: 409 }),
+      vi.fn(),
+    )
+    await controller.downloadPdf(SID)
+    expect(controller.store.getSnapshot().bySession[SID]).toEqual({
+      order: 0,
+      kind: 'pdf',
+      open: true,
+      status: 'error',
+      error: 'Export failed: HTTP 409 session PDF report requires a live Session',
+    })
   })
 })

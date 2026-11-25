@@ -3376,13 +3376,17 @@ export interface Config {
 ## `@deepseek-ai/dsh-session-log-export`
 
 - `inject`: `commands` · `connection`
-- `source`: [`packages/session-query/session-log-export/src/index.ts:48`](../packages/session-query/session-log-export/src/index.ts)
+- `source`: [`packages/session-query/session-log-export/src/index.ts:58`](../packages/session-query/session-log-export/src/index.ts)
 
 ```ts config-catalog
-/** Session-log archive policy. */
+/** Session-log archive and report policy. */
 export interface Config {
   /** DEFLATE level for each ZIP entry. @default 6 */
   readonly compressionLevel?: SessionLogCompressionLevel
+  /** Session-relative directory receiving generated PDF reports. @default reports */
+  readonly reportDirectory?: string
+  /** Maximum number of text characters one PDF report may carry. @default 200000 */
+  readonly maxReportChars?: number
 }
 
 /** Valid fflate DEFLATE levels accepted by session-log export. */
@@ -4671,7 +4675,7 @@ export interface Config {
 ## `@deepseek-ai/dsh-tool-pdf`
 
 - `inject`: `tools` · `fs` · `workingDirectory` · `attachments` · `agents`
-- `source`: [`packages/document/tool-pdf/src/index.ts:19`](../packages/document/tool-pdf/src/index.ts)
+- `source`: [`packages/document/tool-pdf/src/index.ts:20`](../packages/document/tool-pdf/src/index.ts)
 
 ```ts config-catalog
 /** Per-call assembly limits. */

@@ -222,6 +222,7 @@
     "tests/agent-preset-authoring.e2e.ts",
     "tests/custom-agent-presets.e2e.ts",
     "tests/shipped-composition.e2e.ts",
+    "tests/session-pdf-report.e2e.ts",
     "tests/schedule-after.e2e.ts",
     "tests/schedule-manual.e2e.ts",
     "tests/feedback-command.e2e.ts",

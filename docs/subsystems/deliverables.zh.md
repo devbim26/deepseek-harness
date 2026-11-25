@@ -178,7 +178,7 @@ Scoped programmatic PDF report writer.
 /**
  * Assemble and write one report through the same filesystem and attachment policy as `pdf_report`.
  * @param agent - exact live owning Agent.
- * @param request - output path, title, blocks, and optional policy actor.
+ * @param request - output path, title, blocks, optional skipped-image appendix, and optional policy actor.
  * @param signal - cancellation for path resolution, image collection, and writing.
  * @returns canonical path, size, page count, and image outcomes.
  */

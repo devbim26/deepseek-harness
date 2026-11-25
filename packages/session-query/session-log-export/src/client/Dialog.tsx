@@ -34,13 +34,18 @@ export function SessionLogDownloadDialog({
   if (pending === undefined) return null
   const [id, entry] = pending
   const sessionId = id as SessionId
-  const { status } = entry
+  const { status, kind } = entry
+  const pdf = kind === 'pdf'
   const title = status === 'downloading'
-    ? t('dialog.preparingTitle')
-    : status === 'success' ? t('dialog.successTitle') : t('dialog.errorTitle')
+    ? t(pdf ? 'dialog.pdfPreparingTitle' : 'dialog.preparingTitle')
+    : status === 'success'
+      ? t(pdf ? 'dialog.pdfSuccessTitle' : 'dialog.successTitle')
+      : t(pdf ? 'dialog.pdfErrorTitle' : 'dialog.errorTitle')
   const description = status === 'downloading'
-    ? t('dialog.preparingDescription')
-    : status === 'success' ? t('dialog.successDescription') : entry.error || t('dialog.commandFailed')
+    ? t(pdf ? 'dialog.pdfPreparingDescription' : 'dialog.preparingDescription')
+    : status === 'success'
+      ? t(pdf ? 'dialog.pdfSuccessDescription' : 'dialog.successDescription')
+      : entry.error || t(pdf ? 'dialog.pdfCommandFailed' : 'dialog.commandFailed')
 
   return (
     <Modal

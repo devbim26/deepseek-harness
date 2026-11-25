@@ -76,7 +76,7 @@ import { isSurfaceEligibleType } from '../../core/session/src/surface.ts'
 
 `package.json` 的 `exports` 只使用标准键集合，集合中每个键在全仓已经只有一个含义，包不得为自己的局部用途开键。只有少数几个包在用、又没有文档正家的键不构成先例：把某个键正式化（包括下面那些未记录在案的键）意味着在同一次改动里改正家文档与检查。键集合小且共享，消费者才能从键名推断用途，扫描也才有可能判定导出映射。
 
-- 标准键，每个键在全仓只有一个含义，统计口径是 `packages/*/*/package.json` 与 `apps/*/package.json`：`.`（包主入口）、`./package.json`（工具链访问，不是语义导出）、`./src/*`（测试与工具的源码透传，文档状态仍待定）、`./client`（浏览器入口，与 `dsh.client` 声明配对）、`./types`（类型入口）、`./typert`（typert 类型运行时）、`./remote`（`@Remote` 调用面）、`./locale/*.json`（本地化资源）、`./cordis.patch.yml`（`dsh.bundle` 声明的 bundle 补丁层）。这里不列各键的包数，因为下一个包就会让它过期；下面的复算命令会打印当前数字。
+- 标准键，每个键在全仓只有一个含义，统计口径是 `packages/*/*/package.json` 与 `apps/*/package.json`：`.`（包主入口）、`./package.json`（工具链访问，不是语义导出）、`./src/*`（测试与工具的源码透传，文档状态仍待定）、`./client`（浏览器入口，与 `dsh.client` 声明配对）、`./types`（类型入口）、`./typert`（typert 类型运行时）、`./remote`（`@Remote` 调用面）、`./runtime`（提供服务但不注册面向模型工具的插件入口）、`./locale/*.json`（本地化资源）、`./cordis.patch.yml`（`dsh.bundle` 声明的 bundle 补丁层）。这里不列各键的包数，因为下一个包就会让它过期；下面的复算命令会打印当前数字。
 - 集合之外的键（`./brand` 5 个包、`./worker` 4 个、`./startup`、`./runner`、`./protocol` 各 2 个，另有大量一次性键）没有文档含义，属待核项，不是可照抄的先例。
 - `dsh-tools` 另行提供 `./pipeline`，用于复用调用阶段与批量调度。主入口与 pipeline bundle 共享运行时 chunk，以保持错误类的身份一致；工作区检查验证导出目标与发布文件。
 - `dsh-tool-executor-ptc` 提供 `./run-code`，用于共享程序工具工厂、显式指定运行时及调用上限，并传入私有可调用工具定义。工作区检查验证其导出目标与发布文件。

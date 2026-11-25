@@ -68,6 +68,9 @@ export function apply(ctx: ClientContext): void {
       { id: 'download', label: t('menu.download'), icon: { key: 'session-log-download.download' },
         disabled: controller.store.getSnapshot().bySession[sessionId]?.status === 'downloading',
         run: () => controller.download(sessionId) },
+      { id: 'downloadPdf', label: t('menu.downloadPdf'), icon: { key: 'session-log-download.download' },
+        disabled: controller.store.getSnapshot().bySession[sessionId]?.status === 'downloading',
+        run: () => controller.downloadPdf(sessionId) },
     ],
   }), 'session-log-download: Header exports')
   ctx.effect(() => ctx.contextMenus.register({
@@ -80,7 +83,9 @@ export function apply(ctx: ClientContext): void {
     }] : [],
   }), 'session-log-download: Header feedback')
   ctx.on('command/executed', (sessionId, commandName, result) => {
-    if (commandName === 'export' && result.kind === 'success') void controller.download(sessionId)
+    if (result.kind !== 'success') return
+    if (commandName === 'export') void controller.download(sessionId)
+    else if (commandName === 'report') void controller.downloadPdf(sessionId)
   })
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay',

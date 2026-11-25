@@ -10,6 +10,7 @@ import z from '@deepseek-ai/schemastery'
 import { ToolArgsError, ToolContextUnavailableError, defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-agent'
 import type { ReportBlock } from './types.ts'
+import { assertPdfReportLimits, pdfReportLimitsSchema } from './config.ts'
 import { PdfReportRuntime } from './service.ts'
 
 /** Stable Loader identity. */
@@ -24,10 +25,7 @@ export interface Config {
 }
 
 /** Validated assembly limits. */
-export const Config: z<Config> = z.object({
-  maxImages: z.number().default(50),
-  maxImageBytes: z.number().default(20 * 1024 * 1024),
-})
+export const Config: z<Config> = pdfReportLimitsSchema
 
 /** Services used by the report tool. */
 export const inject = ['tools', 'fs', 'workingDirectory', 'attachments', 'agents']
@@ -86,12 +84,7 @@ function validateBlocks(blocks: readonly RawBlock[]): readonly ReportBlock[] {
  * @param config - validated assembly limits.
  */
 export function apply(ctx: Context, config: Config): void {
-  if (!Number.isSafeInteger(config.maxImages) || config.maxImages < 1) {
-    throw new Error('pdf_report requires a positive integer maxImages')
-  }
-  if (!Number.isSafeInteger(config.maxImageBytes) || config.maxImageBytes < 1) {
-    throw new Error('pdf_report requires a positive integer maxImageBytes')
-  }
+  assertPdfReportLimits(config)
   ctx.plugin(PdfReportRuntime, config)
   ctx.tools.register(defineTool({
     name: 'pdf_report',
@@ -101,9 +94,12 @@ export function apply(ctx: Context, config: Config): void {
       + 'the id attached to that tool call entry in this conversation, for example a drawing get_crop call. '
       + 'If you no longer see which call carried an image, request the crop again and pass the fresh call id. '
       + 'Pass tabular data as table blocks: they render as styled tables with a header row, zebra rows, '
-      + 'and column widths fitted to the content, never as plain text. After the file is written, declare it '
-      + 'to the user with the present tool. Use it when the user asks for a PDF document; prefer your final '
-      + 'response when plain text suffices.',
+      + 'and column widths fitted to the content, never as plain text. '
+      + 'Mark the key facts, figures, and conclusions with ==...== so they print on a yellow band: '
+      + 'inside text, or in a table cell, which then takes the band as a whole. '
+      + 'Mark sparingly and never a whole sentence. '
+      + 'After the file is written, declare it to the user with the present tool. Use it when the user asks '
+      + 'for a PDF document; prefer your final response when plain text suffices.',
     parameters: {
       file_path: {
         type: 'string', required: true,
@@ -120,7 +116,12 @@ export function apply(ctx: Context, config: Config): void {
               properties: {
                 type: { type: 'string', required: true, description: 'Discriminant: a text block.' },
                 heading: { type: 'string', description: 'Section heading printed above the text.' },
-                text: { type: 'string', required: true, description: 'Body text; newlines start new paragraphs.' },
+                text: {
+                  type: 'string', required: true,
+                  description: 'Body text. Every line is its own paragraph and an empty line separates paragraphs. '
+                    + 'It renders a small Markdown subset: #, ##, and ### headings, "- " and "1. " list items, '
+                    + 'pipe tables with a --- separator row, **bold**, and ==text== on a yellow band.',
+                },
               },
             },
             {
@@ -129,13 +130,19 @@ export function apply(ctx: Context, config: Config): void {
                 type: { type: 'string', required: true, description: 'Discriminant: a table block.' },
                 header: {
                   type: 'array', required: true,
-                  description: 'Column titles; their count fixes the column layout.',
+                  description: 'Column titles without inline markers; their count fixes the column layout.',
                   items: { type: 'string' },
                 },
                 rows: {
                   type: 'array', required: true,
                   description: 'Body rows of cell text; shorter rows pad with empty cells.',
-                  items: { type: 'array', items: { type: 'string' } },
+                  items: {
+                    type: 'array',
+                    items: {
+                      type: 'string',
+                      description: 'Cell text without inline markers; a cell that carries ==...== prints on the yellow band.',
+                    },
+                  },
                 },
               },
             },

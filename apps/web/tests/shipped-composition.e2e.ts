@@ -599,6 +599,10 @@ it('assembles the shipped Web transport, catalog, guidance, and defaults', async
       "mode": "always",
     }
   `)
+  // The interactive Session PDF report has a programmatic writer only: the
+  // shipped composition provides the service and registers no `pdf_report`
+  // tool, so `EXPECTED_TOOLS` below stays without it.
+  expect(ctx.get('pdfReports')).toBeDefined()
   // Directory and conditional Team tools are global; presets supply the remaining registrations.
   expect(ctx.tools.schemas().map(schema => schema.name)).toEqual([
     'working_directory', 'team_task_create', 'team_task_list', 'team_task_get', 'team_task_update',

@@ -5,6 +5,7 @@ export const NS = 'session-log-download'
 export const zh = {
   'menu.copyMarkdown': '复制会话为 Markdown',
   'menu.download': '下载 Session 日志',
+  'menu.downloadPdf': '下载 PDF 报告',
   'menu.feedback': '反馈',
   'toast.copied': 'Session 已复制为 Markdown',
   'toast.preparationFailed': '无法读取 Session 进行复制，请重试',
@@ -17,12 +18,19 @@ export const zh = {
   'dialog.errorTitle': 'Session 导出失败',
   'dialog.close': '关闭',
   'dialog.commandFailed': '无法启动 Session 导出。',
+  'dialog.pdfPreparingTitle': '正在准备 PDF 报告',
+  'dialog.pdfPreparingDescription': '正在根据当前 Session 的记录准备 PDF 报告。',
+  'dialog.pdfSuccessTitle': 'PDF 报告已开始下载',
+  'dialog.pdfSuccessDescription': '浏览器正在下载 PDF 报告。',
+  'dialog.pdfErrorTitle': 'PDF 报告导出失败',
+  'dialog.pdfCommandFailed': '无法启动 PDF 报告导出。',
 } as const
 
 /** English Session export strings. */
 export const en: Record<keyof typeof zh, string> = {
   'menu.copyMarkdown': 'Copy Session as Markdown',
   'menu.download': 'Download session log',
+  'menu.downloadPdf': 'Download PDF report',
   'menu.feedback': 'Feedback',
   'toast.copied': 'Session copied as Markdown.',
   'toast.preparationFailed': 'Could not read the Session for copying. Try again.',
@@ -35,6 +43,12 @@ export const en: Record<keyof typeof zh, string> = {
   'dialog.errorTitle': 'Session export failed',
   'dialog.close': 'Close',
   'dialog.commandFailed': 'Could not start the Session export.',
+  'dialog.pdfPreparingTitle': 'Preparing PDF report',
+  'dialog.pdfPreparingDescription': 'Preparing a PDF report from the recorded Session.',
+  'dialog.pdfSuccessTitle': 'PDF report download started',
+  'dialog.pdfSuccessDescription': 'The browser is downloading the PDF report.',
+  'dialog.pdfErrorTitle': 'PDF report export failed',
+  'dialog.pdfCommandFailed': 'Could not start the PDF report export.',
 }
 
 /** Stable locale keys consumed by the shared modal. */
@@ -44,6 +58,7 @@ export type SessionLogDownloadKey = keyof typeof zh
 export const ja = {
   'menu.copyMarkdown': 'セッションを Markdown としてコピー',
   'menu.download': 'セッションログをダウンロード',
+  'menu.downloadPdf': 'PDF レポートをダウンロード',
   'menu.feedback': 'フィードバック',
   'toast.copied': 'セッションを Markdown としてコピーしました',
   'toast.preparationFailed': 'コピーするセッションを読み取れませんでした。再試行してください。',
@@ -56,12 +71,19 @@ export const ja = {
   'dialog.errorTitle': 'セッションのエクスポートに失敗しました',
   'dialog.close': '閉じる',
   'dialog.commandFailed': 'セッションのエクスポートを開始できませんでした。',
+  'dialog.pdfPreparingTitle': 'PDF レポートを準備中',
+  'dialog.pdfPreparingDescription': '記録されたセッションから PDF レポートを準備しています。',
+  'dialog.pdfSuccessTitle': 'PDF レポートのダウンロードを開始しました',
+  'dialog.pdfSuccessDescription': 'ブラウザが PDF レポートをダウンロードしています。',
+  'dialog.pdfErrorTitle': 'PDF レポートのエクスポートに失敗しました',
+  'dialog.pdfCommandFailed': 'PDF レポートのエクスポートを開始できませんでした。',
 } satisfies Record<keyof typeof en, string>
 
 /** Spanish dictionary, checked against the English keys. */
 export const es = {
   'menu.copyMarkdown': 'Copiar sesión como Markdown',
   'menu.download': 'Descargar registro de sesión',
+  'menu.downloadPdf': 'Descargar informe PDF',
   'menu.feedback': 'Comentarios',
   'toast.copied': 'Sesión copiada como Markdown.',
   'toast.preparationFailed': 'No se pudo leer la sesión para copiarla. Intentar otra vez.',
@@ -74,12 +96,19 @@ export const es = {
   'dialog.errorTitle': 'Error al exportar la sesión',
   'dialog.close': 'Cerrar',
   'dialog.commandFailed': 'No se pudo iniciar la exportación de la sesión.',
+  'dialog.pdfPreparingTitle': 'Preparando informe PDF',
+  'dialog.pdfPreparingDescription': 'Preparar un informe PDF a partir de la sesión registrada.',
+  'dialog.pdfSuccessTitle': 'Descarga del informe PDF iniciada',
+  'dialog.pdfSuccessDescription': 'El navegador está descargando el informe PDF.',
+  'dialog.pdfErrorTitle': 'Error al exportar el informe PDF',
+  'dialog.pdfCommandFailed': 'No se pudo iniciar la exportación del informe PDF.',
 } satisfies Record<keyof typeof en, string>
 
 /** French dictionary, checked against the English keys. */
 export const fr = {
   'menu.copyMarkdown': 'Copier la session sous Markdown',
   'menu.download': 'Télécharger le journal de session',
+  'menu.downloadPdf': 'Télécharger le rapport PDF',
   'menu.feedback': 'Commentaires',
   'toast.copied': 'Session copiée sous le nom Markdown.',
   'toast.preparationFailed': 'Impossible de lire la session pour la copier. Essayer à nouveau.',
@@ -92,12 +121,19 @@ export const fr = {
   'dialog.errorTitle': "Échec de l'exportation de la session",
   'dialog.close': 'Fermer',
   'dialog.commandFailed': "Impossible de démarrer l'exportation de session.",
+  'dialog.pdfPreparingTitle': 'Préparation du rapport PDF',
+  'dialog.pdfPreparingDescription': "Préparation d'un rapport PDF à partir de la session enregistrée.",
+  'dialog.pdfSuccessTitle': 'Le téléchargement du rapport PDF a commencé',
+  'dialog.pdfSuccessDescription': 'Le navigateur télécharge le rapport PDF.',
+  'dialog.pdfErrorTitle': "Échec de l'exportation du rapport PDF",
+  'dialog.pdfCommandFailed': "Impossible de démarrer l'exportation du rapport PDF.",
 } satisfies Record<keyof typeof en, string>
 
 /** German dictionary, checked against the English keys. */
 export const de = {
   'menu.copyMarkdown': 'Kopieren Sie die Sitzung als Markdown',
   'menu.download': 'Sitzungsprotokoll herunterladen',
+  'menu.downloadPdf': 'PDF-Bericht herunterladen',
   'menu.feedback': 'Rückmeldung',
   'toast.copied': 'Sitzung als Markdown kopiert.',
   'toast.preparationFailed': 'Die Sitzung zum Kopieren konnte nicht gelesen werden. Versuchen Sie es erneut.',
@@ -110,12 +146,19 @@ export const de = {
   'dialog.errorTitle': 'Der Sitzungsexport ist fehlgeschlagen',
   'dialog.close': 'Schließen',
   'dialog.commandFailed': 'Der Sitzungsexport konnte nicht gestartet werden.',
+  'dialog.pdfPreparingTitle': 'PDF-Bericht wird vorbereitet',
+  'dialog.pdfPreparingDescription': 'Vorbereiten eines PDF-Berichts aus der aufgezeichneten Sitzung.',
+  'dialog.pdfSuccessTitle': 'Download des PDF-Berichts gestartet',
+  'dialog.pdfSuccessDescription': 'Der Browser lädt den PDF-Bericht herunter.',
+  'dialog.pdfErrorTitle': 'Der PDF-Berichtsexport ist fehlgeschlagen',
+  'dialog.pdfCommandFailed': 'Der PDF-Berichtsexport konnte nicht gestartet werden.',
 } satisfies Record<keyof typeof en, string>
 
 /** Russian dictionary, checked against the English keys. */
 export const ru = {
   'menu.copyMarkdown': 'Скопировать сеанс как Markdown',
   'menu.download': 'Скачать журнал сеанса',
+  'menu.downloadPdf': 'Скачать PDF-отчёт',
   'menu.feedback': 'Обратная связь',
   'toast.copied': 'Сессия скопирована как Markdown.',
   'toast.preparationFailed': 'Не удалось прочитать сеанс для копирования. Попробуйте еще раз.',
@@ -128,12 +171,19 @@ export const ru = {
   'dialog.errorTitle': 'Экспорт сеанса не удался',
   'dialog.close': 'Закрыть',
   'dialog.commandFailed': 'Не удалось начать экспорт сеанса.',
+  'dialog.pdfPreparingTitle': 'Подготовка PDF-отчёта',
+  'dialog.pdfPreparingDescription': 'Подготовка PDF-отчёта по записанному сеансу.',
+  'dialog.pdfSuccessTitle': 'Загрузка PDF-отчёта началась',
+  'dialog.pdfSuccessDescription': 'Браузер загружает PDF-отчёт.',
+  'dialog.pdfErrorTitle': 'Экспорт PDF-отчёта не удался',
+  'dialog.pdfCommandFailed': 'Не удалось начать экспорт PDF-отчёта.',
 } satisfies Record<keyof typeof en, string>
 
 /** Portuguese dictionary, checked against the English keys. */
 export const pt = {
   'menu.copyMarkdown': 'Copiar sessão como Markdown',
   'menu.download': 'Baixar registro da sessão',
+  'menu.downloadPdf': 'Baixar relatório em PDF',
   'menu.feedback': 'Comentários',
   'toast.copied': 'Sessão copiada como Markdown.',
   'toast.preparationFailed': 'Não foi possível ler a sessão para cópia. Tente novamente.',
@@ -146,4 +196,10 @@ export const pt = {
   'dialog.errorTitle': 'Falha na exportação da sessão',
   'dialog.close': 'Fechar',
   'dialog.commandFailed': 'Não foi possível iniciar a exportação da sessão.',
+  'dialog.pdfPreparingTitle': 'Preparando relatório em PDF',
+  'dialog.pdfPreparingDescription': 'Preparando um relatório em PDF a partir da sessão registrada.',
+  'dialog.pdfSuccessTitle': 'Download do relatório em PDF iniciado',
+  'dialog.pdfSuccessDescription': 'O navegador está baixando o relatório em PDF.',
+  'dialog.pdfErrorTitle': 'Falha na exportação do relatório em PDF',
+  'dialog.pdfCommandFailed': 'Não foi possível iniciar a exportação do relatório em PDF.',
 } satisfies Record<keyof typeof en, string>

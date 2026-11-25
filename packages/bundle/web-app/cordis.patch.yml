@@ -67,6 +67,15 @@
     - id: session-log-download
       name: '@deepseek-ai/dsh-session-log-export'
 
+    # Programmatic PDF report writer for the interactive Session report export:
+    # it provides `ctx.pdfReports` and registers no model-facing tool, so the
+    # report costs no model request and no token.
+    - id: tool-pdf-runtime
+      name: '@deepseek-ai/dsh-tool-pdf/runtime'
+      config:
+        maxImages: 50
+        maxImageBytes: 20971520
+
     # Session-menu application choices over Host resolution on macOS, Windows,
     # and Linux. An empty catalog hides the action. The Host routes and browser
     # controls also serve the file-tree directory opener.

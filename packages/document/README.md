@@ -30,7 +30,7 @@ Each package owns its configuration and lifetime rules; the subsystem reference 
 | [office-kit](office-kit/README.md) | Authorized Office bytes to complete PDFs, PNG images, converted files, and recalculated workbooks with bounded queues and caching; the provider resolves its own Kit entry, engine manifests, and ASAR-unpacked engine paths | `ctx.officeKit` |
 | [tool-document](tool-document/README.md) | `document_read` reads text from a document attached to the conversation, one bounded, attachment-authorized window per call | — |
 | [tool-office](tool-office/README.md) | `office_render`, `office_convert`, and `office_recalculate`, declared after an Office skill loads: render pages as images in the tool result, convert documents, and recalculate workbooks | — |
-| [tool-pdf](tool-pdf/README.md) | `pdf_report` assembles a PDF report from ordered text, table, and tool-result image blocks and writes it into the Session working directory | — |
+| [tool-pdf](tool-pdf/README.md) | `pdf_report` assembles a PDF report from ordered text, table, and tool-result image blocks and writes it into the Session working directory; the programmatic runtime writes the same reports without a model-facing tool | — |
 
 -----
 
