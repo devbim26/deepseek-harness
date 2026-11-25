@@ -14472,6 +14472,9 @@ importers:
       '@deepseek-ai/dsh-attachment-local':
         specifier: workspace:*
         version: link:../../attachment/attachment-local
+      '@deepseek-ai/dsh-brand':
+        specifier: workspace:*
+        version: link:../../util/brand
       '@deepseek-ai/dsh-fs-local':
         specifier: workspace:*
         version: link:../../fs/fs-local
@@ -17020,6 +17023,9 @@ importers:
       '@deepseek-ai/dsh-agent-preset-registry':
         specifier: workspace:*
         version: link:../../preset/agent-preset-registry
+      '@deepseek-ai/dsh-attachment':
+        specifier: workspace:*
+        version: link:../../attachment/attachment
       '@deepseek-ai/dsh-error':
         specifier: workspace:*
         version: link:../../util/error

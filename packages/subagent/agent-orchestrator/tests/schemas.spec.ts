@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { decodeEvaluatorDecision, decodeWorkerReport } from '../src/schemas.ts'
+import { validateJsonSchemaValue } from '@deepseek-ai/dsh-tools'
+import { decodeEvaluatorDecision, decodeWorkerReport, EVALUATOR_DECISION_SCHEMA } from '../src/schemas.ts'
 
 const report = { summary: ' done ', evidence: ['evidence'], assumptions: [], gaps: [] }
 
@@ -30,6 +31,13 @@ describe('orchestration model-boundary decoders', () => {
       expect(decodeEvaluatorDecision({ kind, summary: 's', reason: 'r', assumptions: [], gaps: ['g'] }))
         .toEqual({ kind, summary: 's', reason: 'r', assumptions: [], gaps: ['g'] })
     }
+  })
+
+  it('guides the model with the full decision schema and rejects undeclared keys', () => {
+    expect(validateJsonSchemaValue(EVALUATOR_DECISION_SCHEMA, { kind: 'complete', summary: 'done', assumptions: [], gaps: [] })).toEqual([])
+    expect(validateJsonSchemaValue(EVALUATOR_DECISION_SCHEMA, { kind: 'follow-ups', followUps: [{ assignmentId: 'a', question: 'q' }] })).toEqual([])
+    expect(validateJsonSchemaValue(EVALUATOR_DECISION_SCHEMA, { kind: 'complete', summary: 'done', assumptions: [], gaps: [], details: 'extra' })[0]).toContain('additionalProperties')
+    expect(validateJsonSchemaValue(EVALUATOR_DECISION_SCHEMA, { kind: 'follow-ups', followUps: [{ assignmentId: 'a', question: 'q', extra: true }] })[0]).toContain('additionalProperties')
   })
 
   it('rejects malformed evaluator decisions with the evaluator code', () => {

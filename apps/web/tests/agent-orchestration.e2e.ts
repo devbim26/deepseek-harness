@@ -1,35 +1,39 @@
 // Web e2e scenario: the recorded orchestration result renders through the
-// standard Tool detail row. The Session comes from the keyless real-composition
-// smoke, so the persisted tool result carries the production presentationMeta.
-import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+// standard Tool detail row. The Session comes from the recorded headless
+// orchestration composition, borrowed read-only by this Web scenario.
+import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 import type { Browser, Page } from 'playwright'
 import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
-import { runLoaderSmoke } from '@deepseek-ai/dsh-loader-smoke'
 import {
-  captureStableAria, compareOrRefreshGolden, launchWebScaffold, seedSession, watchConsole, webSnapshotMode,
-  type WebScaffold,
+  assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
+  launchWebScaffold, seedSession, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { expandOwningTurnProcess, newEnglishPage, saveFailureShot } from './support.ts'
 
-const driver = fileURLToPath(new URL('../../../packages/subagent/tool-agent-orchestrator/tests/fixtures/loader/driver.ts', import.meta.url))
-const configPath = fileURLToPath(new URL('../../../packages/subagent/tool-agent-orchestrator/tests/fixtures/loader/orchestration.patch.yml', import.meta.url))
-const repoTsconfig = fileURLToPath(new URL('../../../tsconfig.json', import.meta.url))
-const UI_EXPECTED = fileURLToPath(new URL('./expected/agent-orchestration.expected.md', import.meta.url))
+const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/agent-orchestration', import.meta.url))
+const SESSION_FIXTURE = fileURLToPath(new URL('../../../snapshots/session/agent-orchestration/session.v4.jsonl', import.meta.url))
+const UI_EXPECTED = join(SNAPSHOT_DIR, 'ui.expected.md')
 const MODE = webSnapshotMode()
 const SEED_ID = 'agent-orchestration-web-e2e'
 
-async function jsonlFiles(dir: string): Promise<string[]> {
-  const entries = await readdir(dir, { withFileTypes: true })
-  const paths = await Promise.all(entries.map(async (entry) => {
-    const path = join(dir, entry.name)
-    if (entry.isDirectory()) return jsonlFiles(path)
-    return entry.isFile() && entry.name.endsWith('.jsonl') ? [path] : []
-  }))
-  return paths.flat()
+/**
+ * Read the orchestration objective from the recorded tool call, so the card
+ * assertion follows the recording instead of a duplicated literal.
+ * @param content - Recorded parent Session JSONL.
+ * @returns The objective the model passed to `orchestrate_agents`.
+ */
+function recordedObjective(content: string): string {
+  for (const line of content.split('\n')) {
+    if (line.trim() === '') continue
+    const event = JSON.parse(line) as { type?: string; data?: { name?: string; arguments?: string } }
+    if (event.type !== 'tool/call' || event.data?.name !== 'orchestrate_agents') continue
+    const args = JSON.parse(event.data.arguments ?? '{}') as { objective?: string }
+    if (typeof args.objective === 'string' && args.objective !== '') return args.objective
+  }
+  throw new Error('recorded session has no orchestrate_agents call')
 }
 
 describe.skipIf(MODE === 'record')('web e2e: conversational orchestration result row', () => {
@@ -37,41 +41,13 @@ describe.skipIf(MODE === 'record')('web e2e: conversational orchestration result
   let browser: Browser
   let page: Page
   let tripwire: ReturnType<typeof watchConsole>
-  let fixture = ''
+  let objective = ''
 
   beforeAll(async () => {
-    const root = await mkdtemp(join(tmpdir(), 'dsh-web-orchestration-'))
-    try {
-      await runLoaderSmoke({
-        label: 'agent orchestration web fixture',
-        tempDirPrefix: 'agent-orchestration-web-fixture-',
-        binScript: driver,
-        libBinScript: driver,
-        configPath,
-        tsconfigPath: repoTsconfig,
-        env: { DEEPSEEK_API_KEY: '', DSH_SNAPSHOT: '' },
-        processTimeoutMs: 120_000,
-        inspect: async (cwd) => {
-          for (const file of await jsonlFiles(join(cwd, '.sessions'))) {
-            const content = await readFile(file, 'utf8')
-            const header = JSON.parse(content.split('\n')[0] as string) as { parentSession?: string }
-            if (header.parentSession === undefined) fixture = content
-            for (const line of content.split('\n').slice(1)) {
-              if (line.trim() === '') continue
-              const event = JSON.parse(line) as { type?: string; data?: unknown }
-              if (event.type === 'tool/call' || event.type === 'tool/result') {
-                console.log('ORCHESTRATION EVENT', event.type, JSON.stringify(event.data))
-              }
-            }
-          }
-        },
-      })
-    } finally {
-      await rm(root, { recursive: true, force: true })
-    }
-    expect(fixture).not.toBe('')
+    const recorded = await readFile(SESSION_FIXTURE, 'utf8')
+    objective = recordedObjective(recorded)
     scaffold = await launchWebScaffold({})
-    await seedSession(scaffold, fixture, SEED_ID)
+    await seedSession(scaffold, recorded, SEED_ID)
     browser = await chromium.launch()
     page = await newEnglishPage(browser)
     tripwire = watchConsole(page)
@@ -100,7 +76,7 @@ describe.skipIf(MODE === 'record')('web e2e: conversational orchestration result
     // The objective opens both the collapsed row summary and the expanded card;
     // the card owns the status badge and the rounds field.
     const card = row.getByRole('listitem')
-    await card.getByText('Verify Loader composition', { exact: true }).waitFor()
+    await card.getByText(objective, { exact: true }).waitFor()
     await card.getByText('Completed', { exact: true }).waitFor()
     await card.getByText('Rounds', { exact: true }).waitFor()
     await card.getByText('2', { exact: true }).waitFor()
@@ -110,5 +86,6 @@ describe.skipIf(MODE === 'record')('web e2e: conversational orchestration result
     expect(await row.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
+    await assertFixtureInventory(SNAPSHOT_DIR, ['ui.expected.md'])
   }, 60_000)
 })

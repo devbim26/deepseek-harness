@@ -144,14 +144,4 @@ export class AgentOrchestrator extends Service {
   }
 }
 
-/**
- * Brand a raw id as an orchestration run id.
- *
- * @param id - Raw run identifier.
- * @returns The same string carrying the branded run-id type.
- */
-export function AgentOrchestrationRunId(id: string): AgentOrchestrationRunId {
-  return brandString<AgentOrchestrationRunId>(id)
-}
-
 export default AgentOrchestrator

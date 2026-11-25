@@ -45,6 +45,36 @@ describe('orchestration run failure and cancellation paths', () => {
     await run.dispose()
   })
 
+  it('prints the PDF highlight marks in the report and publishes the report texts without them', async () => {
+    const fixture = await engineFixture([
+      toolCallResponse('worker-marked', STRUCTURED_OUTPUT_TOOL, {
+        summary: 'Checked ==3 nodes==.', evidence: ['==W-1== is fine'], assumptions: ['==Scale 1:100=='], gaps: [],
+      }),
+      evaluator({ kind: 'complete', summary: 'Found ==3 remarks==.', assumptions: ['overall ==assumption=='], gaps: [] }),
+    ], { pdf: true })
+    fixtures.push(fixture)
+    const create = vi.spyOn(fixture.ctx.pdfReports, 'create')
+    const run = fixture.ctx.agentOrchestrator.start({
+      ...request(fixture), report: { title: 'Отчёт', details: [] },
+    })
+    const result = await run.result
+    expect(create.mock.calls[0]?.[1].blocks).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: 'text', heading: 'Сводка', text: 'Found ==3 remarks==.' }),
+      expect.objectContaining({ type: 'text', heading: 'Доказательства', text: '- ==W-1== is fine' }),
+    ]))
+    expect(result).toMatchObject({
+      status: 'complete',
+      summary: 'Found 3 remarks.',
+      // Worker assumptions precede the evaluator's own.
+      assumptions: ['Scale 1:100', 'overall assumption'],
+      workers: [{ assignmentId: 'worker', report: { summary: 'Checked 3 nodes.', evidence: ['W-1 is fine'], assumptions: ['Scale 1:100'] } }],
+    })
+    expect(JSON.stringify(result)).not.toContain('==')
+    // The retained snapshot is the same published copy, not the marked run state.
+    expect(fixture.ctx.agentOrchestrator.status(result.id)).toEqual(result)
+    await run.dispose()
+  })
+
   it('keeps a schema-invalid worker report as a worker gap and maps blocked to partial', async () => {
     const fixture = await engineFixture([
       worker(), evaluator({ kind: 'blocked', summary: 'blocked summary', reason: 'missing evidence', assumptions: [], gaps: [] }),

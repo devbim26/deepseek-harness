@@ -1081,6 +1081,32 @@ describe('tokenizeSessionFixtureCwd', () => {
     expect(tokenizeSessionFixtureCwd(out)).toBe(out)
   })
 
+  it('tokenizes a JSON-escaped Windows cwd spelling', () => {
+    const cwd = String.raw`C:\Users\tester\AppData\Local\Temp\dsh-log-snap-abc12`
+    const context: NormalizeContext = { sessionIds: [], cwd }
+    const raw = [
+      JSON.stringify({ type: 'session', id: 's', createdAt: 1, cwd }),
+      JSON.stringify({
+        type: 'tool/result',
+        seq: 1,
+        time: 2,
+        data: { content: [{ type: 'text', text: `Current working directory: ${JSON.stringify(cwd)}.` }] },
+      }),
+      '',
+    ].join('\n')
+
+    const tokenized = tokenizeSessionFixtureCwd(raw)
+    const tokenizedText = (JSON.parse(tokenized.split('\n')[1] as string) as {
+      data: { content: { text: string }[] }
+    }).data.content[0]!.text
+    expect(tokenized).toContain('"cwd":"{{cwd}}"')
+    expect(tokenizedText).toBe('Current working directory: "{{cwd}}".')
+
+    const normalized = normalizeSessionSnapshot(raw, context)
+    expect(normalized).toContain('{{cwd}}')
+    expect(normalized).not.toContain('dsh-log-snap-abc12')
+  })
+
   it('rejects a log without a session cwd', () => {
     expect(() => tokenizeSessionFixtureCwd('')).toThrow(
       'acp-snapshot: cannot tokenize a cwd without a basename',

@@ -48,12 +48,55 @@ const partial = z.object({
   gaps: shortList,
 }).strict()
 const evaluatorDecision = z.discriminatedUnion('kind', [followUps, complete, partial])
-/** Object schema the model receives for an evaluator decision. */
+/**
+ * Object schema the model receives for an evaluator decision. It mirrors the
+ * strict decoder field by field: a schema that only names `kind` invites the
+ * model to omit the summary or to add free-form keys, and those answers then
+ * fail the decoder.
+ */
 export const EVALUATOR_DECISION_SCHEMA: ObjectJsonSchema = {
   type: 'object',
-  properties: { kind: { type: 'string', enum: ['follow-ups', 'complete', 'partial', 'blocked'] } },
+  properties: {
+    kind: {
+      type: 'string',
+      enum: ['follow-ups', 'complete', 'partial', 'blocked'],
+      description: 'The decision kind. The remaining fields are required or omitted exactly as their descriptions state.',
+    },
+    summary: {
+      type: 'string',
+      description: 'Required for complete, partial, or blocked: a one-paragraph summary of the current evidence. Omit for follow-ups.',
+    },
+    reason: {
+      type: 'string',
+      description: 'Required for partial or blocked: why the objective cannot be completed. Omit for follow-ups and complete.',
+    },
+    assumptions: {
+      type: 'array',
+      items: { type: 'string' },
+      description: 'Required for complete, partial, or blocked: the explicit assumptions made. Omit for follow-ups.',
+    },
+    gaps: {
+      type: 'array',
+      items: { type: 'string' },
+      description: 'Required for complete, partial, or blocked: the remaining evidence gaps. Omit for follow-ups.',
+    },
+    followUps: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          assignmentId: { type: 'string', description: 'Id of a known assignment.' },
+          question: { type: 'string', description: 'The targeted follow-up question for that worker.' },
+          circumstances: { type: 'string', description: 'Optional new facts for that worker.' },
+        },
+        required: ['assignmentId', 'question'],
+        additionalProperties: false,
+      },
+      description: 'Required for follow-ups: the targeted follow-ups to send. Omit for complete, partial, or blocked.',
+    },
+  },
   required: ['kind'],
-  additionalProperties: true,
+  additionalProperties: false,
 }
 
 /**
@@ -66,7 +109,8 @@ export const EVALUATOR_DECISION_SCHEMA: ObjectJsonSchema = {
 export function decodeWorkerReport(value: unknown): AgentOrchestrationWorkerReport {
   const parsed = workerReport.safeParse(value)
   if (!parsed.success) {
-    throw new AgentOrchestratorError(`worker structured report is invalid: ${parsed.error.issues[0]!.message}`, 'ORCHESTRATION_WORKER_FAILED', { cause: parsed.error })
+    const issue = parsed.error.issues.at(0)
+    throw new AgentOrchestratorError(`worker structured report is invalid: ${issue?.message ?? parsed.error.message}`, 'ORCHESTRATION_WORKER_FAILED', { cause: parsed.error })
   }
   return parsed.data
 }
@@ -81,7 +125,8 @@ export function decodeWorkerReport(value: unknown): AgentOrchestrationWorkerRepo
 export function decodeEvaluatorDecision(value: unknown): AgentOrchestrationEvaluatorDecision {
   const parsed = evaluatorDecision.safeParse(value)
   if (!parsed.success) {
-    throw new AgentOrchestratorError(`evaluator structured decision is invalid: ${parsed.error.issues[0]!.message}`, 'ORCHESTRATION_EVALUATOR_FAILED', { cause: parsed.error })
+    const issue = parsed.error.issues.at(0)
+    throw new AgentOrchestratorError(`evaluator structured decision is invalid: ${issue?.message ?? parsed.error.message}`, 'ORCHESTRATION_EVALUATOR_FAILED', { cause: parsed.error })
   }
   return parsed.data
 }

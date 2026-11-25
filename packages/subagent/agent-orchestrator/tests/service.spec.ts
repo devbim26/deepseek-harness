@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { STRUCTURED_OUTPUT_TOOL } from '@deepseek-ai/dsh-subagent'
+import { brandString } from '@deepseek-ai/dsh-brand'
 import { toolCallResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
-import AgentOrchestrator, { AgentOrchestrationRunId } from '../src/index.ts'
+import AgentOrchestrator from '../src/index.ts'
 import type { Config } from '../src/index.ts'
-import type { AgentOrchestrationStartRequest } from '../src/types.ts'
+import type { AgentOrchestrationRunId, AgentOrchestrationStartRequest } from '../src/types.ts'
 import { engineFixture, type EngineFixture } from './harness.ts'
 
 const fixtures: EngineFixture[] = []
@@ -72,7 +73,7 @@ describe('AgentOrchestrator service', () => {
   it('reports unknown runs and cancels through the service', async () => {
     const fixture = await engineFixture(['hang'])
     fixtures.push(fixture)
-    const missing = AgentOrchestrationRunId('orchestration-missing')
+    const missing = brandString<AgentOrchestrationRunId>('orchestration-missing')
     expect(fixture.ctx.agentOrchestrator.status(missing)).toBeUndefined()
     expect(() => fixture.ctx.agentOrchestrator.cancel(missing)).toThrow(expect.objectContaining({ code: 'ORCHESTRATION_NOT_FOUND' }))
     const run = fixture.ctx.agentOrchestrator.start(request(fixture))

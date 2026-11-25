@@ -26,6 +26,9 @@ describe('conversational orchestration preset synthesis', () => {
     expect(document.content).toContain('maxParallel')
     expect(document.content).not.toContain('dsh-tool-subagent')
     expect(document.content).not.toContain('rosterTemplate')
+    // The roster reaches the persona so the model learns the stored delegate ids.
+    expect(document.content).toContain('Delegates available to orchestrate_agents')
+    expect(document.content).toContain(`- ${worker.id} «Worker» — Reviews drawings`)
     const agent = await agentOn(ctx, 'orchestration-real', lead.id)
     expect(ctx.agentPresets.serviceFor(agent, 'agentOrchestrator')).toBeDefined()
     expect(ctx.agentPresets.serviceFor(agent, 'pdfReports')).toBeDefined()

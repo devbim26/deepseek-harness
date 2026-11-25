@@ -1,7 +1,0 @@
-- button "Orchestrate agents Verify Loader composition" [expanded]
-- list:
-  - listitem:
-    - text: Verify Loader composition Completed
-    - term: Rounds
-    - definition: "2"
-- button "Inspect"

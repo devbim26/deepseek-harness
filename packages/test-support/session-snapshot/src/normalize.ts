@@ -118,10 +118,14 @@ export interface SessionSnapshotComparisonOptions extends Omit<NormalizeOptions,
 function cwdSpellings(ctx: NormalizeContext): string[] {
   const spellings = [...new Set([ctx.cwd, ...ctx.cwdAliases ?? []])]
     .filter(spelling => spelling.length > 0)
-  const macAliases = spellings
+  // A path rendered through JSON.stringify carries escaped separators, so the
+  // same directory reaches model-visible text with doubled backslashes.
+  const escaped = spellings.map(spelling => spelling.replaceAll('\\', '\\\\'))
+  const all = [...new Set([...spellings, ...escaped])]
+  const macAliases = all
     .filter(spelling => spelling.startsWith('/') && !spelling.startsWith('/private/'))
     .map(spelling => `/private${spelling}`)
-  return [...new Set([...spellings, ...macAliases])]
+  return [...new Set([...all, ...macAliases])]
     .sort((left, right) => right.length - left.length)
 }
 

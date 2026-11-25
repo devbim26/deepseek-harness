@@ -5,13 +5,50 @@ import type { AgentOrchestrationAssignment, AgentOrchestrationFollowUp, AgentOrc
 const AUTONOMY = 'Do not ask a human questions or wait for confirmation. Record missing facts as explicit assumptions or gaps and continue with the available evidence.'
 
 /**
+ * The text format of the model-authored report strings the run PDF prints. The
+ * PDF renders a small Markdown subset, and `==...==` is the one mark it adds
+ * to it; the engine removes that mark from every text that leaves the run.
+ */
+const REPORT_FORMAT = 'Every text field of the report is printed in a PDF that renders a small Markdown subset: '
+  + 'write it as prose, "- " list items, or a pipe table with a header row and a --- separator row, '
+  + 'and wrap the key facts, figures, and conclusions in ==...== so they print on a yellow band. '
+  + 'Mark sparingly and never a whole sentence.'
+
+/**
+ * The exact decision shapes the evaluator must produce, stated field by field
+ * so the answer survives the strict decoder. Each kind omits the other kinds'
+ * fields rather than leaving them empty. The last line states the report text
+ * format, because the decision's summary, assumptions, and gaps reach the PDF.
+ */
+const EVALUATOR_CONTRACT = [
+  'Evaluate completeness. Answer with exactly one JSON object using only these fields and no others:',
+  '- {"kind":"follow-ups","followUps":[{"assignmentId":"<a known assignment id>","question":"<targeted question>","circumstances":"<optional new facts>"}]} to request targeted follow-ups for known assignment ids;',
+  '- {"kind":"complete","summary":"<summary>","assumptions":["..."],"gaps":["..."]} to complete;',
+  '- {"kind":"partial","summary":"<summary>","reason":"<why incomplete>","assumptions":["..."],"gaps":["..."]} or {"kind":"blocked","summary":"<summary>","reason":"<why incomplete>","assumptions":["..."],"gaps":["..."]} when the objective cannot be completed.',
+  'Fields of the other kinds must be omitted, not left empty or null. Do not request more work than the remaining round budget can perform.',
+  REPORT_FORMAT,
+].join('\n')
+
+/**
+ * Corrective follow-up after an invalid structured decision.
+ * @param diagnostic - The decoder diagnostic the rejected answer failed with.
+ * @returns The corrective follow-up prompt restating the decision contract.
+ */
+export function evaluatorCorrectionPrompt(diagnostic: string): string {
+  return [
+    `Your previous structured decision was rejected: ${diagnostic}`,
+    'Answer again with a corrected decision. ' + EVALUATOR_CONTRACT,
+  ].join('\n\n')
+}
+
+/**
  * Build the initial self-contained worker task.
  *
  * @param assignment - Assignment carrying the delegate prompt for this worker.
- * @returns The assignment prompt, the autonomy statement, and the report instruction.
+ * @returns The assignment prompt, the autonomy statement, the report instruction, and the report text format.
  */
 export function workerPrompt(assignment: AgentOrchestrationAssignment): string {
-  return `${assignment.prompt}\n\n${AUTONOMY}\nReturn a structured report with summary, evidence, assumptions, and gaps.`
+  return `${assignment.prompt}\n\n${AUTONOMY}\nReturn a structured report with summary, evidence, assumptions, and gaps. ${REPORT_FORMAT}`
 }
 
 /**
@@ -52,6 +89,6 @@ export function evaluatorPrompt(
     request.circumstances === undefined ? '' : `Initial circumstances: ${request.circumstances}`,
     `Current worker reports: ${serialized}`,
     AUTONOMY,
-    'Evaluate completeness. Return targeted follow-ups only for known assignment ids, or complete, partial, or blocked with a summary and explicit assumptions/gaps. Do not request more work than the remaining round budget can perform.',
+    EVALUATOR_CONTRACT,
   ].filter(line => line !== '').join('\n\n')
 }

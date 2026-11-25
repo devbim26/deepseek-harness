@@ -2,8 +2,8 @@
 import { Context, Service } from '@deepseek-ai/cordis'
 import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { AgentOrchestrationRunId } from '@deepseek-ai/dsh-agent-orchestrator'
-import type { AgentOrchestrationRun, AgentOrchestrationSnapshot } from '@deepseek-ai/dsh-agent-orchestrator'
+import { brandString } from '@deepseek-ai/dsh-brand'
+import type { AgentOrchestrationRun, AgentOrchestrationRunId, AgentOrchestrationSnapshot } from '@deepseek-ai/dsh-agent-orchestrator'
 import type {} from '@deepseek-ai/dsh-subagent'
 // Type-only: pulls the preset registry Context merge (ctx.agentPresets).
 import type {} from '@deepseek-ai/dsh-agent-preset-registry'
@@ -97,7 +97,7 @@ export class CustomAgentOrchestrations extends TypertRemoteService {
     if (run === undefined) throw this.unknownRun(request.runId)
     const agent = this.liveRoot(request.sessionId)
     const engine = this.ctx.agentPresets.serviceFor(agent, 'agentOrchestrator')
-    const snapshot = engine?.status(AgentOrchestrationRunId(request.runId))
+    const snapshot = engine?.status(brandString<AgentOrchestrationRunId>(request.runId))
     if (snapshot === undefined) throw this.unknownRun(request.runId)
     return this.value(request.runId, snapshot)
   }
@@ -114,7 +114,7 @@ export class CustomAgentOrchestrations extends TypertRemoteService {
     const agent = this.liveRoot(request.sessionId)
     const engine = this.ctx.agentPresets.serviceFor(agent, 'agentOrchestrator')
     run.cancel('orchestration cancelled by the caller')
-    const snapshot = engine?.status(AgentOrchestrationRunId(request.runId))
+    const snapshot = engine?.status(brandString<AgentOrchestrationRunId>(request.runId))
     if (snapshot === undefined) throw this.unknownRun(request.runId)
     return this.value(request.runId, snapshot)
   }

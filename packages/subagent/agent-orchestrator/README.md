@@ -75,6 +75,8 @@ The first round starts one child Session per assignment. A follow-up round conti
 
 Source map: `src/index.ts` defines the Service and validated `Config`; `src/run.ts` owns the round controller and child lifecycle; `src/prompts.ts` owns the three model-visible prompts; `src/report.ts` writes the PDF; `src/schemas.ts` parses evaluator decisions.
 
+`src/report.ts` turns the terminal result into a details table and text sections, which [dsh-tool-pdf](../../document/tool-pdf/README.md) renders. A report string that opens a pipe table prints as that table; every other evidence, assumption, gap, and error string prints as one list item. The prompts ask every model for `==...==` around key facts and figures, and the PDF prints that mark on a yellow band. The run keeps the marks for the PDF alone: `run.result` and every published snapshot carry the same texts without them, because the calling model, the Remote surface, and run journals read the mark as literal text. A report string that names a crop as a Markdown image link pointing at the durable attachment store prints as that image: the link text becomes the caption, and the pixels come from the Session's own tool result.
+
 </details>
 
 -----
@@ -95,11 +97,11 @@ Source map: `src/index.ts` defines the Service and validated `Config`; `src/run.
 
 #### What the model sees
 
-The worker receives the assignment prompt followed by the autonomy statement and the report instruction: `Do not ask a human questions or wait for confirmation. Record missing facts as explicit assumptions or gaps and continue with the available evidence.` and `Return a structured report with summary, evidence, assumptions, and gaps.`
+The worker receives the assignment prompt followed by the autonomy statement, the report instruction, and the report text format. The autonomy statement reads `Do not ask a human questions or wait for confirmation. Record missing facts as explicit assumptions or gaps and continue with the available evidence.` The report instruction and format read `Return a structured report with summary, evidence, assumptions, and gaps. Every text field of the report is printed in a PDF that renders a small Markdown subset: write it as prose, "- " list items, or a pipe table with a header row and a --- separator row, and wrap the key facts, figures, and conclusions in ==...== so they print on a yellow band. Mark sparingly and never a whole sentence.`
 
 #### Token effect
 
-One autonomy sentence and one report instruction per worker, appended to the assignment prompt.
+One autonomy sentence and one report instruction with the report text format per worker, appended to the assignment prompt.
 
 #### KV Cache effect
 
@@ -123,11 +125,11 @@ Append-only: the follow-up is appended after the worker's retained history, so t
 
 #### What the model sees
 
-The evaluator receives `Original objective: <objective>`, optional `Initial circumstances: <circumstances>`, `Current worker reports: <JSON>`, the autonomy statement, and the decision instruction: `Evaluate completeness. Return targeted follow-ups only for known assignment ids, or complete, partial, or blocked with a summary and explicit assumptions/gaps. Do not request more work than the remaining round budget can perform.`
+The evaluator receives `Original objective: <objective>`, optional `Initial circumstances: <circumstances>`, `Current worker reports: <JSON>`, the autonomy statement, and the decision contract. The contract opens with `Evaluate completeness. Answer with exactly one JSON object using only these fields and no others:`, names one line per decision kind with its exact JSON fields, closes with `Fields of the other kinds must be omitted, not left empty or null. Do not request more work than the remaining round budget can perform.`, and ends with the same report text format the worker receives.
 
 #### Token effect
 
-The dominant cost is the serialized worker set, bounded by `maxHandoffChars`; the fixed framing is five short lines. An oversized handoff fails with `ORCHESTRATION_HANDOFF_LIMIT` before any evaluator request starts.
+The dominant cost is the serialized worker set, bounded by `maxHandoffChars`; the fixed framing is the objective line, the optional circumstances line, the autonomy statement, and the decision contract with the report text format. An oversized handoff fails with `ORCHESTRATION_HANDOFF_LIMIT` before any evaluator request starts.
 
 #### KV Cache effect
 
@@ -138,7 +140,8 @@ The evaluator Session is reused across rounds, so each round's handoff is append
 <a id="known-limitations-and-deferred-work"></a>
 
 - Runs are foreground and process-local: a process restart does not resume them, and the owning adapter reports an unknown run as unavailable.
-- Reports contain text and tables; child attachment images are not transferred into the parent Session.
+- Reports contain text, tables, and the crops the Session produced; a child's own attachment images are not transferred into the parent Session.
+- Report text takes only the Markdown subset of [dsh-tool-pdf](../../document/tool-pdf/README.md); italics, links, and nested inline marks print as written, except a link that names a crop the Session produced: it prints as that image.
 - Only the exact live root Agent may own a run; a nested orchestration is rejected.
 - The engine keeps at most `maxSettledRuns` settled snapshots per scoped service.
 

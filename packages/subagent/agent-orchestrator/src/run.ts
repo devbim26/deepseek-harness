@@ -36,6 +36,38 @@ function autonomousSetup(childCtx: Context): void {
     : undefined)
 }
 
+/**
+ * Copy a snapshot without the PDF highlight marks. The run keeps its report
+ * texts as the models wrote them, because the PDF prints `==...==` on the
+ * yellow band; a snapshot leaves the run for the calling model, the Remote
+ * surface, and run journals, which read the mark as literal text.
+ * @param snapshot - A snapshot or result holding the report texts of the run.
+ * @returns The copy with every closed `==...==` reduced to its text.
+ */
+function published<T extends AgentOrchestrationSnapshot>(snapshot: T): T {
+  const unmarked = (text: string): string => text.replace(/==(.+?)==/g, '$1')
+  const unmarkedList = (texts: readonly string[]): string[] => texts.map(unmarked)
+  return {
+    ...snapshot,
+    summary: unmarked(snapshot.summary),
+    workers: snapshot.workers.map(worker => ({
+      ...worker,
+      ...worker.report === undefined ? {} : {
+        report: {
+          ...worker.report,
+          summary: unmarked(worker.report.summary),
+          evidence: unmarkedList(worker.report.evidence),
+          assumptions: unmarkedList(worker.report.assumptions),
+          gaps: unmarkedList(worker.report.gaps),
+        },
+      },
+    })),
+    assumptions: unmarkedList(snapshot.assumptions),
+    gaps: unmarkedList(snapshot.gaps),
+    errors: unmarkedList(snapshot.errors),
+  }
+}
+
 /** Holder-owned run controller. */
 export class OrchestrationRunController implements AgentOrchestrationRun {
   readonly result: Promise<AgentOrchestrationResult>
@@ -103,13 +135,14 @@ export class OrchestrationRunController implements AgentOrchestrationRun {
   }
 
   private update(snapshot: Partial<AgentOrchestrationSnapshot>): void {
-    this.snapshotValue = { ...this.snapshotValue, ...snapshot, workers: [...this.workers] }
+    this.snapshotValue = published({ ...this.snapshotValue, ...snapshot, workers: [...this.workers] })
     this.onUpdate(this.snapshotValue)
   }
 
   private updateWorker(assignmentId: string, patch: Partial<AgentOrchestrationWorkerResult>): void {
     const index = this.workers.findIndex(worker => worker.assignmentId === assignmentId)
-    this.workers[index] = { ...this.workers[index]!, ...patch }
+    const previous = this.workers[index]
+    if (previous !== undefined) this.workers[index] = { ...previous, ...patch }
     this.update({ workers: [...this.workers] })
   }
 
@@ -160,7 +193,10 @@ export class OrchestrationRunController implements AgentOrchestrationRun {
   }
 
   private async runWorker(assignmentId: string, followUp?: AgentOrchestrationFollowUp): Promise<void> {
-    const assignment = this.request.assignments.find(candidate => candidate.id === assignmentId)!
+    const assignment = this.request.assignments.find(candidate => candidate.id === assignmentId)
+    if (assignment === undefined) {
+      throw new AgentOrchestratorError(`follow-up names an unknown assignment id: ${assignmentId}`, 'ORCHESTRATION_EVALUATOR_FAILED')
+    }
     const previous = this.workers.find(worker => worker.assignmentId === assignmentId)
     const { childId: activatedChildId, result } = await this.startChild(
       previous?.childId,
@@ -169,7 +205,7 @@ export class OrchestrationRunController implements AgentOrchestrationRun {
       followUp === undefined ? workerPrompt(assignment) : workerFollowUpPrompt(followUp),
       WORKER_REPORT_SCHEMA,
     )
-    this.updateWorker(assignmentId, { childId: activatedChildId, rounds: previous!.rounds + 1, error: undefined })
+    this.updateWorker(assignmentId, { childId: activatedChildId, rounds: (previous?.rounds ?? 0) + 1, error: undefined })
     if (result.stopReason !== 'completed' || result.structured === undefined) {
       this.updateWorker(assignmentId, {
         error: result.diagnostic ?? `worker ended with ${result.stopReason} without a valid structured report`,
@@ -192,7 +228,8 @@ export class OrchestrationRunController implements AgentOrchestrationRun {
       while (!this.controller.signal.aborted) {
         const index = next++
         if (index >= targets.length) return
-        const target = targets[index]!
+        const target = targets[index]
+        if (target === undefined) return
         await this.runWorker(target.assignmentId, followUps === undefined ? undefined : target as AgentOrchestrationFollowUp)
       }
     })
@@ -308,6 +345,6 @@ export class OrchestrationRunController implements AgentOrchestrationRun {
     this.terminal = true
     this.request.signal?.removeEventListener('abort', this.externalAbort)
     this.update(result)
-    return result
+    return published(result)
   }
 }

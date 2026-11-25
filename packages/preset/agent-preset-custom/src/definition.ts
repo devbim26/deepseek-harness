@@ -15,14 +15,27 @@ function rosterLine(delegate: CustomAgentRecord): string {
   return `- ${delegate.id} «${delegate.name}» — ${delegate.description}`
 }
 
+/**
+ * Lead-in ahead of an orchestrated preset's roster. Without it the model sees
+ * the orchestrate_agents tool but never learns which stored delegates exist,
+ * so it either ignores the tool or invents delegate ids.
+ */
+const ORCHESTRATION_ROSTER_LEAD_IN
+  = 'Delegates available to orchestrate_agents (omit assignments to run all of them; assignments accept only these ids):'
+
 /** Keep one scoped service private to this preset revision. */
-function isolatedRow(row: PresetDefinition['plugins'][number]): PresetDefinition['plugins'][number] {
-  const service = SERVICE_ISOLATION[row.name]
-  return service === undefined ? row : { ...row, isolate: { ...row.isolate, [service]: true } }
+function isolatedRow(row: Row, service: string): Row {
+  return { ...row, isolate: { ...row.isolate, [service]: true } }
 }
 
 /** One preset plugin row before the orchestration group is assembled. */
 type Row = PresetDefinition['plugins'][number]
+
+/** A grouped row with the service realm it must keep private. */
+interface IsolatedServiceRow {
+  readonly row: Row
+  readonly service: string
+}
 
 /**
  * Split preset rows into the ones the orchestration group owns and the rest.
@@ -31,18 +44,19 @@ type Row = PresetDefinition['plugins'][number]
  * share one realm; a package already present in the deployment is not added
  * twice.
  */
-function partitionServiceRows(rows: readonly Row[]): { grouped: Row[]; rest: Row[] } {
-  const grouped: Row[] = []
+function partitionServiceRows(rows: readonly Row[]): { grouped: IsolatedServiceRow[]; rest: Row[] } {
+  const grouped: IsolatedServiceRow[] = []
   const rest: Row[] = []
   const seen = new Set<string>()
   for (const row of rows) {
-    if (SERVICE_ISOLATION[row.name] === undefined) {
+    const service = SERVICE_ISOLATION[row.name]
+    if (service === undefined) {
       rest.push(row)
       continue
     }
     if (seen.has(row.name)) continue
     seen.add(row.name)
-    grouped.push(row)
+    grouped.push({ row, service })
   }
   return { grouped, rest }
 }
@@ -70,7 +84,7 @@ function orchestrationChildren(
       },
     },
   ]
-  const owned = new Set(grouped.map(row => row.name))
+  const owned = new Set(grouped.map(entry => entry.row.name))
   if (!owned.has(config.pdf.name)) {
     children.push({ id: 'orchestration-pdf', name: config.pdf.name, config: config.pdf.config ?? {} })
   }
@@ -81,7 +95,7 @@ function orchestrationChildren(
   // declared its own realm would publish the service under a private symbol
   // the group's other rows cannot see, and the engine would find no report
   // service to write the orchestration PDF with.
-  return [...grouped, ...children]
+  return [...grouped.map(entry => entry.row), ...children]
 }
 
 /**
@@ -101,9 +115,12 @@ export function synthesizeDefinition(
     ? record.instructions
     : `${config.instructionsPrefix} ${record.instructions}`
   const orchestrated = record.isOrchestrator && record.delegates.length > 0 && config.orchestration !== undefined
-  const roster = !orchestrated && record.isOrchestrator && record.delegates.length > 0 && config.delegation?.rosterTemplate
-    ? `\n\n${config.delegation.rosterTemplate}\n${delegateRecords.map(rosterLine).join('\n')}`
-    : ''
+  const rosterLines = delegateRecords.map(rosterLine).join('\n')
+  const roster = orchestrated
+    ? delegateRecords.length === 0 ? '' : `\n\n${ORCHESTRATION_ROSTER_LEAD_IN}\n${rosterLines}`
+    : record.isOrchestrator && record.delegates.length > 0 && config.delegation?.rosterTemplate
+      ? `\n\n${config.delegation.rosterTemplate}\n${rosterLines}`
+      : ''
   const prefix = `${base}${roster}`
   const delegation = !orchestrated && record.isOrchestrator && record.delegates.length > 0 && config.delegation !== undefined
     ? [
@@ -148,7 +165,7 @@ export function synthesizeDefinition(
     : [
       { id: 'persona', name: '@deepseek-ai/dsh-persona', config: { prefix } },
       ...rest,
-      ...grouped.map(isolatedRow),
+      ...grouped.map(({ row, service }) => isolatedRow(row, service)),
       ...delegation,
     ]
   return {

@@ -2,26 +2,52 @@
 import { basename } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
+import type { Session } from '@deepseek-ai/dsh-session'
 import type { ReportBlock } from '@deepseek-ai/dsh-tool-pdf/types'
 import type {} from '@deepseek-ai/dsh-tool-pdf/types'
+import { expandCropLinks } from './crops.ts'
 import { AgentOrchestratorError } from './error.ts'
 import type {
   AgentOrchestrationPdf, AgentOrchestrationReportRequest,
   AgentOrchestrationResult, AgentOrchestrationRunId,
 } from './types.ts'
 
+/** A value that opens a Markdown structure prints as that structure, not as a list item. */
+const STRUCTURED_VALUE = /^\s*(?:\||#|[-*+]\s|\d{1,3}[.)]\s)/
+
+/**
+ * Build the list block of a report's strings. Each value becomes one list item
+ * unless it opens a Markdown structure; an empty line between the values keeps
+ * neighboring pipe characters from joining into one table.
+ * @param heading - Section heading printed above the list.
+ * @param values - The report strings in their order.
+ * @returns The list block, or no block when there is no value.
+ */
 function listBlock(heading: string, values: readonly string[]): ReportBlock[] {
-  return values.length === 0 ? [] : [{ type: 'text', heading, text: values.join('\n') }]
+  if (values.length === 0) return []
+  return [{
+    type: 'text',
+    heading,
+    text: values.map(value => STRUCTURED_VALUE.test(value) ? value : `- ${value}`).join('\n\n'),
+  }]
 }
 
 /**
  * Convert a terminal run into report blocks retaining status, evidence, assumptions, and gaps.
  *
+ * A worker names its crops as Markdown image links; the blocks carry those
+ * links as the images they name, resolved against the Session's own results.
+ *
  * @param request - Report request supplying the title and detail rows.
  * @param result - Terminal orchestration result.
+ * @param session - Session holding the tool results the crops come from.
  * @returns Blocks for the shared PDF report service.
  */
-export function orchestrationReportBlocks(request: AgentOrchestrationReportRequest, result: AgentOrchestrationResult): ReportBlock[] {
+export function orchestrationReportBlocks(
+  request: AgentOrchestrationReportRequest,
+  result: AgentOrchestrationResult,
+  session: Session,
+): ReportBlock[] {
   const incomplete = result.status === 'partial' || result.status === 'budget-limited'
   const blocks: ReportBlock[] = [
     ...incomplete ? [{ type: 'text' as const, heading: 'Неполный результат', text: `Статус: ${result.status}` }] : [],
@@ -45,7 +71,7 @@ export function orchestrationReportBlocks(request: AgentOrchestrationReportReque
   blocks.push(...listBlock('Общие допущения', result.assumptions))
   blocks.push(...listBlock('Общие пробелы', result.gaps))
   blocks.push(...listBlock('Ошибки', result.errors))
-  return blocks
+  return blocks.flatMap(block => expandCropLinks(session, block))
 }
 
 /**
@@ -80,7 +106,7 @@ export async function createOrchestrationPdf(
     const written = await reports.create(agent, {
       filePath,
       title: request.title,
-      blocks: orchestrationReportBlocks(request, result),
+      blocks: orchestrationReportBlocks(request, result, agent.session),
       actor: { agent },
     }, signal)
     return { path: written.path, name: basename(written.path), bytes: written.bytes, pages: written.pages }

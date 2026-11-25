@@ -53,7 +53,7 @@ kind: "package-reference"
 | `basePlugins` | `[]` | 每个自定义智能体固定挂载的子行，由部署从其 standard preset 复制（不含 persona）。 |
 | `allowedTools` | `{}` | 白名单：记录键 → 选中该键的智能体挂载的插件行 `{ name, config?, label?, description? }`；表单为每个条目渲染一个复选框，未勾选即硬性阻断——智能体不会挂载该行。记录只保存键。 |
 | `delegation` | — | 编排者的委派行（`name` + 基础 `config` + 可选 `rosterTemplate` + 可选 `control`）；该字段缺失时管理器中的“编排者”开关禁用。服务会从记录添加 `allowedAgentPresets`，并把委托名册（`rosterTemplate` 引导语 + 每个委托一行 `- <id> «<名称>» — <描述>`）追加到编排者的人格中；`rosterTemplate` 缺失或为空时人格不含名册文本。`control`（`name` + 基础 `config`）在委派行旁额外挂载一行仅编排者可见的插件行——通常是提供共享 `list_agents` / `wait_agent` / `send_message` / `interrupt_agent` 工具的 `@deepseek-ai/dsh-tool-subagent-control`。 |
-| `orchestration` | — | 编排者的对话式编排模板：`engine`、`tool`、`pdf` 和 `present` 四行，以及可选的 `evaluatorPreset`。它的优先级高于 `delegation`。挂载的组拥有编排引擎、`orchestrate_agents` 工具、PDF 写入器和文件交付；PDF 与 present 按包名相对 `basePlugins` 和记录选中的工具去重。 |
+| `orchestration` | — | 编排者的对话式编排模板：`engine`、`tool`、`pdf` 和 `present` 四行，以及可选的 `evaluatorPreset`。它的优先级高于 `delegation`。挂载的组拥有编排引擎、`orchestrate_agents` 工具、PDF 写入器和文件交付；PDF 与 present 按包名相对 `basePlugins` 和记录选中的工具去重。人格中还会带有已存储的委托名册，并以固定引导语点名 `orchestrate_agents`，因此模型无需用户在指令中写出委托 id 就能知道它们。 |
 | `orchestratorDefaults` | `{ maxIterations: 3, maxParallel: 3, autoReport: true }` | 为旧记录和省略的 wire 字段补齐的值。 |
 | `orchestratorCeilings` | `{ maxIterations: 10, maxParallel: 10 }` | 存储的轮次与并行上限；超过上限的值被拒绝。 |
 | `maxNameChars` | `64` | 名称长度上限。 |
@@ -61,7 +61,7 @@ kind: "package-reference"
 | `maxInstructionsChars` | `16384` | 指令长度上限。 |
 | `maxAgents` | `50` | 部署级记录数量上限。 |
 
-编排者是带有 `isOrchestrator: true` 且 `delegates` 非空（既有普通智能体的 id，不含自身）的记录。合成会挂载 `delegation` 行并携带 `allowedAgentPresets: delegates`，且在设置 `rosterTemplate` 时把委托名册追加到人格——模型无需在指令中点名即可知道能启动谁。部署指定的 `control` 行挂载在委派行旁，为编排者提供共享的子代理控制工具。删除级联清空列表后两行均不再挂载，标志保留。被其他记录的 `delegates` 引用的智能体不能成为编排者；删除智能体会级联清理引用，更新智能体会重新挂载引用它的编排者，使其名册反映当前名称与描述（其存储记录保留各自版本）。`hidden` 将 preset 从选择器中隐藏（`agentPresets/list` 携带该标志），但定义保持挂载，仍可被编排者启动。
+编排者是带有 `isOrchestrator: true` 且 `delegates` 非空（既有普通智能体的 id，不含自身）的记录。合成会挂载 `delegation` 行并携带 `allowedAgentPresets: delegates`，且在设置 `rosterTemplate` 时把委托名册追加到人格——模型无需在指令中点名即可知道能启动谁。配置 `orchestration` 后，名册也会为每个被编排的记录追加，引导语固定为 `Delegates available to orchestrate_agents`，并同时声明 assignments 只接受已存储的委托 id。部署指定的 `control` 行挂载在委派行旁，为编排者提供共享的子代理控制工具。删除级联清空列表后两行均不再挂载，标志保留。被其他记录的 `delegates` 引用的智能体不能成为编排者；删除智能体会级联清理引用，更新智能体会重新挂载引用它的编排者，使其名册反映当前名称与描述（其存储记录保留各自版本）。`hidden` 将 preset 从选择器中隐藏（`agentPresets/list` 携带该标志），但定义保持挂载，仍可被编排者启动。
 
 配置了 `orchestration` 的部署还会得到第二个 Remote 表面 `customAgentOrchestrations`，含 `orchestrationStart`、`orchestrationStatus` 和 `orchestrationCancel`。它接受目标、可选背景、可选的委托子集和报告展示信息；委托、评估器预置、轮次与并行上限以及报告开关都来自已保存的记录。适配器找到确切的在线根 Agent，把它的组合预置与已保存的编排者记录比对，并通过该 Agent 自己预置修订中的引擎服务启动运行。调用方的信号只管准入：调用返回后运行继续，未知运行报告为不可用，而不是过时的成功。
 
@@ -91,7 +91,7 @@ kind: "package-reference"
 
 #### 模型看到什么
 
-合成 preset 的 `plugins` 拥有工具与提示词分节：`persona` 前缀——一个 `{{model}}` 模板加上用户指令——开启提示词，白名单行提供其工具。编排者的前缀额外携带委托名册：部署的 `rosterTemplate` 引导语，随后每个委托一行 `- <id> «<名称>» — <描述>`，使 `subagent` 工具的 `agent_preset` 枚举呈现为具名角色而非裸 id。
+合成 preset 的 `plugins` 拥有工具与提示词分节：`persona` 前缀——一个 `{{model}}` 模板加上用户指令——开启提示词，白名单行提供其工具。编排者的前缀额外携带委托名册：部署的 `rosterTemplate` 引导语，随后每个委托一行 `- <id> «<名称>» — <描述>`，使 `subagent` 工具的 `agent_preset` 枚举呈现为具名角色而非裸 id。被编排的 preset（对话式 `orchestration` 模板）携带同样的名册，引导语固定为 `Delegates available to orchestrate_agents`，并同时声明 assignments 只接受已存储的委托 id。
 
 #### Token 影响
 

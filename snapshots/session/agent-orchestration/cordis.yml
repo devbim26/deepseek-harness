@@ -1,0 +1,106 @@
+# Live-recording composition for the conversational orchestration scenario.
+# The model runs through OpenRouter's OpenAI-compatible completions API: the
+# DeepSeek Messages adapter validates provider-specific usage fields that
+# OpenRouter reports differently, so the recording uses the pi-ai route.
+- id: llm-deepseek
+  name: '@deepseek-ai/dsh-llm-deepseek-api-key'
+  disabled: true
+
+# The recording must replay on every platform, so the scenario mounts no shell
+# tool: the shipped roster splits bash (POSIX) from pwsh (Windows), and that
+# split would put a different tool catalog and a different system-prompt
+# section into the recorded request header on each platform.
+- id: tool-bash
+  disabled: true
+
+- id: tool-pwsh
+  disabled: true
+
+# The web search tool admits itself per chat route: the DeepSeek search provider
+# cannot authenticate against the OpenRouter route, so the recorded request
+# carries no web_search while the replay route admits one. The scenario mounts
+# no search tool, so both requests carry the same catalog.
+- id: tool-web
+  config:
+    search: false
+
+- id: llm-pi-ai
+  name: '@deepseek-ai/dsh-llm-pi-ai'
+  config:
+    providers:
+      openrouter:
+        apiKeyEnv: OPENROUTER_API_KEY
+        api: openai-completions
+        baseURL: https://openrouter.ai/api/v1
+        models:
+          - id: deepseek/deepseek-v4-pro
+
+- id: agent-default-model
+  name: '@deepseek-ai/dsh-agent-default-model'
+  config:
+    provider: openrouter
+    model: deepseek/deepseek-v4-pro
+
+- id: session-title-llm
+  disabled: true
+
+# The recording must replay on every platform, so the sandbox runs an
+# operator-supplied passthrough runner: the native Windows runner would add a
+# Windows-only diagnosis skill to the recorded request header, and the
+# recording would then replay only on Windows.
+- id: sandbox
+  name: '@deepseek-ai/dsh-sandbox-local'
+  config:
+    runnerCommand:
+      - bash
+      - -c
+      - while [ "$1" != "--" ]; do shift; done; shift; exec "$@"
+      - passthrough-runner
+    runnerFailureSignatures:
+      - 'passthrough-runner: profile rejected'
+
+- id: session-persistence-jsonl
+  config:
+    root: !!js dshHomePath('sessions')
+    compression: none
+
+- insert:
+    - id: agent-preset-registry
+      name: '@deepseek-ai/dsh-agent-preset-registry'
+      config:
+        default: orchestrator
+
+    - id: preset-orchestrator
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: orchestrator
+        name: Orchestrator
+        description: Coordinates the reviewer.
+        plugins: []
+
+    - id: preset-reviewer
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: reviewer
+        name: Reviewer
+        description: Reviews evidence.
+        plugins: []
+
+    - id: agent-orchestrator
+      name: '@deepseek-ai/dsh-agent-orchestrator'
+      config:
+        provider: spawn
+        maxHandoffChars: 65536
+        maxSettledRuns: 4
+        reportDirectory: reports
+
+    - id: tool-agent-orchestrator
+      name: '@deepseek-ai/dsh-tool-agent-orchestrator'
+      config:
+        delegates:
+          - id: reviewer
+            name: Reviewer
+            description: Checks facts and missing evidence.
+        maxIterations: 2
+        maxParallel: 1
+        autoReport: false

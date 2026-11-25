@@ -75,6 +75,8 @@ plugins:
 
 Карта источников: `src/index.ts` определяет Service и валидированный `Config`; `src/run.ts` владеет контроллером раундов и жизненным циклом детей; `src/prompts.ts` владеет тремя видимыми модели промптами; `src/report.ts` пишет PDF; `src/schemas.ts` разбирает решения оценщика.
 
+`src/report.ts` превращает завершённый результат в таблицу параметров и текстовые разделы, которые рендерит [dsh-tool-pdf](../../document/tool-pdf/README.zh.md). Строка отчёта, начинающая pipe-таблицу, печатается как эта таблица; каждая прочая строка доказательства, допущения, пробела или ошибки печатается одним пунктом списка. Промпты просят каждую модель помечать ключевые факты и цифры через `==...==`, и PDF печатает эту пометку жёлтой полосой. Прогон хранит пометки только для PDF: `run.result` и каждый опубликованный снимок несут те же тексты без них, потому что вызывающая модель, поверхность Remote и журналы прогонов читают пометку как буквальный текст. Строка отчёта, которая называет кроп Markdown-ссылкой на изображение в постоянном хранилище вложений, печатается как это изображение: текст ссылки становится подписью, а пиксели берутся из собственного результата инструмента Session.
+
 </details>
 
 -----
@@ -95,11 +97,11 @@ plugins:
 
 #### 模型看到什么
 
-Работник получает промпт задания, затем заявление об автономии и инструкцию по отчёту: `Do not ask a human questions or wait for confirmation. Record missing facts as explicit assumptions or gaps and continue with the available evidence.` и `Return a structured report with summary, evidence, assumptions, and gaps.`
+Работник получает промпт задания, затем заявление об автономии, инструкцию по отчёту и формат текста отчёта. Заявление об автономии читается как `Do not ask a human questions or wait for confirmation. Record missing facts as explicit assumptions or gaps and continue with the available evidence.` Инструкция и формат отчёта читаются как `Return a structured report with summary, evidence, assumptions, and gaps. Every text field of the report is printed in a PDF that renders a small Markdown subset: write it as prose, "- " list items, or a pipe table with a header row and a --- separator row, and wrap the key facts, figures, and conclusions in ==...== so they print on a yellow band. Mark sparingly and never a whole sentence.`
 
 #### Token 影响
 
-Одно предложение об автономии и одна инструкция по отчёту на работника, дописанные к промпту задания.
+Одно предложение об автономии и одна инструкция по отчёту с форматом текста отчёта на работника, дописанные к промпту задания.
 
 #### KV Cache 效应
 
@@ -123,11 +125,11 @@ plugins:
 
 #### 模型看到什么
 
-Оценщик получает `Original objective: <objective>`, необязательно `Initial circumstances: <circumstances>`, `Current worker reports: <JSON>`, заявление об автономии и инструкцию решения: `Evaluate completeness. Return targeted follow-ups only for known assignment ids, or complete, partial, or blocked with a summary and explicit assumptions/gaps. Do not request more work than the remaining round budget can perform.`
+Оценщик получает `Original objective: <objective>`, необязательно `Initial circumstances: <circumstances>`, `Current worker reports: <JSON>`, заявление об автономии и контракт решения. Контракт открывается словами `Evaluate completeness. Answer with exactly one JSON object using only these fields and no others:`, называет по одной строке на вид решения с его точными JSON-полями, закрывается словами `Fields of the other kinds must be omitted, not left empty or null. Do not request more work than the remaining round budget can perform.` и завершается тем же форматом текста отчёта, который получает работник.
 
 #### Token 影响
 
-Доминирующая стоимость — сериализованный набор работников, ограниченный `maxHandoffChars`; фиксированная обвязка — пять коротких строк. Превышение передачи рушится с `ORCHESTRATION_HANDOFF_LIMIT` до старта любого запроса к оценщику.
+Доминирующая стоимость — сериализованный набор работников, ограниченный `maxHandoffChars`; фиксированная обвязка — строка цели, необязательная строка обстоятельств, заявление об автономии и контракт решения с форматом текста отчёта. Превышение передачи рушится с `ORCHESTRATION_HANDOFF_LIMIT` до старта любого запроса к оценщику.
 
 #### KV Cache 效应
 
@@ -138,7 +140,8 @@ Session оценщика переиспользуется между раунд�
 <a id="known-limitations-and-deferred-work"></a>
 
 - Прогоны foreground и process-local: перезапуск процесса их не возобновляет, а владеющий адаптер сообщает о неизвестном прогоне как о недоступном.
-- Отчёты содержат текст и таблицы; изображения из вложений детей не переносятся в родительскую Session.
+- Отчёты содержат текст, таблицы и кропы, произведённые Session; собственные изображения вложений ребёнка в родительскую Session не переносятся.
+- Текст отчёта принимает только подмножество Markdown из [dsh-tool-pdf](../../document/tool-pdf/README.zh.md); курсив, ссылки и вложенные inline-пометки печатаются как написаны, кроме ссылки, которая называет произведённый Session кроп: она печатается как это изображение.
 - Прогоном может владеть только точный живой корневой Agent; вложенная оркестрация отклоняется.
 - Движок хранит не более `maxSettledRuns` снимков завершённых прогонов на scoped-сервис.
 

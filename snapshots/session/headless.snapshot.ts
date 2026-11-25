@@ -77,6 +77,15 @@ function snapshotMode(value: string | undefined): SnapshotMode {
 const mode = snapshotMode(process.env.DSH_SNAPSHOT)
 const RUNTIME_WORKSPACE_ENTRIES = ['.agents', '.dsh', '.snapshot-patches'] as const
 
+/**
+ * Scenarios whose own turns outlast the harness process deadline: the live
+ * orchestration record drives a parent, a worker, and an evaluator through a
+ * real provider, which the 30-second default cannot cover.
+ */
+const SCENARIO_PROCESS_TIMEOUT_MS: Readonly<Record<string, number>> = {
+  'agent-orchestration': 600_000,
+}
+
 interface JsonObject {
   [key: string]: unknown
 }
@@ -1358,6 +1367,10 @@ describe('headless recorded-session snapshots', () => {
       || mode === 'record' && scenario.manifest.sessionFormat !== undefined
     const scenarioTest = skipped ? it.skip : mode === 'replay' ? it.concurrent : it
     const inputLabel = retainedToolInput === undefined ? '' : ' from retained V3 input'
+    const processTimeoutMs = SCENARIO_PROCESS_TIMEOUT_MS[scenario.name]
+    const testTimeoutMs = processTimeoutMs === undefined
+      ? scenario.name === 'provider-cwd' ? 3 * LOADER_SMOKE_TEST_TIMEOUT_MS : LOADER_SMOKE_TEST_TIMEOUT_MS
+      : processTimeoutMs + 15_000
     scenarioTest(`${mode}s ${scenario.name}${inputLabel} through dsh --profile headless`, async () => {
       let fixtureFiles = retainedToolInput === undefined
         ? recordingFixtureNames(await readdir(scenario.dir), mode) : [retainedToolInput]
@@ -1406,6 +1419,7 @@ describe('headless recorded-session snapshots', () => {
           tempDirPrefix: 'dsh-log-snap-',
           ...(scenario.name === 'compaction-recovery' ? await compactionWorkspaceOptions() : {}),
           ...(scenario.manifest.workspace?.parent === 'outside-temp' ? { tempDirParent: outsideTempWorkspaceParent() } : {}),
+          ...(processTimeoutMs === undefined ? {} : { processTimeoutMs }),
           binScript: dshBin,
           sourceImport: 'tsx/esm',
           configPath: join(baseComposition.dir, 'cordis.yml'),
@@ -1641,6 +1655,6 @@ describe('headless recorded-session snapshots', () => {
       } else {
         expect(finalWorkspace, `${scenario.name}: a changed workspace requires workspace.final`).toEqual(initialWorkspace)
       }
-    }, scenario.name === 'provider-cwd' ? 3 * LOADER_SMOKE_TEST_TIMEOUT_MS : LOADER_SMOKE_TEST_TIMEOUT_MS)
+    }, testTimeoutMs)
   }
 })

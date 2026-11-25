@@ -210,7 +210,7 @@ describe('conversational agent orchestration', () => {
     })
     const partialResult = await partialRun.result
     expect(partialResult.status).toBe('partial')
-    expect(orchestrationReportBlocks({ title: 'Частичный отчёт', details: [] }, partialResult)[0])
+    expect(orchestrationReportBlocks({ title: 'Частичный отчёт', details: [] }, partialResult, partialFixture.parent.session)[0])
       .toMatchObject({ heading: 'Неполный результат' })
     await partialRun.dispose()
 

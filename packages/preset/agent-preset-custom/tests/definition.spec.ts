@@ -60,6 +60,24 @@ describe('custom agent definition synthesis', () => {
     expect(legacy.plugins).toContainEqual(expect.objectContaining({ id: 'delegation-control', name: 'control' }))
   })
 
+  it('renders the stored delegate roster into an orchestrated preset persona', () => {
+    const worker = record({ id: 'custom/worker', name: 'Worker', description: 'Checks facts and missing evidence.' })
+    const lead = record({ id: 'custom/lead', isOrchestrator: true, delegates: [worker.id] })
+    const orchestration = {
+      engine: { name: 'engine' }, tool: { name: 'tool' }, pdf: { name: 'pdf' }, present: { name: 'present' },
+    }
+    const definition = synthesizeDefinition(lead, { ...standardConfig, orchestration }, [worker])
+    const prefix = (definition.plugins[0]?.config as { prefix: string }).prefix
+    expect(prefix).toContain('Delegates available to orchestrate_agents')
+    expect(prefix).toContain('- custom/worker «Worker» — Checks facts and missing evidence.')
+
+    const legacy = synthesizeDefinition(lead, { ...standardConfig, orchestration: undefined, delegation: { name: 'legacy' } }, [worker])
+    expect((legacy.plugins[0]?.config as { prefix: string }).prefix).not.toContain('orchestrate_agents')
+
+    const empty = synthesizeDefinition(lead, { ...standardConfig, orchestration }, [])
+    expect((empty.plugins[0]?.config as { prefix: string }).prefix).not.toContain('orchestrate_agents')
+  })
+
   it('fails loudly when a stored tool leaves the deployment whitelist', () => {
     expect(() => synthesizeDefinition(record({ tools: ['missing'] }), { ...standardConfig, allowedTools: {} }, []))
       .toThrow("the whitelist no longer carries the 'missing' tool")

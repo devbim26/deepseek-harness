@@ -1,0 +1,10 @@
+version: 1
+scenario: agent-orchestration
+profile: headless
+composition: agent-orchestration
+recording: live
+header:
+  class: agent-orchestration
+  pin: true
+  childSystemPrompts: [1, 2]
+  childToolSchemas: [1, 2]
