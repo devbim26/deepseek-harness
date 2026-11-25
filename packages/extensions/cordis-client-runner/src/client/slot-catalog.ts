@@ -129,9 +129,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     hookContext: '',
     slotInject: '',
     declaredBy: 'an entry in \'conversation.hero.agentPreset\' (client-ui-agent-preset), so it exists while that entry is mounted',
-    occupants: [
-      'client-ui-custom-agents CreateCustomAgentButton id \'create-custom-agent\'',
-    ],
+    occupants: [],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'agentPreset.picker.actions\', () => ctx.slots.register(\n      { name: \'agentPreset.picker.actions\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
     source: 'packages/client/ui-agent-preset/src/client/slot-contract.ts:6',
@@ -180,9 +178,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     hookContext: '',
     slotInject: '',
     declaredBy: 'an entry in \'conversation.hero.agentPreset\' (client-ui-agent-preset), so it exists while that entry is mounted',
-    occupants: [
-      'client-ui-custom-agents CustomAgentsOverlay id \'custom-agents-dialog\'',
-    ],
+    occupants: [],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'agentPreset.picker.overlays\', () => ctx.slots.register(\n      { name: \'agentPreset.picker.overlays\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
     source: 'packages/client/ui-agent-preset/src/client/slot-contract.ts:8',
@@ -618,6 +614,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ownerPropsReferences: [
       'MessageImageLoader',
       'OpenFileOptions',
+      'Turn',
       'TurnProcessOwnerProps',
     ],
     standardProps: [
@@ -796,6 +793,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       '/** Owner currency of the completed-Turn extension chain. */\nexport interface TurnTailOwnerProps {\n  turn: TurnLocation\n  seq: number\n  openFile: (path: string) => void\n}',
     ],
     ownerPropsReferences: [
+      'Turn',
       'TurnLocation',
     ],
     standardProps: [
@@ -4161,6 +4159,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'client-ui-agent-team TeamDisableConfirmation id \'agent-team.disable\'',
       'client-ui-chat QuotaNoticeHost id \'chat.quota-notice\'',
       'client-ui-context-menu MenuOverlay id \'context-menu\'',
+      'client-ui-custom-agents CustomAgentsOverlay id \'custom-agents-dialog\'',
       'client-ui-file-drag FileDragFeedback id \'file-drag.feedback\'',
       'client-ui-open-in-app OpenInAppToast id \'open-in-app.toast\'',
       'client-ui-plugin-manager PluginRefreshToast id \'plugin-manager.refresh-toast\'',
@@ -5665,14 +5664,14 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'tool.call.images\', () => ctx.slots.register(\n      { name: \'tool.call.images\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-tool/src/client/contract/slots.ts:40',
+    source: 'packages/client/ui-tool/src/client/contract/slots.ts:39',
   },
   {
     key: 'tool.call.toolview',
     kind: 'keyed',
     scope: 'session',
     summary: 'Keyed Tool view dispatched by wire name, including custom tools.',
-    doc: 'Keyed Tool view dispatched by wire name, including custom tools. Register with `key: \'<tool\nname>\'`; a typo never renders. Occupied keys replace the view; unclaimed keys use the\ngeneric row. Owner phase data includes `name` and lazy `args`, possibly incomplete.',
+    doc: 'Keyed Tool view dispatched by wire name, including custom tools. Register with `key: \'<tool name>\'`; a typo never renders. Occupied\nkeys replace the view; unclaimed keys use the generic row. Owner phase data includes `name` and lazy `args`, possibly incomplete.',
     registerOptions: [
       {
         name: 'key',
@@ -5692,6 +5691,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'PreparingToolCall',
       'StartedToolCall',
       'ToolResultNode',
+      'Turn',
       'UseDisclosure',
     ],
     standardProps: [
@@ -5786,7 +5786,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'tool.call.toolview\', () => ctx.slots.register(\n      { name: \'tool.call.toolview\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-tool/src/client/contract/slots.ts:22',
+    source: 'packages/client/ui-tool/src/client/contract/slots.ts:21',
   },
   {
     key: 'tool.view.cordis',

@@ -1,7 +1,6 @@
 /** New-project dialog: one name under the Host's project base becomes a Workspace. */
 import { useRef, useState } from 'react'
 import { Button, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
-import { WorkspaceProjectCreateError } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { WorkspaceBrowserProps } from '../contract/slots.ts'
 import css from './WorkspaceBrowser.module.css'
 
@@ -19,9 +18,13 @@ export function NewProjectDialog({ createProject, startSession, onClose, t }: Pr
   const blocked = busy || trimmed === ''
 
   const localizedError = (reason: unknown): string => {
-    if (reason instanceof WorkspaceProjectCreateError) {
-      if (reason.rpcError.code === 'workspace/project-exists') return t('project.error.exists')
-      if (reason.rpcError.code === 'workspace/project-name-invalid') return t('project.error.invalid')
+    // The controller rejects createProject with WorkspaceProjectCreateError.
+    // The documented error name keeps this feature package free of a runtime
+    // import of the controller's client surface; rpcError.code picks the message.
+    if (reason instanceof Error && reason.name === 'WorkspaceProjectCreateError') {
+      const code = (reason as Error & { rpcError?: { code?: string } }).rpcError?.code
+      if (code === 'workspace/project-exists') return t('project.error.exists')
+      if (code === 'workspace/project-name-invalid') return t('project.error.invalid')
       return t('project.error.failed')
     }
     return reason instanceof Error ? reason.message : String(reason)
@@ -36,7 +39,7 @@ export function NewProjectDialog({ createProject, startSession, onClose, t }: Pr
     if (blocked) return
     setBusy(true)
     setError(null)
-    createProject({ name: trimmed }).then(workspace => {
+    createProject({ name: trimmed }).then((workspace) => {
       setBusy(false)
       onClose()
       startSession(workspace.workspaceId, { clearPreviousDraft: false })

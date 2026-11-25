@@ -43,9 +43,6 @@
         "@deepseek-ai/dsh-client-ui-sidebar",
         "@deepseek-ai/dsh-client-ui-context-menu"
       ],
-      "external": [
-        "@deepseek-ai/dsh-api-workspace-controller/client"
-      ],
       "platform": "web"
     }
   },
